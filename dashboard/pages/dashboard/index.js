@@ -85,7 +85,8 @@ export default function DashboardHome() {
                     <h6 className="text-muted">My Website</h6>
                     <div className="d-flex align-items-center mb-2">
                       <div className="px-3 py-1 bg-light border rounded me-2">
-                        <strong>Sarah’s Portfolio</strong>
+                    <strong>Sarah&rsquo;s Portfolio</strong>
+
                       </div>
                       <Badge bg="success">Published</Badge>
                     </div>
