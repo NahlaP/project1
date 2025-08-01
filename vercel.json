@@ -1,5 +1,5 @@
 {
-  "public": "frontend1html",
+  "outputDirectory": "frontend1html",
   "rewrites": [
     {
       "source": "/",
@@ -7,3 +7,4 @@
     }
   ]
 }
+
