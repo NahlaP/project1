@@ -1,15 +1,13 @@
 
 
 
-
-
 // // dashboard/pages/layouts/EditorDashboardLayout.js
 
 // import React, { useState, useEffect } from 'react';
 // import { Row, Col, Nav, Accordion, Spinner, Button } from 'react-bootstrap';
 // import NavbarEditor from 'layouts/navbars/NavbarEditor';
 // import { useRouter } from 'next/router';
-// import { BsHouseDoor, BsInfoCircle, BsTelephone } from 'react-icons/bs';
+// import { BsTelephone } from 'react-icons/bs';
 // import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 // import { SectionsApi } from '../../lib/sectionsApi';
 
@@ -26,7 +24,6 @@
 //   const [pagesState, setPagesState] = useState([]);
 
 //   const pages = all.filter((s) => s.type === 'page');
-//   const dynamicSections = all.filter((s) => s.type !== 'page');
 
 //   const getLinkClass = (path) =>
 //     `d-flex align-items-center gap-2 nav-link-custom ${
@@ -85,21 +82,6 @@
 //     const title = typeof window !== 'undefined' ? window.prompt('New page title?') : null;
 //     if (!title) return;
 //     await SectionsApi.create(USER_ID, TEMPLATE_ID, { type: 'page', title });
-//     await load();
-//   };
-
-//   const addSection = async () => {
-//     const title = typeof window !== 'undefined' ? window.prompt('New section title?') : null;
-//     if (!title) return;
-//     const type = typeof window !== 'undefined'
-//       ? window.prompt('Section type (hero, about, services, testimonial, team, contact, whychooseus, appointment, custom)', 'custom')
-//       : 'custom';
-
-//     let parentPageId = null;
-//     const match = currentPath.match(/\/editorpages\/page\/(.+)/);
-//     if (match && match[1]) parentPageId = match[1];
-
-//     await SectionsApi.create(USER_ID, TEMPLATE_ID, { type, title, parentPageId });
 //     await load();
 //   };
 
@@ -186,33 +168,31 @@
 //               <Accordion.Header>Sections</Accordion.Header>
 //               <Accordion.Body className="px-2 py-1">
 //                 <Nav className="flex-column gap-1">
-//                   {loading ? (
-//                     <span className="text-muted small">Loading…</span>
-//                   ) : (
-//                     dynamicSections.map((s) => (
-//                       <Nav.Link
-//                         key={s._id}
-//                         href={`/editorpages/sections/${s._id}`}
-//                         className={getLinkClass(`/editorpages/sections/${s._id}`)}
-//                       >
-//                         🧩 {s.title || s.type}
-//                       </Nav.Link>
-//                     ))
-//                   )}
-//                   <Nav.Link href="#" onClick={addSection} className="text-primary fw-semibold">
-//                     + Add Section
+//                   <Nav.Link href="/editorpages/hero" className={getLinkClass('/editorpages/hero')}>
+//                     Hero Section
 //                   </Nav.Link>
-//                   <Nav.Link href="/editorpages/sections-manager" className={getLinkClass('/editorpages/sections-manager')}>
-//                     🧩 All Sections Manager
+//                   <Nav.Link href="/editorpages/aboutE" className={getLinkClass('/editorpages/aboutE')}>
+//                     About Section
+//                   </Nav.Link>
+//                   <Nav.Link href="/editorpages/why-chooseE" className={getLinkClass('/editorpages/why-chooseE')}>
+//                     Why Choose Section
+//                   </Nav.Link>
+//                   <Nav.Link href="/editorpages/servicesE" className={getLinkClass('/editorpages/servicesE')}>
+//                     Services Section
+//                   </Nav.Link>
+//                   <Nav.Link href="/editorpages/appointmentE" className={getLinkClass('/editorpages/appointmentE')}>
+//                     Appointment Section
+//                   </Nav.Link>
+//                   <Nav.Link href="/editorpages/teamE" className={getLinkClass('/editorpages/teamE')}>
+//                     Team Section
+//                   </Nav.Link>
+//                   <Nav.Link href="/editorpages/testimonialE" className={getLinkClass('/editorpages/testimonialE')}>
+//                     Testimonial Section
+//                   </Nav.Link>
+//                   <Nav.Link href="/editorpages/contactE" className={getLinkClass('/editorpages/contactE')}>
+//                     <BsTelephone /> Contact Section
 //                   </Nav.Link>
 //                 </Nav>
-//               </Accordion.Body>
-//             </Accordion.Item>
-
-//             <Accordion.Item eventKey="footer">
-//               <Accordion.Header>Footer</Accordion.Header>
-//               <Accordion.Body>
-//                 <span className="text-muted">Footer editor coming soon...</span>
 //               </Accordion.Body>
 //             </Accordion.Item>
 //           </Accordion>
@@ -229,8 +209,6 @@
 // export default EditorDashboardLayout;
 
 
-// dashboard/pages/layouts/EditorDashboardLayout.js
-
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Nav, Accordion, Spinner, Button } from 'react-bootstrap';
 import NavbarEditor from 'layouts/navbars/NavbarEditor';
@@ -238,9 +216,7 @@ import { useRouter } from 'next/router';
 import { BsTelephone } from 'react-icons/bs';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { SectionsApi } from '../../lib/sectionsApi';
-
-const USER_ID = 'demo-user';
-const TEMPLATE_ID = 'gym-template-1';
+import { userId, templateId } from '../../lib/config'; // ✅ imported from config
 
 const EditorDashboardLayout = ({ children }) => {
   const router = useRouter();
@@ -261,7 +237,7 @@ const EditorDashboardLayout = ({ children }) => {
   const load = async () => {
     try {
       setLoading(true);
-      const { data } = await SectionsApi.list(USER_ID, TEMPLATE_ID);
+      const { data } = await SectionsApi.list(userId, templateId);
       setAll(data);
     } catch (e) {
       console.error('Failed to fetch sections', e);
@@ -299,7 +275,7 @@ const EditorDashboardLayout = ({ children }) => {
         _id: item._id,
         order: index,
       }));
-      await SectionsApi.reorder(USER_ID, TEMPLATE_ID, payload);
+      await SectionsApi.reorder(userId, templateId, payload);
       await load();
     } catch (err) {
       console.error('❌ Failed to save order to backend:', err);
@@ -309,7 +285,7 @@ const EditorDashboardLayout = ({ children }) => {
   const addPage = async () => {
     const title = typeof window !== 'undefined' ? window.prompt('New page title?') : null;
     if (!title) return;
-    await SectionsApi.create(USER_ID, TEMPLATE_ID, { type: 'page', title });
+    await SectionsApi.create(userId, templateId, { type: 'page', title });
     await load();
   };
 

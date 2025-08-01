@@ -1,3 +1,5 @@
+
+
 // 'use client';
 
 // import React, { useEffect, useState } from 'react';
@@ -30,6 +32,8 @@
 //     rating: 5,
 //   });
 //   const [imageFile, setImageFile] = useState(null);
+//   const [editingId, setEditingId] = useState(null);
+//   const [editingImageFile, setEditingImageFile] = useState(null);
 
 //   useEffect(() => {
 //     fetchTestimonials();
@@ -53,7 +57,6 @@
 
 //   const handleAdd = async () => {
 //     resetAlerts();
-
 //     if (!form.name || !form.message) {
 //       setError('Name and message are required');
 //       return;
@@ -88,6 +91,57 @@
 //     }
 //   };
 
+//   const handleEditStart = (item) => {
+//     setForm({
+//       name: item.name || '',
+//       profession: item.profession || '',
+//       message: item.message || '',
+//       rating: item.rating || 5,
+//     });
+//     setEditingId(item._id);
+//     setEditingImageFile(null);
+//     setImageFile(null);
+//     window.scrollTo(0, 0);
+//   };
+
+//   const handleEdit = async () => {
+//     resetAlerts();
+//     if (!editingId || !form.name || !form.message) {
+//       setError('Name and message are required');
+//       return;
+//     }
+
+//     try {
+//       setLoading(true);
+//       const fd = new FormData();
+//       fd.append('name', form.name);
+//       fd.append('profession', form.profession);
+//       fd.append('message', form.message);
+//       fd.append('rating', String(form.rating));
+//       if (editingImageFile) fd.append('image', editingImageFile);
+
+//       const res = await fetch(`${backendUrl}/api/testimonial/${editingId}`, {
+//         method: 'PATCH',
+//         body: fd,
+//       });
+
+//       if (!res.ok) throw new Error(await res.text());
+//       const updated = await res.json();
+//       setItems((prev) => prev.map((item) => (item._id === editingId ? updated : item)));
+
+//       setSuccess('✅ Testimonial updated');
+//       setForm({ name: '', profession: '', message: '', rating: 5 });
+//       setImageFile(null);
+//       setEditingImageFile(null);
+//       setEditingId(null);
+//     } catch (e) {
+//       console.error(e);
+//       setError('Failed to update testimonial');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
 //   const handleDelete = async (id) => {
 //     resetAlerts();
 //     try {
@@ -117,11 +171,7 @@
 //             <div className="d-flex flex-wrap gap-4">
 //               {items.length === 0 && <span className="text-muted">No testimonials yet.</span>}
 //               {items.map((t) => (
-//                 <div
-//                   key={t._id}
-//                   className="border rounded p-3 bg-white shadow-sm"
-//                   style={{ width: '300px' }}
-//                 >
+//                 <div key={t._id} className="border rounded p-3 bg-white shadow-sm" style={{ width: '300px' }}>
 //                   {t.imageUrl && (
 //                     <Image
 //                       src={imgSrc(t.imageUrl)}
@@ -193,17 +243,31 @@
 //             </Form.Group>
 
 //             <Form.Group className="mb-3">
-//               <Form.Label>Image (optional)</Form.Label>
+//               <Form.Label>{editingId ? 'Replace Image (optional)' : 'Image (optional)'}</Form.Label>
 //               <Form.Control
 //                 type="file"
 //                 accept="image/*"
-//                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+//                 onChange={(e) =>
+//                   editingId
+//                     ? setEditingImageFile(e.target.files?.[0] || null)
+//                     : setImageFile(e.target.files?.[0] || null)
+//                 }
 //               />
 //             </Form.Group>
 
-//             <Button onClick={handleAdd} disabled={loading}>
-//               {loading ? 'Saving…' : '➕ Add Testimonial'}
+//             <Button onClick={editingId ? handleEdit : handleAdd} disabled={loading}>
+//               {loading ? 'Saving…' : editingId ? '✏️ Update Testimonial' : '➕ Add Testimonial'}
 //             </Button>
+//             {editingId && (
+//               <Button variant="secondary" className="ms-2" onClick={() => {
+//                 setEditingId(null);
+//                 setForm({ name: '', profession: '', message: '', rating: 5 });
+//                 setImageFile(null);
+//                 setEditingImageFile(null);
+//               }}>
+//                 Cancel
+//               </Button>
+//             )}
 //           </Col>
 //         </Row>
 //       </Card>
@@ -245,6 +309,9 @@
 //                   <td>{t.message}</td>
 //                   <td>{t.rating}</td>
 //                   <td>
+//                     <Button variant="warning" size="sm" className="me-2" onClick={() => handleEditStart(t)}>
+//                       Edit
+//                     </Button>
 //                     <Button variant="danger" size="sm" onClick={() => handleDelete(t._id)}>
 //                       Delete
 //                     </Button>
@@ -266,6 +333,9 @@
 // export default TestimonialEditor;
 
 
+
+
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -281,10 +351,7 @@ import {
   Image,
 } from 'react-bootstrap';
 import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
-
-const backendUrl = 'http://localhost:5000';
-const userId = 'demo-user';
-const templateId = 'gym-template-1';
+import { backendBaseUrl as backendUrl, userId, templateId } from '../../lib/config';
 
 function TestimonialEditor() {
   const [items, setItems] = useState([]);
@@ -422,8 +489,7 @@ function TestimonialEditor() {
   };
 
   const imgSrc = (url) => (url?.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`);
-
-  return (
+return (
     <Container fluid className="py-4">
       <Row>
         <Col><h4 className="fw-bold">⭐ Testimonial Section Editor</h4></Col>
