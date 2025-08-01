@@ -1,5 +1,4 @@
 {
-  "outputDirectory": "frontend1html",
   "rewrites": [
     {
       "source": "/",
@@ -7,4 +6,3 @@
     }
   ]
 }
-
