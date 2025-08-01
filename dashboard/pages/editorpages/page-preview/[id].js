@@ -102,14 +102,23 @@ import { Spinner, Container } from 'react-bootstrap';
 import { backendBaseUrl, userId, templateId } from '../../../lib/config';
 
 // ✅ Import all CMS-controlled section components
-import Hero from '../../components/sections/Hero';
-import About from '../homepage-sections/About';
-import WhyChoose from '../homepage-sections/WhyChoose';
-import Services from '../homepage-sections/Services';
-import Appointment from '../homepage-sections/Appointment';
-import Team from '../homepage-sections/Team';
-import Testimonial from '../homepage-sections/Testimonial';
-import Contact from '../homepage-sections/Contact';
+// import Hero from '../../components/sections/Hero';
+// import About from '../homepage-sections/About';
+// import WhyChoose from '../homepage-sections/WhyChoose';
+// import Services from '../homepage-sections/Services';
+// import Appointment from '../homepage-sections/Appointment';
+// import Team from '../homepage-sections/Team';
+// import Testimonial from '../homepage-sections/Testimonial';
+// import Contact from '../homepage-sections/Contact';
+import Hero from '../hero';
+import About from '../aboutS';
+import WhyChoose from '../why-chooseE';
+import Services from '../servicesE';
+import Appointment from '../appointmentE';
+import Team from '../teamE';
+import Testimonial from '../testimonialE';
+import Contact from '../contactE';
+
 
 const PagePreview = () => {
   const { id } = useRouter().query;
