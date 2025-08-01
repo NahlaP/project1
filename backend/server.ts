@@ -24,6 +24,10 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.get("/", (req, res) => {
+  res.send("✅ Backend is live!");
+});
+
 
 console.log("📂 Serving static HTML from:", path.join(__dirname, '..', 'frontend1html'));
 app.use('/frontend1html', express.static(path.join(__dirname, '..', 'frontend1html')));
