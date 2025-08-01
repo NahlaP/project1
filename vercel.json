@@ -1,0 +1,9 @@
+{
+  "public": "frontend1html",
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/page.html?slug=home-page"
+    }
+  ]
+}
