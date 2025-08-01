@@ -2,7 +2,7 @@
 
 
 // const backendUrl = "http://localhost:5000";
-const backendBaseUrl = "https://project1backend-2xvq.onrender.com";
+const backendUrl = "https://project1backend-2xvq.onrender.com";
 
 const userId = "demo-user";
 const templateId = "gym-template-1";
