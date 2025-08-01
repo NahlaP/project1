@@ -234,12 +234,14 @@
   <script src="js/footer.js"></script>
 
   <!-- ✅ Dynamically ensure page-loader runs on fresh reload -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const script = document.createElement("script");
-      script.src = `js/page-loader.js?t=${Date.now()}`;
-      document.body.appendChild(script);
-    });
-  </script>
+ <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const script = document.createElement("script");
+    script.src = "js/page-loader.js";
+    document.body.appendChild(script);
+  });
+</script>
+
+ 
 </body>
 </html>
