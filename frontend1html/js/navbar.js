@@ -267,7 +267,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           childLink.textContent = child.label;
 
           const path = child.href?.replace(/^\//, "") || "#";
-          childLink.href = `${path}.html`;
+          // childLink.href = `${path}.html`;
+childLink.href = path.includes("page.html?slug=") ? path : `${path}.html`;
 
           childLi.appendChild(childLink);
           dropdownMenu.appendChild(childLi);
@@ -284,8 +285,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         link.className = "nav-link";
         link.textContent = item.label;
 
-        const path = item.href?.replace(/^\//, "") || "#";
-        link.href = `${path}.html`;
+        // const path = item.href?.replace(/^\//, "") || "#";
+        // link.href = `${path}.html`;
+
+        const path = item.href || "#";
+link.href = path.includes("page.html?slug=") ? path : `${path}.html`;
+
 
         linkItem.appendChild(link);
         navContainer.appendChild(linkItem);

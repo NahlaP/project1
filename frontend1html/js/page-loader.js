@@ -519,7 +519,8 @@ async function renderPage() {
   const slug = urlParams.get("slug");
 
   if (!slug) {
-    container.innerHTML = "<h3 class='text-danger'>❌ Invalid page URL</h3>";
+    // container.innerHTML = "<h3 class='text-danger'>❌ Invalid page URL</h3>";
+      window.location.href = "page.html?slug=home-page";
     return;
   }
 
