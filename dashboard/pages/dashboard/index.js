@@ -1013,7 +1013,7 @@ import {
   Button,
 } from "react-bootstrap";
 import SidebarDashly from '../../layouts/navbars/NavbarVertical'; // import your Sidebar component
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1060,6 +1060,7 @@ export default function DashboardHome() {
         isMobile={isMobile}
       />
 
+<FontAwesomeIcon icon="bars" size="lg" />
       {/* Main content shifts right when sidebar is open */}
       <main
         style={{

@@ -62,6 +62,7 @@ import '@fortawesome/fontawesome-svg-core/styles.css';
 import { config } from '@fortawesome/fontawesome-svg-core';
 config.autoAddCss = false;
 
+import '../lib/fontawesome';
 import 'styles/theme.scss';
 
 import DefaultDashboardLayout from 'layouts/DefaultDashboardLayout';
