@@ -41,15 +41,39 @@ export const generateHero = async (_req: Request, res: Response) => {
 };
 
 /** ✅ Save Hero Content (CMS form) */
+// export const saveHero = async (req: Request, res: Response) => {
+//   const { content, imageUrl } = req.body;
+
+//   if (!content) return res.status(400).json({ error: "Missing content" });
+
+//   try {
+//     const updated = await HeroSection.findOneAndUpdate(
+//       { userId, templateId },
+//       { content, imageUrl },
+//       { upsert: true, new: true }
+//     );
+
+//     res.status(200).json({ content: updated.content, imageUrl: updated.imageUrl || "" });
+//   } catch (err) {
+//     console.error("Save Hero error:", err);
+//     res.status(500).json({ error: "Failed to save Hero section" });
+//   }
+// };
+
+
+
 export const saveHero = async (req: Request, res: Response) => {
   const { content, imageUrl } = req.body;
 
   if (!content) return res.status(400).json({ error: "Missing content" });
 
+  const update: any = { content };
+  if (imageUrl) update.imageUrl = imageUrl; // ✅ Only update imageUrl if provided
+
   try {
     const updated = await HeroSection.findOneAndUpdate(
       { userId, templateId },
-      { content, imageUrl },
+      update,
       { upsert: true, new: true }
     );
 

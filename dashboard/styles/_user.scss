@@ -64,3 +64,62 @@
   padding-left: calc(1rem - 4px);
   border-radius: 0;
 }
+.badge-custom-green {
+  background-color: #D5FF40 !important;
+  color: #000 !important;
+  font-weight: 600;
+}
+.badge-custom-green {
+  background-color: #D5FF40 !important;
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.badge-subscription {
+  background-color: #D5FF40;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.custom-card-shadow {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+// 🔴 Exact active sidebar item style (like image)
+.navbar-vertical .nav-link-custom.active-link-red {
+  background-color: #fff5f5 !important; // Light red background
+  color: #FE3131 !important;            // Red text
+  font-weight: 600;
+  border-radius: 20px !important;
+  padding: 10px 16px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(254, 49, 49, 0.2) !important; // Optional soft border
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
+.custom-navbar {
+  background-color: white;
+
+  @media (max-width: 768px) {
+    background-color: transparent !important;
+  }
+}
+
+/* globals.css */
+@media (max-width: 767.98px) {
+  .shadow-md {
+    box-shadow: none !important;
+  }
+
+  .border-md-bottom {
+    border-bottom: none !important;
+  }
+}

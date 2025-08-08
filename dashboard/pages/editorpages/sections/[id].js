@@ -177,7 +177,7 @@ const SectionEditor = () => {
   );
 };
 
-// ✅ Wrap with CMS layout
+
 SectionEditor.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
 
 export default SectionEditor;

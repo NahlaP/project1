@@ -58,6 +58,9 @@ import { useEffect } from 'react';
 
 // If you also want Bootstrap's default CSS (optional if your theme.scss already imports it):
 // import 'bootstrap/dist/css/bootstrap.min.css';
+import '@fortawesome/fontawesome-svg-core/styles.css';
+import { config } from '@fortawesome/fontawesome-svg-core';
+config.autoAddCss = false;
 
 import 'styles/theme.scss';
 

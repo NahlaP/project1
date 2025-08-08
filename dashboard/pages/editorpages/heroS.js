@@ -198,20 +198,41 @@ function HeroEditorPage() {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      const res = await fetch(`${backendBaseUrl}/api/hero/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, imageUrl }),
-      });
+  // const handleSave = async () => {
+  //   try {
+  //     const res = await fetch(`${backendBaseUrl}/api/hero/save`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ content, imageUrl }),
+  //     });
 
-      const data = await res.json();
-      if (data.content) setSuccess("✅ Hero section saved successfully!");
-    } catch (err) {
-      console.error("❌ Save error:", err);
+  //     const data = await res.json();
+  //     if (data.content) setSuccess("✅ Hero section saved successfully!");
+  //   } catch (err) {
+  //     console.error("❌ Save error:", err);
+  //   }
+  // };
+
+  const handleSave = async () => {
+  try {
+    const payload = { content };
+    if (imageUrl) {
+      payload.imageUrl = imageUrl;
     }
-  };
+
+    const res = await fetch(`${backendBaseUrl}/api/hero/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (data.content) setSuccess("✅ Hero section saved successfully!");
+  } catch (err) {
+    console.error("❌ Save error:", err);
+  }
+};
+
 
   return (
     <Container fluid className="py-4">
