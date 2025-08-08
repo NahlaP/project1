@@ -1077,9 +1077,14 @@ export default function DashboardHome() {
             Welcome back, Marco!
           </h5>
           <br />
-          <p className="text-dark">
+          {/* <p className="text-dark">
             Here's your website overview and next steps to complete your setup.
-          </p>
+          </p> */}
+
+          <p className="text-dark">
+  Here&apos;s your website overview and next steps to complete your setup.
+</p>
+
 
           <Row className="g-4 mt-2">
             {/* Subscription Card */}
