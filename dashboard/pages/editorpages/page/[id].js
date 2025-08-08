@@ -931,10 +931,10 @@ import { useEffect, useState } from "react";
 import { Button, Container, Dropdown } from "react-bootstrap";
 import { useRouter } from "next/router";
 import EditorDashboardLayout from "../../layouts/EditorDashboardLayout";
-import { userId, templateId } from "../../../lib/config";
+import { userId, templateId ,backendBaseUrl} from "../../../lib/config";
 import { SectionsApi } from "../../../lib/sectionsApi";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-
+import axios from "axios";
 import HeroSectionPreview from "../hero";
 import AboutViewer from "../aboutE";
 import WhyChooseEditorPage from "../why-chooseE";

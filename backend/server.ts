@@ -22,7 +22,18 @@ import pageRoutes from "./routes/page.routes";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+// app.use(cors());
+
+app.use(cors({
+  origin: [
+    "http://localhost:3000",                    // local dev
+    "https://project1-o4nf.vercel.app",         // your Vercel preview/live domain
+    "https://your-custom-domain.com"            // (optional) any custom domains
+  ],
+  methods: ["GET", "POST", "PATCH", "DELETE"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.get("/", (req, res) => {
   res.send("✅ Backend is live!");
