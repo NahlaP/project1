@@ -2055,7 +2055,7 @@
 
 
 // C:\Users\97158\Desktop\project1\dashboard\pages\dashboard\index.js
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
@@ -2063,18 +2063,45 @@ import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 
-// ✅ use centralized config (no hardcoded localhost)
-import { backendBaseUrl, userId, templateId } from "../../lib/config";
+const USER_ID = "demo-user";
+const TEMPLATE_ID = "gym-template-1";
+
+// Resolve API base at RUNTIME so we don’t need a rebuild
+function useApiBase() {
+  return useMemo(() => {
+    const PROD = "https://project1backend-2xvq.onrender.com";
+    const env = (typeof window !== "undefined" && window.__API_BASE__) || process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+    if (env && env.trim()) return env.trim();
+    if (typeof window !== "undefined") {
+      return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
+    }
+    return PROD;
+  }, []);
+}
 
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
+  const [fetchErr, setFetchErr] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
-
+  const API_BASE = useApiBase();
   const pageBg = "#F1F1F1";
 
-  // responsive sidebar
+  // Make sure axios points to the right base at runtime (no rebuild required)
+  useEffect(() => {
+    const base = API_BASE;
+    const id = axios.interceptors.request.use((cfg) => {
+      // rewrite any hardcoded localhost URL
+      if (cfg.url?.startsWith("http://localhost:5000")) {
+        cfg.url = cfg.url.replace("http://localhost:5000", base);
+      }
+      return cfg;
+    });
+    return () => axios.interceptors.request.eject(id);
+  }, [API_BASE]);
+
+  // Detect screen size for mobile
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
@@ -2086,47 +2113,65 @@ export default function DashboardHome() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 🔎 Find the "home" page id reliably
+  // Fetch the home page id, with logging and fallback
   useEffect(() => {
     let cancelled = false;
 
     async function fetchHomePage() {
+      setFetchErr(null);
       try {
-        // 1) Primary: filtered endpoint
-        const res = await axios.get(`${backendBaseUrl}/api/sections`, {
-          params: { userId, templateId, type: "page", slug: "home" },
-          timeout: 12000,
+        console.info("[dashboard] API_BASE:", API_BASE);
+
+        // Primary query
+        const primary = await axios.get(`${API_BASE}/api/sections`, {
+          params: { userId: USER_ID, templateId: TEMPLATE_ID, type: "page", slug: "home" },
+          timeout: 15000,
         });
 
-        // API sometimes returns a big mixed array
-        const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const pRows = Array.isArray(primary.data) ? primary.data : primary.data?.data || [];
+        console.info("[dashboard] primary len:", pRows.length);
 
-        let home =
-          rows.find(
+        let page =
+          pRows.find(
             (r) =>
               r?.type === "page" &&
-              (r?.slug === "home" || (r?.title || "").toLowerCase() === "home")
+              (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
           ) || null;
 
-        // 2) Fallback: list everything and search
-        if (!home) {
-          const all = await axios.get(
-            `${backendBaseUrl}/api/sections/${userId}/${templateId}`,
-            { timeout: 12000 }
-          );
-          const allRows = Array.isArray(all.data) ? all.data : all.data?.data || [];
-          home =
-            allRows.find(
+        // Fallback: list all
+        if (!page) {
+          console.warn("[dashboard] primary empty, fallback list…");
+          const fallback = await axios.get(`${API_BASE}/api/sections/${USER_ID}/${TEMPLATE_ID}`, {
+            timeout: 15000,
+          });
+
+          const fRows = Array.isArray(fallback.data) ? fallback.data : fallback.data?.data || [];
+          console.info("[dashboard] fallback len:", fRows.length);
+
+          page =
+            fRows.find(
               (r) =>
                 r?.type === "page" &&
-                (r?.slug === "home" || (r?.title || "").toLowerCase() === "home")
+                (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
             ) || null;
         }
 
-        if (!cancelled) setHomePageId(home?._id ?? null);
+        if (!cancelled) {
+          if (page?._id) {
+            setHomePageId(page._id);
+            console.info("[dashboard] homePageId:", page._id);
+          } else {
+            setHomePageId(null);
+            setFetchErr("Could not locate a 'home' page in API response.");
+            console.error("[dashboard] no home page found");
+          }
+        }
       } catch (err) {
-        console.error("Error fetching home page", err);
-        if (!cancelled) setHomePageId(null);
+        if (!cancelled) {
+          setHomePageId(null);
+          setFetchErr(err?.message || "Request failed");
+          console.error("[dashboard] fetch error:", err);
+        }
       }
     }
 
@@ -2134,7 +2179,7 @@ export default function DashboardHome() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [API_BASE]);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
@@ -2143,7 +2188,6 @@ export default function DashboardHome() {
 
       <FontAwesomeIcon icon="bars" size="lg" />
 
-      {/* Main content shifts right when sidebar is open */}
       <main
         style={{
           flexGrow: 1,
@@ -2164,6 +2208,24 @@ export default function DashboardHome() {
             Here&apos;s your website overview and next steps to complete your setup.
           </p>
 
+          {/* small debug banner so we can SEE what’s wrong on anyone’s machine */}
+          {fetchErr && (
+            <div
+              style={{
+                background: "#fff3cd",
+                border: "1px solid #ffeeba",
+                color: "#856404",
+                borderRadius: 8,
+                padding: "10px 12px",
+                marginBottom: 16,
+                maxWidth: 740,
+              }}
+            >
+              <strong>Heads up:</strong> {fetchErr} <br />
+              API Base: <code>{API_BASE}</code>
+            </div>
+          )}
+
           <Row className="g-4 mt-2">
             {/* Subscription Card */}
             <Col md={4}>
@@ -2180,62 +2242,38 @@ export default function DashboardHome() {
                   </div>
 
                   <div className="d-flex gap-2 mb-3">
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold"
-                      style={{ backgroundColor: "#D5FF40", fontSize: "0.75rem", color: "#000" }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ backgroundColor: "#D5FF40", fontSize: "0.75rem", color: "#000" }}>
                       Pro Plan
                     </span>
                     <span
                       className="px-3 py-1 rounded-pill fw-bold"
-                      style={{
-                        backgroundColor: "#E1E1E1",
-                        fontSize: "0.75rem",
-                        color: "#000",
-                        minWidth: "70px",
-                        textAlign: "center",
-                      }}
+                      style={{ backgroundColor: "#E1E1E1", fontSize: "0.75rem", color: "#000", minWidth: "70px", textAlign: "center" }}
                     >
                       Monthly
                     </span>
                   </div>
 
                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
-                    $29.99{" "}
-                    <small className="text-dark fs-6 fw-normal align-middle">/month</small>
+                    $29.99 <small className="text-dark fs-6 fw-normal align-middle">/month</small>
                   </h4>
 
                   <div className="d-flex justify-content-between text-dark small mb-1">
                     <span>Next billing date</span>
                     <span className="fw-semibold text-dark">Feb 15, 2024</span>
                   </div>
-
                   <div className="d-flex justify-content-between text-dark small mb-3">
                     <span>Storage used</span>
                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
                   </div>
 
                   <div className="mb-3" style={{ height: "6px", backgroundColor: "#E5E7EB", borderRadius: "4px" }}>
-                    <div
-                      style={{
-                        width: `${(8.2 / 50) * 100}%`,
-                        height: "100%",
-                        backgroundColor: "#FE3131",
-                        borderRadius: "4px",
-                      }}
-                    />
+                    <div style={{ width: `${(8.2 / 50) * 100}%`, height: "100%", backgroundColor: "#FE3131", borderRadius: "4px" }} />
                   </div>
 
                   <Button
                     variant="#FFFFFF"
                     className="w-100 fw-medium rounded-3"
-                    style={{
-                      fontSize: "0.92rem",
-                      padding: "6px 0",
-                      border: "1px solid #D1D1D1",
-                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                      color: "#111",
-                    }}
+                    style={{ fontSize: "0.92rem", padding: "6px 0", border: "1px solid #D1D1D1", boxShadow: "0 1px 2px rgba(0,0,0,.05)", color: "#111" }}
                   >
                     Manage Subscription
                   </Button>
@@ -2245,10 +2283,7 @@ export default function DashboardHome() {
 
             {/* Domain Info Card */}
             <Col md={4}>
-              <Card
-                className="custom-card-shadow border-0 rounded-4"
-                style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
-              >
+              <Card className="custom-card-shadow border-0 rounded-4" style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}>
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
@@ -2283,18 +2318,10 @@ export default function DashboardHome() {
                   </div>
 
                   <div className="d-flex gap-2">
-                    <Button
-                      variant="danger"
-                      className="fw-medium rounded-3 w-50"
-                      style={{ backgroundColor: "#FF3C3C", fontSize: "0.92rem", padding: "6px 0" }}
-                    >
+                    <Button variant="danger" className="fw-medium rounded-3 w-50" style={{ backgroundColor: "#FF3C3C", fontSize: "0.92rem", padding: "6px 0" }}>
                       View Site
                     </Button>
-                    <Button
-                      variant="#FFFFFF"
-                      className="fw-medium border border-dark-subtle rounded-3 w-50"
-                      style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}
-                    >
+                    <Button variant="#FFFFFF" className="fw-medium border border-dark-subtle rounded-3 w-50" style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}>
                       Settings
                     </Button>
                   </div>
@@ -2304,10 +2331,7 @@ export default function DashboardHome() {
 
             {/* Edit My Website Card */}
             <Col md={4}>
-              <Card
-                className="custom-card-shadow border-0 rounded-4"
-                style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
-              >
+              <Card className="custom-card-shadow border-0 rounded-4" style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}>
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
@@ -2337,19 +2361,14 @@ export default function DashboardHome() {
                     {homePageId ? (
                       <Button
                         onClick={() => router.push(`/editorpages/page/${homePageId}`)}
-                        style={{
-                          backgroundColor: "#FF3C3C",
-                          border: "none",
-                          borderRadius: "10px",
-                          padding: "8px 0",
-                          fontWeight: 500,
-                        }}
+                        style={{ backgroundColor: "#FF3C3C", border: "none", borderRadius: "10px", padding: "8px 0", fontWeight: 500 }}
                       >
                         Open Editor
                       </Button>
                     ) : (
-                      <Button disabled>Loading...</Button>
+                      <Button disabled>Loading…</Button>
                     )}
+
                     <Button
                       variant="#FFFFFF"
                       className="fw-medium border border-dark-subtle rounded-3"
@@ -2366,10 +2385,7 @@ export default function DashboardHome() {
           {/* Other cards */}
           <Row className="g-4 mt-3">
             <Col>
-              <Card
-                className="custom-card-shadow border-0"
-                style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
-              >
+              <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
@@ -2392,10 +2408,7 @@ export default function DashboardHome() {
             </Col>
 
             <Col>
-              <Card
-                className="custom-card-shadow border-0"
-                style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
-              >
+              <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
@@ -2418,10 +2431,7 @@ export default function DashboardHome() {
             </Col>
 
             <Col>
-              <Card
-                className="custom-card-shadow border-0"
-                style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
-              >
+              <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#FF3B30", color: "#fff" }}>
@@ -2446,23 +2456,14 @@ export default function DashboardHome() {
 
           <Row className="mt-6">
             <Col md={12}>
-              <Card
-                className="custom-card-shadow border-0"
-                style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", height: "295px", padding: "24px" }}
-              >
+              <Card className="custom-card-shadow border-0" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", height: "295px", padding: "24px" }}>
                 <Card.Body className="p-0">
                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
                     Recent Activity
                   </h5>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-3 d-flex align-items-start gap-3">
-                      <Image
-                        src="/images/user1.jpg"
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="rounded-circle object-fit-cover"
-                      />
+                      <Image src="/images/user1.jpg" alt="" width={40} height={40} className="rounded-circle object-fit-cover" />
                       <div>
                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
                         <br />
@@ -2470,14 +2471,7 @@ export default function DashboardHome() {
                       </div>
                     </li>
                     <li className="mb-3 d-flex align-items-start gap-3">
-                      {/* Make sure these files exist in /public/images or change to user1.jpg */}
-                      <img
-                        src="/images/user2.jpg"
-                        alt=""
-                        width="40"
-                        height="40"
-                        className="rounded-circle object-fit-cover"
-                      />
+                      <img src="/images/user2.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
                       <div>
                         <strong>Robert Chen</strong> updated the homepage banner
                         <br />
@@ -2485,13 +2479,7 @@ export default function DashboardHome() {
                       </div>
                     </li>
                     <li className="d-flex align-items-start gap-3">
-                      <img
-                        src="/images/user3.jpg"
-                        alt=""
-                        width="40"
-                        height="40"
-                        className="rounded-circle object-fit-cover"
-                      />
+                      <img src="/images/user3.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
                       <div>
                         <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
                         <br />
