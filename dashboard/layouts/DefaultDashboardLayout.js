@@ -154,13 +154,13 @@ import NavbarTop from './navbars/NavbarTop';
 import { Row, Col } from 'react-bootstrap';
 
 const NAVBAR_H = 68;
-const BREAKPOINT = 1200; // <= this width == hamburger / off-canvas
+const BREAKPOINT = 993; // ≤993px => compact (hamburger)
 
 const ION7DashboardLayout = (props) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
 
-  const toggleMenu = () => setShowMenu(prev => !prev);
+  const toggleMenu = () => setShowMenu((prev) => !prev);
 
   useEffect(() => {
     const handleResize = () => {
@@ -173,7 +173,6 @@ const ION7DashboardLayout = (props) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Add/remove class on body so SCSS can slide the sidebar
   useEffect(() => {
     if (typeof document === 'undefined') return;
     document.body.classList.toggle('sidebar-open', isCompact && showMenu);
@@ -186,14 +185,13 @@ const ION7DashboardLayout = (props) => {
         style={{
           marginLeft: 0,
           transition: 'margin-left 0.3s ease-in-out',
-          paddingTop: isCompact ? NAVBAR_H : 0, // keep below navbar when compact
+          paddingTop: isCompact ? NAVBAR_H : 0, // keep content below navbar on compact
           backgroundColor: '#F1F1F1',
           minHeight: '100vh',
         }}
       >
         <div className="header">
           <NavbarTop
-            // pass compact state so the navbar knows when to show hamburger
             isMobile={isCompact}
             toggleMenu={toggleMenu}
             sidebarVisible={!isCompact}
@@ -202,7 +200,6 @@ const ION7DashboardLayout = (props) => {
 
         {props.children}
 
-        {/* Backdrop when sidebar is open in compact */}
         {isCompact && showMenu && (
           <div className="mobile-backdrop" onClick={() => setShowMenu(false)} />
         )}
