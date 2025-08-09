@@ -104,7 +104,7 @@ const ION7DashboardLayout = (props) => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
-      setShowMenu(false); // sidebar always hidden
+      setShowMenu(false); 
     };
 
     handleResize();
@@ -114,12 +114,12 @@ const ION7DashboardLayout = (props) => {
 
   return (
     <div id="db-wrapper">
-      {/* Sidebar removed */}
+  
 
       <div
         id="page-content"
         style={{
-          marginLeft: 0, // no left margin without sidebar
+          marginLeft: 0,
           transition: 'margin-left 0.3s ease-in-out',
         }}
       >
@@ -127,7 +127,7 @@ const ION7DashboardLayout = (props) => {
           <NavbarTop
             isMobile={isMobile}
             toggleMenu={toggleMenu}
-            sidebarVisible={false} // inform NavbarTop no sidebar
+            sidebarVisible={false} 
           />
         </div>
 
