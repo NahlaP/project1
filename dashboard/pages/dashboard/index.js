@@ -1595,7 +1595,7 @@ import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 
-// ✅ use the centralized config (no hardcoded localhost)
+// ✅ centralized config (no hardcoded localhost)
 import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
 export default function DashboardHome() {
@@ -1616,7 +1616,7 @@ export default function DashboardHome() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ✅ fetch home page id using backendBaseUrl (works on Vercel + preview domains)
+  // ✅ fetch home page id using backendBaseUrl and filter client-side by slug/type
   useEffect(() => {
     let cancelled = false;
 
@@ -1633,9 +1633,15 @@ export default function DashboardHome() {
 
         // handle either [] or {data: []}
         const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
-        const page = rows[0] || null;
 
-        if (!cancelled) setHomePageId(page?._id ?? null);
+        // ✅ Don’t trust order. Find the matching page.
+        const home = rows.find(
+          (r) =>
+            r?.type === "page" &&
+            (r?.slug === "home" || (r?.title || "").toLowerCase() === "home")
+        );
+
+        if (!cancelled) setHomePageId(home?._id ?? null);
       } catch (err) {
         console.error("Error fetching home page", err);
         if (!cancelled) setHomePageId(null);
@@ -1648,8 +1654,6 @@ export default function DashboardHome() {
     };
   }, []);
 
-  const red = "#FE3131";
-  const green = "#D5FF40";
   const pageBg = "#F1F1F1";
 
   return (
@@ -1719,9 +1723,7 @@ export default function DashboardHome() {
                   {/* Price */}
                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
                     $29.99{" "}
-                    <small className="text-dark fs-6 fw-normal align-middle">
-                      /month
-                    </small>
+                    <small className="text-dark fs-6 fw-normal align-middle">/month</small>
                   </h4>
 
                   {/* Billing Date */}
@@ -1788,10 +1790,16 @@ export default function DashboardHome() {
 
                   {/* Badges */}
                   <div className="d-flex gap-2 mb-3">
-                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
+                    <span
+                      className="px-2 py-1 rounded-pill fw-bold d-inline-block"
+                      style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}
+                    >
                       ✔ Connected
                     </span>
-                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
+                    <span
+                      className="px-2 py-1 rounded-pill fw-bold d-inline-block"
+                      style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}
+                    >
                       SSL Active
                     </span>
                   </div>
@@ -1804,7 +1812,10 @@ export default function DashboardHome() {
 
                   <div className="d-flex justify-content-between text-dark small mb-3">
                     <span>DNS Status</span>
-                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
+                    <span
+                      className="px-2 py-1 rounded-pill fw-bold d-inline-block"
+                      style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}
+                    >
                       Active
                     </span>
                   </div>
