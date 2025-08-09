@@ -2063,29 +2063,18 @@ import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 
+// ✅ use centralized config (no hardcoded localhost)
+import { backendBaseUrl, userId, templateId } from "../../lib/config";
+
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
 
-  // ----- RUNTIME API BASE (keeps your old style) -----
-  const LOCAL = "http://localhost:5000";
-  const PROD = "https://project1backend-2xvq.onrender.com";
-  const ENV = process.env.NEXT_PUBLIC_BACKEND_BASE_URL; // optional, if you set it in Vercel
-  const API_BASE =
-    ENV && ENV.trim()
-      ? ENV.trim()
-      : (typeof window !== "undefined" && window.location.hostname === "localhost")
-      ? LOCAL
-      : PROD;
-
-  // ----- Useful constants you already use -----
-  const userId = "demo-user";
-  const templateId = "gym-template-1";
   const pageBg = "#F1F1F1";
 
-  // Detect screen size for mobile
+  // responsive sidebar
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
@@ -2097,68 +2086,46 @@ export default function DashboardHome() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch the home page id (with fallback strategy)
+  // 🔎 Find the "home" page id reliably
   useEffect(() => {
     let cancelled = false;
 
     async function fetchHomePage() {
       try {
-        console.info("[dashboard] API_BASE:", API_BASE);
-
-        // 1) Primary query: use the filter endpoint
-        const primary = await axios.get(`${API_BASE}/api/sections`, {
+        // 1) Primary: filtered endpoint
+        const res = await axios.get(`${backendBaseUrl}/api/sections`, {
           params: { userId, templateId, type: "page", slug: "home" },
           timeout: 12000,
         });
 
-        const primaryRows = Array.isArray(primary.data)
-          ? primary.data
-          : primary.data?.data || [];
+        // API sometimes returns a big mixed array
+        const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
-        console.info("[dashboard] primary rows len:", primaryRows.length);
-
-        let page =
-          primaryRows.find(
+        let home =
+          rows.find(
             (r) =>
               r?.type === "page" &&
-              (r?.slug === "home" ||
-                (r?.title || "").toLowerCase() === "home")
+              (r?.slug === "home" || (r?.title || "").toLowerCase() === "home")
           ) || null;
 
-        // 2) Fallback: list everything and find the home page
-        if (!page) {
-          console.warn("[dashboard] primary empty, trying fallback list API…");
-          const fallback = await axios.get(
-            `${API_BASE}/api/sections/${userId}/${templateId}`,
+        // 2) Fallback: list everything and search
+        if (!home) {
+          const all = await axios.get(
+            `${backendBaseUrl}/api/sections/${userId}/${templateId}`,
             { timeout: 12000 }
           );
-
-          const rows = Array.isArray(fallback.data)
-            ? fallback.data
-            : fallback.data?.data || [];
-
-          console.info("[dashboard] fallback rows len:", rows.length);
-
-          page =
-            rows.find(
+          const allRows = Array.isArray(all.data) ? all.data : all.data?.data || [];
+          home =
+            allRows.find(
               (r) =>
                 r?.type === "page" &&
-                (r?.slug === "home" ||
-                  (r?.title || "").toLowerCase() === "home")
+                (r?.slug === "home" || (r?.title || "").toLowerCase() === "home")
             ) || null;
         }
 
-        if (!cancelled) {
-          if (page?._id) {
-            setHomePageId(page._id);
-            console.info("[dashboard] homePageId:", page._id);
-          } else {
-            console.error("[dashboard] could not locate 'home' page in API response");
-            setHomePageId(null);
-          }
-        }
+        if (!cancelled) setHomePageId(home?._id ?? null);
       } catch (err) {
-        console.error("[dashboard] Error fetching home page", err?.message || err);
+        console.error("Error fetching home page", err);
         if (!cancelled) setHomePageId(null);
       }
     }
@@ -2167,7 +2134,7 @@ export default function DashboardHome() {
     return () => {
       cancelled = true;
     };
-  }, [API_BASE]);
+  }, []);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
@@ -2205,7 +2172,6 @@ export default function DashboardHome() {
                 style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
               >
                 <Card.Body className="position-relative px-4 pt-5 pb-4">
-                  {/* Title and Icon */}
                   <div className="d-flex justify-content-between align-items-start mb-3">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
                       Current Subscription
@@ -2213,7 +2179,6 @@ export default function DashboardHome() {
                     <img src="/icons/crown.svg" alt="Pro Plan" width={18} height={18} />
                   </div>
 
-                  {/* Plan Badges */}
                   <div className="d-flex gap-2 mb-3">
                     <span
                       className="px-2 py-1 rounded-pill fw-bold"
@@ -2235,25 +2200,21 @@ export default function DashboardHome() {
                     </span>
                   </div>
 
-                  {/* Price */}
                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
                     $29.99{" "}
                     <small className="text-dark fs-6 fw-normal align-middle">/month</small>
                   </h4>
 
-                  {/* Billing Date */}
                   <div className="d-flex justify-content-between text-dark small mb-1">
                     <span>Next billing date</span>
                     <span className="fw-semibold text-dark">Feb 15, 2024</span>
                   </div>
 
-                  {/* Storage */}
                   <div className="d-flex justify-content-between text-dark small mb-3">
                     <span>Storage used</span>
                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="mb-3" style={{ height: "6px", backgroundColor: "#E5E7EB", borderRadius: "4px" }}>
                     <div
                       style={{
@@ -2265,7 +2226,6 @@ export default function DashboardHome() {
                     />
                   </div>
 
-                  {/* Manage Button */}
                   <Button
                     variant="#FFFFFF"
                     className="w-100 fw-medium rounded-3"
@@ -2290,7 +2250,6 @@ export default function DashboardHome() {
                 style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
               >
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
-                  {/* Header */}
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
                       Domain Information
@@ -2298,12 +2257,10 @@ export default function DashboardHome() {
                     <img src="/icons/globe-icon.png" alt="Domain" width={18} height={18} />
                   </div>
 
-                  {/* Domain */}
                   <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem", marginTop: "4px" }}>
                     marcobotton.com
                   </h6>
 
-                  {/* Badges */}
                   <div className="d-flex gap-2 mb-3">
                     <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
                       ✔ Connected
@@ -2313,7 +2270,6 @@ export default function DashboardHome() {
                     </span>
                   </div>
 
-                  {/* Domain Info */}
                   <div className="d-flex justify-content-between text-dark small mb-1">
                     <span>Domain expires</span>
                     <span className="fw-semibold text-dark">Dec 25, 2024</span>
@@ -2326,7 +2282,6 @@ export default function DashboardHome() {
                     </span>
                   </div>
 
-                  {/* Buttons */}
                   <div className="d-flex gap-2">
                     <Button
                       variant="danger"
@@ -2354,7 +2309,6 @@ export default function DashboardHome() {
                 style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
               >
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
-                  {/* Header */}
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
                       Edit My Website
@@ -2362,12 +2316,10 @@ export default function DashboardHome() {
                     <img src="/icons/edit-icon.png" alt="Edit" width={30} height={30} />
                   </div>
 
-                  {/* Subtext */}
                   <p className="text-dark mb-3" style={{ fontSize: "0.88rem" }}>
                     Quick access to your website editor and customization tools.
                   </p>
 
-                  {/* Info Rows */}
                   <div className="d-flex justify-content-between text-dark small mb-1">
                     <span>Last edited</span>
                     <span className="fw-semibold text-dark">2 hours ago</span>
@@ -2381,7 +2333,6 @@ export default function DashboardHome() {
                     <span className="fw-semibold text-dark">Modern Blog</span>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="d-flex flex-column gap-2">
                     {homePageId ? (
                       <Button
@@ -2519,6 +2470,7 @@ export default function DashboardHome() {
                       </div>
                     </li>
                     <li className="mb-3 d-flex align-items-start gap-3">
+                      {/* Make sure these files exist in /public/images or change to user1.jpg */}
                       <img
                         src="/images/user2.jpg"
                         alt=""
