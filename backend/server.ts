@@ -24,15 +24,23 @@ dotenv.config();
 const app = express();
 // app.use(cors());
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000",                    // local dev
-    "https://project1-o4nf.vercel.app",         // your Vercel preview/live domain
-    "https://your-custom-domain.com"            // (optional) any custom domains
-  ],
-  methods: ["GET", "POST", "PATCH", "DELETE"],
-  credentials: true
-}));
+const allowedOrigins = [
+  "https://project1-dash.vercel.app",
+  "https://project1-o4nf.vercel.app",
+  "http://localhost:3000",
+];
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"],
+    credentials: false,
+  })
+);
 
 app.use(express.json());
 app.get("/", (req, res) => {
