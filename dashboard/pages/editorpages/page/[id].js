@@ -1341,7 +1341,6 @@
 
 
 
-
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\page\[id].js
 "use client";
 
@@ -1380,53 +1379,54 @@ import NavbarHeader from "layouts/navbars/NavbarHeader";
 
 export default function HomepagePreview() {
   const router = useRouter();
-  const pageId = router.query?.id; // becomes available when router.isReady === true
+  const { id: pageId } = router.query;
 
   const [sections, setSections] = useState([]);
   const [dragEnabled, setDragEnabled] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
-  const [mounted, setMounted] = useState(false);
 
   const pageBg = "#F1F1F1";
 
-  // Avoid hydration mismatch on this highly interactive page
-  useEffect(() => setMounted(true), []);
-
-  // Fetch page title once router/pageId are ready
+  // Title
   useEffect(() => {
     if (!router.isReady || !pageId) return;
     const fetchPageTitle = async () => {
       try {
         const res = await SectionsApi.getOne(pageId);
-        const title = res?.data?.title || "Page Editor";
-        setPageTitle(`${title} Editor`);
+        setPageTitle(res.data?.title ? `${res.data.title} Editor` : "Page Editor");
       } catch (err) {
         console.error("Failed to fetch page title", err);
-        setPageTitle("Page Editor");
       }
     };
     fetchPageTitle();
   }, [router.isReady, pageId]);
 
-  // Fetch sections assigned to this page (server-side filtering)
+  // Sections
   useEffect(() => {
     if (!router.isReady || !pageId) return;
     const fetchSections = async () => {
       try {
-        const res = await SectionsApi.list(userId, templateId, { parentPageId: pageId });
-        // Normalize shape in case backend wraps with {data:[]}
-        const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
-        const sorted = rows.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        // Keep your original "list everything, filter client-side" approach:
+        const res = await SectionsApi.list(userId, templateId);
+        const assigned = (res.data || []).filter(
+          (s) => String(s.parentPageId) === String(pageId)
+        );
+
+        // De-duplicate by _id in case the API or double effects return duplicates
+        const deduped = Array.from(new Map(assigned.map((s) => [s._id, s])).values());
+
+        // Stable sort with null-safe order
+        const sorted = deduped.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
         setSections(sorted);
       } catch (err) {
         console.error("Error fetching sections", err);
-        setSections([]);
       }
     };
     fetchSections();
   }, [router.isReady, pageId]);
 
-  // Drag & drop reorder
+  // Drag reorder
   const onDragEnd = async (result) => {
     if (!result.destination || result.destination.index === result.source.index) return;
 
@@ -1443,9 +1443,9 @@ export default function HomepagePreview() {
     }
   };
 
-  // Delete section from this page
+  // Delete
   const handleDelete = async (id) => {
-    if (typeof window !== "undefined" && !window.confirm("Delete this section?")) return;
+    if (!confirm("Delete this section?")) return;
     try {
       await SectionsApi.remove(id);
       setSections((prev) => prev.filter((s) => s._id !== id));
@@ -1454,25 +1454,28 @@ export default function HomepagePreview() {
     }
   };
 
-  // Add new section to the end of the list
-  const handleAddSection = async (type, label, index /* not used */) => {
-    if (!pageId) return;
+  // Add
+  const handleAddSection = async (type, label, index) => {
     try {
-      await SectionsApi.create(userId, templateId, {
+      const newSection = {
         type,
         title: label,
         parentPageId: pageId,
-        order: sections.length, // append at the end
-      });
+        order: sections.length, // append at end (prevents gaps/dupes)
+      };
+      await SectionsApi.create(userId, templateId, newSection);
 
-      // Re-fetch only this page's sections
-      const res = await SectionsApi.list(userId, templateId, { parentPageId: pageId });
-      const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      const sorted = rows.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      // Re-fetch and de-dup again
+      const res = await SectionsApi.list(userId, templateId);
+      const assigned = (res.data || []).filter(
+        (s) => String(s.parentPageId) === String(pageId)
+      );
+      const deduped = Array.from(new Map(assigned.map((s) => [s._id, s])).values());
+      const sorted = deduped.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       setSections(sorted);
     } catch (err) {
       console.error("Failed to add section:", err);
-      if (typeof window !== "undefined") alert("❌ Error adding section");
+      alert("❌ Error adding section");
     }
   };
 
@@ -1528,11 +1531,6 @@ export default function HomepagePreview() {
     }
   };
 
-  // Don’t render until client + router are ready (prevents hydration errors)
-  if (!mounted || !router.isReady || !pageId) {
-    return <div style={{ padding: "6rem 1rem" }}>Loading editor…</div>;
-  }
-
   return (
     <>
       <NavbarHeader pageTitle={pageTitle} />
@@ -1552,7 +1550,7 @@ export default function HomepagePreview() {
                 className="form-check-input"
                 type="checkbox"
                 checked={dragEnabled}
-                onChange={() => setDragEnabled((v) => !v)}
+                onChange={() => setDragEnabled(!dragEnabled)}
                 id="dragToggle"
               />
               <label className="form-check-label ms-2" htmlFor="dragToggle" style={{ userSelect: "none" }}>
@@ -1676,8 +1674,9 @@ export default function HomepagePreview() {
                                         testimonials: "/editorpages/testimonialS",
                                         team: "/editorpages/teamS",
                                       };
-                                      const key = (section.type || "").toLowerCase();
-                                      const route = sectionRoutes[key] || `/editorpages/section/${section._id}`;
+                                      const route =
+                                        sectionRoutes[section.type?.toLowerCase()] ||
+                                        `/editorpages/section/${section._id}`;
                                       router.push(route);
                                     }}
                                   >
@@ -1762,5 +1761,4 @@ export default function HomepagePreview() {
   );
 }
 
-// Keep your layout wrapper
 HomepagePreview.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
