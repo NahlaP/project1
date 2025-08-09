@@ -1002,19 +1002,602 @@
 //     </div>
 //   );
 // }
+// import { useEffect, useState } from "react";
+// import { useRouter } from "next/router";
+// import axios from "axios";
+// import {
+//   Container,
+//   Row,
+//   Col,
+//   Card,
+//   Button,
+// } from "react-bootstrap";
+// import SidebarDashly from '../../layouts/navbars/NavbarVertical'; // import your Sidebar component
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+// import Image from "next/image";
+// export default function DashboardHome() {
+//   const [homePageId, setHomePageId] = useState(null);
+//   const [sidebarOpen, setSidebarOpen] = useState(true);
+//   const [isMobile, setIsMobile] = useState(false);
+//   const router = useRouter();
+
+//   // Detect screen size for mobile
+//   useEffect(() => {
+//     const handleResize = () => {
+//       const mobile = window.innerWidth <= 768;
+//       setIsMobile(mobile);
+//       setSidebarOpen(!mobile);
+//     };
+//     handleResize();
+//     window.addEventListener("resize", handleResize);
+//     return () => window.removeEventListener("resize", handleResize);
+//   }, []);
+
+//   useEffect(() => {
+//     async function fetchHomePage() {
+//       try {
+//         const res = await axios.get(
+//           `http://localhost:5000/api/sections?userId=demo-user&templateId=gym-template-1&type=page&slug=home`
+//         );
+//         const page = res.data[0];
+//         setHomePageId(page?._id);
+//       } catch (err) {
+//         console.error("Error fetching home page", err);
+//       }
+//     }
+//     fetchHomePage();
+//   }, []);
+
+//   const red = "#FE3131";
+//   const green = "#D5FF40";
+//   const pageBg = "#F1F1F1";
+
+//   return (
+//     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
+//       {/* Sidebar with control */}
+//       <SidebarDashly
+//         isOpen={sidebarOpen}
+//         setIsOpen={setSidebarOpen}
+//         isMobile={isMobile}
+//       />
+
+// <FontAwesomeIcon icon="bars" size="lg" />
+//       {/* Main content shifts right when sidebar is open */}
+//       <main
+//         style={{
+//           flexGrow: 1,
+//           marginLeft: sidebarOpen ? 256 : 0, // width of sidebar
+//           padding: "2rem",
+//           paddingTop: "6rem",
+//           transition: "margin-left 0.3s ease-in-out",
+//           width: "100%",
+//           overflowX: "hidden",
+//         }}
+//       >
+//         <Container fluid>
+//           <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
+//             Welcome back, Marco!
+//           </h5>
+//           <br />
+//           {/* <p className="text-dark">
+//             Here's your website overview and next steps to complete your setup.
+//           </p> */}
+
+//           <p className="text-dark">
+//   Here&apos;s your website overview and next steps to complete your setup.
+// </p>
+
+
+//           <Row className="g-4 mt-2">
+//             {/* Subscription Card */}
+//             <Col md={4}>
+//               <Card
+//                 className="custom-card-shadow border-0 rounded-4"
+//                 style={{
+//                   backgroundColor: "#ffffff",
+//                   width: "362.67px",
+//                   height: "326px",
+//                 }}
+//               >
+//                 <Card.Body className="position-relative px-4 pt-5 pb-4">
+//                   {/* Title and Icon */}
+//                   <div className="d-flex justify-content-between align-items-start mb-3">
+//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
+//                       Current Subscription
+//                     </h5>
+//                     <img
+//                       src="/icons/crown.svg"
+//                       alt="Pro Plan"
+//                       width={18}
+//                       height={18}
+//                     />
+//                   </div>
+
+//                   {/* Plan Badges */}
+//                   <div className="d-flex gap-2 mb-3">
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold"
+//                       style={{
+//                         backgroundColor: "#D5FF40",
+//                         fontSize: "0.75rem",
+//                         color: "#000",
+//                       }}
+//                     >
+//                       Pro Plan
+//                     </span>
+//                     <span
+//                       className="px-3 py-1 rounded-pill fw-bold"
+//                       style={{
+//                         backgroundColor: "#E1E1E1",
+//                         fontSize: "0.75rem",
+//                         color: "#000",
+//                         minWidth: "70px",
+//                         textAlign: "center",
+//                       }}
+//                     >
+//                       Monthly
+//                     </span>
+//                   </div>
+
+//                   {/* Price */}
+//                   <h4
+//                     className="fw-bold mb-3"
+//                     style={{ lineHeight: "1.5", fontSize: "1.7rem" }}
+//                   >
+//                     $29.99{" "}
+//                     <small className="text-dark fs-6 fw-normal align-middle">
+//                       /month
+//                     </small>
+//                   </h4>
+
+//                   {/* Billing Date */}
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Next billing date</span>
+//                     <span className="fw-semibold text-dark">Feb 15, 2024</span>
+//                   </div>
+
+//                   {/* Storage */}
+//                   <div className="d-flex justify-content-between text-dark small mb-3">
+//                     <span>Storage used</span>
+//                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
+//                   </div>
+
+//                   {/* Progress bar */}
+//                   <div
+//                     className="mb-3"
+//                     style={{
+//                       height: "6px",
+//                       backgroundColor: "#E5E7EB",
+//                       borderRadius: "4px",
+//                     }}
+//                   >
+//                     <div
+//                       style={{
+//                         width: `${(8.2 / 50) * 100}%`,
+//                         height: "100%",
+//                         backgroundColor: "#FE3131",
+//                         borderRadius: "4px",
+//                       }}
+//                     ></div>
+//                   </div>
+
+//                   {/* Manage Button */}
+//                   <Button
+//                     variant="#FFFFFF"
+//                     className="w-100 fw-medium rounded-3"
+//                     style={{
+//                       fontSize: "0.92rem",
+//                       padding: "6px 0",
+//                       border: "1px solid #D1D1D1", // subtle grey border
+//                       boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+//                       color: "#111",
+//                     }}
+//                   >
+//                     Manage Subscription
+//                   </Button>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             {/* Domain Info Card */}
+//             <Col md={4}>
+//               <Card
+//                 className="custom-card-shadow border-0 rounded-4"
+//                 style={{
+//                   backgroundColor: "#ffffff",
+//                   width: "362.67px",
+//                   height: "326px",
+//                 }}
+//               >
+//                 <Card.Body className="position-relative px-4 pt-4 pb-3">
+//                   {/* Header */}
+//                   <div className="d-flex justify-content-between align-items-start mb-2">
+//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
+//                       Domain Information
+//                     </h5>
+//                     <img
+//                       src="/icons/globe-icon.png"
+//                       alt="Domain"
+//                       width={18}
+//                       height={18}
+//                     />
+//                   </div>
+
+//                   {/* Domain */}
+//                   <h6
+//                     className="fw-bold mb-2 mt-3"
+//                     style={{ fontSize: "1rem", marginTop: "4px" }}
+//                   >
+//                     marcobotton.com
+//                   </h6>
+
+//                   {/* Badges */}
+//                   <div className="d-flex gap-2 mb-3">
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
+//                       style={{
+//                         fontSize: "0.75rem",
+//                         backgroundColor: "#D5FF40",
+//                         color: "#000",
+//                       }}
+//                     >
+//                       ✔ Connected
+//                     </span>
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
+//                       style={{
+//                         fontSize: "0.75rem",
+//                         backgroundColor: "#D5FF40",
+//                         color: "#000",
+//                       }}
+//                     >
+//                       SSL Active
+//                     </span>
+//                   </div>
+
+//                   {/* Domain Info */}
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Domain expires</span>
+//                     <span className="fw-semibold text-dark">Dec 25, 2024</span>
+//                   </div>
+
+//                   <div className="d-flex justify-content-between text-dark small mb-3">
+//                     <span>DNS Status</span>
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
+//                       style={{
+//                         fontSize: "0.75rem",
+//                         backgroundColor: "#D5FF40",
+//                         color: "#000",
+//                       }}
+//                     >
+//                       Active
+//                     </span>
+//                   </div>
+
+//                   {/* Buttons */}
+//                   <div className="d-flex gap-2">
+//                     <Button
+//                       variant="danger"
+//                       className="fw-medium rounded-3 w-50"
+//                       style={{
+//                         backgroundColor: "#FF3C3C",
+//                         fontSize: "0.92rem",
+//                         padding: "6px 0",
+//                       }}
+//                     >
+//                       View Site
+//                     </Button>
+//                     <Button
+//                       variant="#FFFFFF"
+//                       className="fw-medium border border-dark-subtle rounded-3 w-50"
+//                       style={{
+//                         fontSize: "0.92rem",
+//                         padding: "6px 0",
+//                         color: "#111",
+//                       }}
+//                     >
+//                       Settings
+//                     </Button>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             {/* Edit My Website Card */}
+//             <Col md={4}>
+//               <Card
+//                 className="custom-card-shadow border-0 rounded-4"
+//                 style={{
+//                   backgroundColor: "#ffffff",
+//                   width: "362.67px",
+//                   height: "326px",
+//                 }}
+//               >
+//                 <Card.Body className="position-relative px-4 pt-4 pb-3">
+//                   {/* Header */}
+//                   <div className="d-flex justify-content-between align-items-start mb-2">
+//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
+//                       Edit My Website
+//                     </h5>
+//                     <img src="/icons/edit-icon.png" alt="Edit" width={30} height={30} />
+//                   </div>
+
+//                   {/* Subtext */}
+//                   <p className="text-dark mb-3" style={{ fontSize: "0.88rem" }}>
+//                     Quick access to your website editor and customization tools.
+//                   </p>
+
+//                   {/* Info Rows */}
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Last edited</span>
+//                     <span className="fw-semibold text-dark">2 hours ago</span>
+//                   </div>
+//                   <div className="d-flex justify-content-between  text-dark small mb-1">
+//                     <span>Draft changes</span>
+//                     <span className="fw-semibold text-dark">3 pending</span>
+//                   </div>
+//                   <div className="d-flex justify-content-between text-dark  small mb-3">
+//                     <span>Template</span>
+//                     <span className="fw-semibold text-dark">Modern Blog</span>
+//                   </div>
+
+//                   {/* Action Buttons */}
+//                   <div className="d-flex flex-column gap-2">
+//                     {homePageId ? (
+//                       <Button
+//                         onClick={() => router.push(`/editorpages/page/${homePageId}`)}
+//                         style={{
+//                           backgroundColor: "#FF3C3C",
+//                           border: "none",
+//                           borderRadius: "10px",
+//                           padding: "8px 0",
+//                           fontWeight: 500,
+//                         }}
+//                       >
+//                         Open Editor
+//                       </Button>
+//                     ) : (
+//                       <Button disabled>Loading...</Button>
+//                     )}
+//                     <Button
+//                       variant="#FFFFFF"
+//                       className="fw-medium border border-dark-subtle rounded-3"
+//                       style={{
+//                         fontSize: "0.92rem",
+//                         padding: "8px 0",
+//                         color: "#111",
+//                       }}
+//                     >
+//                       Preview Changes
+//                     </Button>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+//           </Row>
+
+//           {/* Other cards */}
+//           <Row className="g-4 mt-3">
+//             <Col>
+//               <Card
+//                 className="custom-card-shadow border-0"
+//                 style={{
+//                   width: "363px",
+//                   height: "148px",
+//                   borderRadius: "20px",
+//                   backgroundColor: "#ffffff",
+//                   padding: "16px",
+//                 }}
+//               >
+//                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
+//                   <div className="d-flex justify-content-end">
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold"
+//                       style={{
+//                         fontSize: "0.75rem",
+//                         backgroundColor: "#D5FF40",
+//                         color: "#000",
+//                       }}
+//                     >
+//                       +12.5%
+//                     </span>
+//                   </div>
+//                   <div>
+//                     <h6
+//                       className="text-uppercase text-muted fw-semibold mb-1"
+//                       style={{ fontSize: "0.75rem" }}
+//                     >
+//                       Subscribers
+//                     </h6>
+//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
+//                       2,548
+//                     </h3>
+//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+//                       Compared to 2,267 last month
+//                     </p>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             <Col>
+//               <Card
+//                 className="custom-card-shadow border-0"
+//                 style={{
+//                   width: "363px",
+//                   height: "148px",
+//                   borderRadius: "20px",
+//                   backgroundColor: "#ffffff",
+//                   padding: "16px",
+//                 }}
+//               >
+//                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
+//                   <div className="d-flex justify-content-end">
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold"
+//                       style={{
+//                         fontSize: "0.75rem",
+//                         backgroundColor: "#D5FF40",
+//                         color: "#000",
+//                       }}
+//                     >
+//                       +8.2%
+//                     </span>
+//                   </div>
+//                   <div>
+//                     <h6
+//                       className="text-uppercase text-muted fw-semibold mb-1"
+//                       style={{ fontSize: "0.75rem" }}
+//                     >
+//                       Page Views
+//                     </h6>
+//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
+//                       42.5k
+//                     </h3>
+//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+//                       Compared to 39.3k last month
+//                     </p>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             <Col>
+//               <Card
+//                 className="custom-card-shadow border-0"
+//                 style={{
+//                   width: "363px",
+//                   height: "148px",
+//                   borderRadius: "20px",
+//                   backgroundColor: "#ffffff",
+//                   padding: "16px",
+//                 }}
+//               >
+//                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
+//                   <div className="d-flex justify-content-end">
+//                     <span
+//                       className="px-2 py-1 rounded-pill fw-bold"
+//                       style={{
+//                         fontSize: "0.75rem",
+//                         backgroundColor: "#FF3B30", // red color
+//                         color: "#fff",
+//                       }}
+//                     >
+//                       +2.1%
+//                     </span>
+//                   </div>
+//                   <div>
+//                     <h6
+//                       className="text-uppercase text-muted fw-semibold mb-1"
+//                       style={{ fontSize: "0.75rem" }}
+//                     >
+//                       Bounce Rate
+//                     </h6>
+//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
+//                       28.3%
+//                     </h3>
+//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+//                       Compared to 26.2% last month
+//                     </p>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+//           </Row>
+
+//           <Row className="mt-6">
+//             <Col md={12}>
+//               <Card
+//                 className="custom-card-shadow border-0"
+//                 style={{
+//                   backgroundColor: "#FFFFFF",
+//                   borderRadius: "20px",
+//                   height: "295px",
+//                   padding: "24px",
+//                 }}
+//               >
+//                 <Card.Body className="p-0">
+//                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
+//                     Recent Activity
+//                   </h5>
+//                   <ul className="list-unstyled mb-0">
+//                     <li className="mb-3 d-flex align-items-start gap-3">
+//                       {/* <img
+//                         src="/images/user1.jpg"
+//                         alt=""
+//                         width="40"
+//                         height="40"
+//                         className="rounded-circle object-fit-cover"
+//                       /> */}
+                      
+// <Image
+//   src="/images/user1.jpg"
+//   alt=""
+//   width={40}
+//   height={40}
+//   className="rounded-circle object-fit-cover"
+// />
+//                       <div>
+//                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
+//                         <br />
+//                         <small className="text-muted">2 hours ago</small>
+//                       </div>
+//                     </li>
+//                     <li className="mb-3 d-flex align-items-start gap-3">
+//                       <img
+//                         src="/images/user2.jpg"
+//                         alt=""
+//                         width="40"
+//                         height="40"
+//                         className="rounded-circle object-fit-cover"
+//                       />
+//                       <div>
+//                         <strong>Robert Chen</strong> updated the homepage banner
+//                         <br />
+//                         <small className="text-muted">4 hours ago</small>
+//                       </div>
+//                     </li>
+//                     <li className="d-flex align-items-start gap-3">
+//                       <img
+//                         src="/images/user3.jpg"
+//                         alt=""
+//                         width="40"
+//                         height="40"
+//                         className="rounded-circle object-fit-cover"
+//                       />
+//                       <div>
+//                         <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
+//                         <br />
+//                         <small className="text-muted">Yesterday at 2:45 PM</small>
+//                       </div>
+//                     </li>
+//                   </ul>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+//           </Row>
+//         </Container>
+//       </main>
+//     </div>
+//   );
+// }
+
+
+
+
+// C:\Users\97158\Desktop\project1\dashboard\pages\dashboard\index.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-} from "react-bootstrap";
-import SidebarDashly from '../../layouts/navbars/NavbarVertical'; // import your Sidebar component
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Container, Row, Col, Card, Button } from "react-bootstrap";
+import SidebarDashly from "../../layouts/navbars/NavbarVertical";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
+
+// ✅ use the centralized config (no hardcoded localhost)
+import { backendBaseUrl, userId, templateId } from "../../lib/config";
+
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1033,19 +1616,36 @@ export default function DashboardHome() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // ✅ fetch home page id using backendBaseUrl (works on Vercel + preview domains)
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchHomePage() {
       try {
-        const res = await axios.get(
-          `http://localhost:5000/api/sections?userId=demo-user&templateId=gym-template-1&type=page&slug=home`
-        );
-        const page = res.data[0];
-        setHomePageId(page?._id);
+        const res = await axios.get(`${backendBaseUrl}/api/sections`, {
+          params: {
+            userId,
+            templateId,
+            type: "page",
+            slug: "home",
+          },
+        });
+
+        // handle either [] or {data: []}
+        const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const page = rows[0] || null;
+
+        if (!cancelled) setHomePageId(page?._id ?? null);
       } catch (err) {
         console.error("Error fetching home page", err);
+        if (!cancelled) setHomePageId(null);
       }
     }
+
     fetchHomePage();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const red = "#FE3131";
@@ -1055,13 +1655,10 @@ export default function DashboardHome() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
       {/* Sidebar with control */}
-      <SidebarDashly
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-        isMobile={isMobile}
-      />
+      <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isMobile} />
 
-<FontAwesomeIcon icon="bars" size="lg" />
+      <FontAwesomeIcon icon="bars" size="lg" />
+
       {/* Main content shifts right when sidebar is open */}
       <main
         style={{
@@ -1079,25 +1676,14 @@ export default function DashboardHome() {
             Welcome back, Marco!
           </h5>
           <br />
-          {/* <p className="text-dark">
-            Here's your website overview and next steps to complete your setup.
-          </p> */}
-
-          <p className="text-dark">
-  Here&apos;s your website overview and next steps to complete your setup.
-</p>
-
+          <p className="text-dark">Here&apos;s your website overview and next steps to complete your setup.</p>
 
           <Row className="g-4 mt-2">
             {/* Subscription Card */}
             <Col md={4}>
               <Card
                 className="custom-card-shadow border-0 rounded-4"
-                style={{
-                  backgroundColor: "#ffffff",
-                  width: "362.67px",
-                  height: "326px",
-                }}
+                style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
               >
                 <Card.Body className="position-relative px-4 pt-5 pb-4">
                   {/* Title and Icon */}
@@ -1105,23 +1691,14 @@ export default function DashboardHome() {
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
                       Current Subscription
                     </h5>
-                    <img
-                      src="/icons/crown.svg"
-                      alt="Pro Plan"
-                      width={18}
-                      height={18}
-                    />
+                    <img src="/icons/crown.svg" alt="Pro Plan" width={18} height={18} />
                   </div>
 
                   {/* Plan Badges */}
                   <div className="d-flex gap-2 mb-3">
                     <span
                       className="px-2 py-1 rounded-pill fw-bold"
-                      style={{
-                        backgroundColor: "#D5FF40",
-                        fontSize: "0.75rem",
-                        color: "#000",
-                      }}
+                      style={{ backgroundColor: "#D5FF40", fontSize: "0.75rem", color: "#000" }}
                     >
                       Pro Plan
                     </span>
@@ -1140,10 +1717,7 @@ export default function DashboardHome() {
                   </div>
 
                   {/* Price */}
-                  <h4
-                    className="fw-bold mb-3"
-                    style={{ lineHeight: "1.5", fontSize: "1.7rem" }}
-                  >
+                  <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
                     $29.99{" "}
                     <small className="text-dark fs-6 fw-normal align-middle">
                       /month
@@ -1163,14 +1737,7 @@ export default function DashboardHome() {
                   </div>
 
                   {/* Progress bar */}
-                  <div
-                    className="mb-3"
-                    style={{
-                      height: "6px",
-                      backgroundColor: "#E5E7EB",
-                      borderRadius: "4px",
-                    }}
-                  >
+                  <div className="mb-3" style={{ height: "6px", backgroundColor: "#E5E7EB", borderRadius: "4px" }}>
                     <div
                       style={{
                         width: `${(8.2 / 50) * 100}%`,
@@ -1178,7 +1745,7 @@ export default function DashboardHome() {
                         backgroundColor: "#FE3131",
                         borderRadius: "4px",
                       }}
-                    ></div>
+                    />
                   </div>
 
                   {/* Manage Button */}
@@ -1188,7 +1755,7 @@ export default function DashboardHome() {
                     style={{
                       fontSize: "0.92rem",
                       padding: "6px 0",
-                      border: "1px solid #D1D1D1", // subtle grey border
+                      border: "1px solid #D1D1D1",
                       boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
                       color: "#111",
                     }}
@@ -1203,11 +1770,7 @@ export default function DashboardHome() {
             <Col md={4}>
               <Card
                 className="custom-card-shadow border-0 rounded-4"
-                style={{
-                  backgroundColor: "#ffffff",
-                  width: "362.67px",
-                  height: "326px",
-                }}
+                style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
               >
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
                   {/* Header */}
@@ -1215,42 +1778,20 @@ export default function DashboardHome() {
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
                       Domain Information
                     </h5>
-                    <img
-                      src="/icons/globe-icon.png"
-                      alt="Domain"
-                      width={18}
-                      height={18}
-                    />
+                    <img src="/icons/globe-icon.png" alt="Domain" width={18} height={18} />
                   </div>
 
                   {/* Domain */}
-                  <h6
-                    className="fw-bold mb-2 mt-3"
-                    style={{ fontSize: "1rem", marginTop: "4px" }}
-                  >
+                  <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem", marginTop: "4px" }}>
                     marcobotton.com
                   </h6>
 
                   {/* Badges */}
                   <div className="d-flex gap-2 mb-3">
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#D5FF40",
-                        color: "#000",
-                      }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
                       ✔ Connected
                     </span>
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#D5FF40",
-                        color: "#000",
-                      }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
                       SSL Active
                     </span>
                   </div>
@@ -1263,14 +1804,7 @@ export default function DashboardHome() {
 
                   <div className="d-flex justify-content-between text-dark small mb-3">
                     <span>DNS Status</span>
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#D5FF40",
-                        color: "#000",
-                      }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
                       Active
                     </span>
                   </div>
@@ -1280,22 +1814,14 @@ export default function DashboardHome() {
                     <Button
                       variant="danger"
                       className="fw-medium rounded-3 w-50"
-                      style={{
-                        backgroundColor: "#FF3C3C",
-                        fontSize: "0.92rem",
-                        padding: "6px 0",
-                      }}
+                      style={{ backgroundColor: "#FF3C3C", fontSize: "0.92rem", padding: "6px 0" }}
                     >
                       View Site
                     </Button>
                     <Button
                       variant="#FFFFFF"
                       className="fw-medium border border-dark-subtle rounded-3 w-50"
-                      style={{
-                        fontSize: "0.92rem",
-                        padding: "6px 0",
-                        color: "#111",
-                      }}
+                      style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}
                     >
                       Settings
                     </Button>
@@ -1308,11 +1834,7 @@ export default function DashboardHome() {
             <Col md={4}>
               <Card
                 className="custom-card-shadow border-0 rounded-4"
-                style={{
-                  backgroundColor: "#ffffff",
-                  width: "362.67px",
-                  height: "326px",
-                }}
+                style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
               >
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
                   {/* Header */}
@@ -1363,11 +1885,7 @@ export default function DashboardHome() {
                     <Button
                       variant="#FFFFFF"
                       className="fw-medium border border-dark-subtle rounded-3"
-                      style={{
-                        fontSize: "0.92rem",
-                        padding: "8px 0",
-                        color: "#111",
-                      }}
+                      style={{ fontSize: "0.92rem", padding: "8px 0", color: "#111" }}
                     >
                       Preview Changes
                     </Button>
@@ -1382,32 +1900,16 @@ export default function DashboardHome() {
             <Col>
               <Card
                 className="custom-card-shadow border-0"
-                style={{
-                  width: "363px",
-                  height: "148px",
-                  borderRadius: "20px",
-                  backgroundColor: "#ffffff",
-                  padding: "16px",
-                }}
+                style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
               >
                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold"
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#D5FF40",
-                        color: "#000",
-                      }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
                       +12.5%
                     </span>
                   </div>
                   <div>
-                    <h6
-                      className="text-uppercase text-muted fw-semibold mb-1"
-                      style={{ fontSize: "0.75rem" }}
-                    >
+                    <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
                       Subscribers
                     </h6>
                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
@@ -1424,32 +1926,16 @@ export default function DashboardHome() {
             <Col>
               <Card
                 className="custom-card-shadow border-0"
-                style={{
-                  width: "363px",
-                  height: "148px",
-                  borderRadius: "20px",
-                  backgroundColor: "#ffffff",
-                  padding: "16px",
-                }}
+                style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
               >
                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold"
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#D5FF40",
-                        color: "#000",
-                      }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
                       +8.2%
                     </span>
                   </div>
                   <div>
-                    <h6
-                      className="text-uppercase text-muted fw-semibold mb-1"
-                      style={{ fontSize: "0.75rem" }}
-                    >
+                    <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
                       Page Views
                     </h6>
                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
@@ -1466,32 +1952,16 @@ export default function DashboardHome() {
             <Col>
               <Card
                 className="custom-card-shadow border-0"
-                style={{
-                  width: "363px",
-                  height: "148px",
-                  borderRadius: "20px",
-                  backgroundColor: "#ffffff",
-                  padding: "16px",
-                }}
+                style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
               >
                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span
-                      className="px-2 py-1 rounded-pill fw-bold"
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#FF3B30", // red color
-                        color: "#fff",
-                      }}
-                    >
+                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#FF3B30", color: "#fff" }}>
                       +2.1%
                     </span>
                   </div>
                   <div>
-                    <h6
-                      className="text-uppercase text-muted fw-semibold mb-1"
-                      style={{ fontSize: "0.75rem" }}
-                    >
+                    <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
                       Bounce Rate
                     </h6>
                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
@@ -1510,12 +1980,7 @@ export default function DashboardHome() {
             <Col md={12}>
               <Card
                 className="custom-card-shadow border-0"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "20px",
-                  height: "295px",
-                  padding: "24px",
-                }}
+                style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", height: "295px", padding: "24px" }}
               >
                 <Card.Body className="p-0">
                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
@@ -1523,21 +1988,13 @@ export default function DashboardHome() {
                   </h5>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-3 d-flex align-items-start gap-3">
-                      {/* <img
+                      <Image
                         src="/images/user1.jpg"
                         alt=""
-                        width="40"
-                        height="40"
+                        width={40}
+                        height={40}
                         className="rounded-circle object-fit-cover"
-                      /> */}
-                      
-<Image
-  src="/images/user1.jpg"
-  alt=""
-  width={40}
-  height={40}
-  className="rounded-circle object-fit-cover"
-/>
+                      />
                       <div>
                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
                         <br />
