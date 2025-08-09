@@ -229,3 +229,24 @@
     z-index: 1035;
   }
 }
+.badge-soft-black {
+  background-color: #D5FF40 !important;
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  line-height: 1;
+}
+
+.badge-soft-gray {
+  background-color: #E1E1E1 !important;
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  line-height: 1;
+}
