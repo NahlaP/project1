@@ -292,23 +292,22 @@
 
 
 
-import { Nav, Navbar } from 'react-bootstrap';
+// dashboard/layouts/navbars/NavbarTop.js
+import { Nav, Navbar, Dropdown } from 'react-bootstrap';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb, faBars } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faBars, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
 import { faBell } from '@fortawesome/free-regular-svg-icons';
 
 const NavbarTop = ({ isMobile, toggleMenu }) => {
-  const [localCompact, setLocalCompact] = useState(false);
-  const [isNarrow, setIsNarrow] = useState(false); // 321–494px
-  const [isTiny, setIsTiny] = useState(false);     // ≤320px
+  const [localCompact, setLocalCompact] = useState(false);  // ≤993px (your hamburger logic)
+  const [isNarrowMenu, setIsNarrowMenu] = useState(false);  // ≤492px → collapse into dropdown
 
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
       setLocalCompact(w <= 993);
-      setIsNarrow(w >= 321 && w <= 494);
-      setIsTiny(w <= 320);
+      setIsNarrowMenu(w <= 492);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -332,22 +331,22 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         borderBottom: '1px solid #e0e0e0',
         display: 'flex',
         alignItems: 'center',
-        paddingLeft: isNarrow ? 8 : undefined,
-        paddingRight: isNarrow ? 8 : undefined,
-        overflow: 'hidden', // prevent second line
+        // keep single row; tighten padding only when dropdown mode
+        paddingLeft: isNarrowMenu ? 8 : undefined,
+        paddingRight: isNarrowMenu ? 8 : undefined,
+        overflow: 'hidden',
       }}
     >
       <div
         className="d-flex align-items-center w-100"
         style={{
-          // lock to one row in 321–494
-          flexWrap: (isNarrow || isTiny) ? 'nowrap' : 'wrap',
-          columnGap: (isNarrow || isTiny) ? 8 : 12,
+          flexWrap: 'nowrap',
+          columnGap: isNarrowMenu ? 8 : 12,
           justifyContent: 'space-between',
-          minWidth: 0, // allow children to shrink
+          minWidth: 0,
         }}
       >
-        {/* 🍔 Hamburger (compact only) */}
+        {/* 🍔 Hamburger (compact only, unchanged) */}
         {compact && (
           <button
             type="button"
@@ -369,15 +368,14 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
           </button>
         )}
 
-        {/* Search Bar */}
-        {!isTiny && (
+        {/* Search (hidden at ≤492 because it goes into dropdown) */}
+        {!isNarrowMenu && (
           <div
-            className="pe-3"
+            className="pe-3 flex-grow-1"
             style={{
-              // let it shrink first so icons never wrap
-              flex: '1 1 0',
-              minWidth: 0,
-              maxWidth: isNarrow ? 150 : (compact ? 300 : 400),
+              minWidth: 200,
+              maxWidth: compact ? 300 : 400,
+              flex: '1 1 auto',
             }}
           >
             <input
@@ -395,46 +393,134 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
           </div>
         )}
 
-        {/* Right Side Icons and Profile (fixed width block) */}
-        <Nav
-          className="d-flex align-items-center gap-3 flex-nowrap"
-          style={{ flex: '0 0 auto', gap: (isNarrow || isTiny) ? 8 : 12 }}
-        >
-          {/* 💡 Bulb */}
-          <div
-            className="rounded-circle bg-white d-flex align-items-center justify-content-center"
-            style={{ width: 32, height: 32, padding: 10, flex: '0 0 auto' }}
-          >
-            <FontAwesomeIcon icon={faLightbulb} style={{ color: '#FE3131', fontSize: 12 }} />
-          </div>
-
-          {/* 🔔 Bell */}
-          <div
-            className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
-            style={{ width: 32, height: 32, padding: 8, flex: '0 0 auto' }}
-          >
-            <FontAwesomeIcon icon={faBell} style={{ color: '#222', fontSize: 12 }} />
-            <span
-              className="position-absolute bg-danger rounded-circle"
-              style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
-            />
-          </div>
-
-          {/* 👤 Profile */}
-          <div className="d-flex align-items-center gap-2" style={{ flex: '0 0 auto' }}>
-            <img
-              src="https://i.pravatar.cc/40"
-              alt="Profile"
-              className="rounded-circle"
-              width="30"
-              height="30"
-            />
-            <div className="d-none d-sm-flex flex-column">
-              <strong className="fs-6">Marco Botton</strong>
-              <small className="text-muted">Admin</small>
+        {/* Right side: icons as usual (hidden at ≤492 in favor of dropdown) */}
+        {!isNarrowMenu && (
+          <Nav className="d-flex align-items-center gap-3 flex-nowrap" style={{ flex: '0 0 auto' }}>
+            {/* 💡 Bulb */}
+            <div
+              className="rounded-circle bg-white d-flex align-items-center justify-content-center"
+              style={{ width: 32, height: 32, padding: 10, flex: '0 0 auto' }}
+            >
+              <FontAwesomeIcon icon={faLightbulb} style={{ color: '#FE3131', fontSize: 12 }} />
             </div>
-          </div>
-        </Nav>
+
+            {/* 🔔 Bell */}
+            <div
+              className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
+              style={{ width: 32, height: 32, padding: 8, flex: '0 0 auto' }}
+            >
+              <FontAwesomeIcon icon={faBell} style={{ color: '#222', fontSize: 12 }} />
+              <span
+                className="position-absolute bg-danger rounded-circle"
+                style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
+              />
+            </div>
+
+            {/* 👤 Profile */}
+            <div className="d-flex align-items-center gap-2" style={{ flex: '0 0 auto' }}>
+              <img
+                src="https://i.pravatar.cc/40"
+                alt="Profile"
+                className="rounded-circle"
+                width="30"
+                height="30"
+              />
+              <div className="d-none d-sm-flex flex-column">
+                <strong className="fs-6">Marco Botton</strong>
+                <small className="text-muted">Admin</small>
+              </div>
+            </div>
+          </Nav>
+        )}
+
+        {/* ≤492px: collapse search + icons into a dropdown */}
+        {isNarrowMenu && (
+          <Dropdown align="end">
+            <Dropdown.Toggle
+              variant="light"
+              id="nav-narrow-toggle"
+              className="d-inline-flex align-items-center justify-content-center"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                background: '#fff',
+                border: '1px solid #e0e0e0',
+                padding: 0,
+              }}
+              aria-label="More"
+            >
+              <FontAwesomeIcon icon={faEllipsisVertical} style={{ fontSize: 16, color: '#111' }} />
+            </Dropdown.Toggle>
+
+            <Dropdown.Menu
+              style={{ minWidth: 240, padding: 8, borderRadius: 12 }}
+              renderOnMount
+            >
+              {/* Search inside dropdown */}
+              <div className="px-2 py-2">
+                <input
+                  type="text"
+                  className="form-control rounded-pill px-3"
+                  placeholder="Search..."
+                  style={{
+                    height: 38,
+                    background: '#fff',
+                    border: '1px solid #e5e5e5',
+                    boxShadow: 'none',
+                    width: '100%',
+                  }}
+                />
+              </div>
+              <Dropdown.Divider />
+
+              {/* Bulb / Tips */}
+              <Dropdown.Item className="d-flex align-items-center gap-2">
+                <div
+                  className="rounded-circle bg-white d-flex align-items-center justify-content-center"
+                  style={{ width: 28, height: 28 }}
+                >
+                  <FontAwesomeIcon icon={faLightbulb} style={{ color: '#FE3131', fontSize: 12 }} />
+                </div>
+                Tips
+              </Dropdown.Item>
+
+              {/* Notifications */}
+              <Dropdown.Item className="d-flex align-items-center gap-2">
+                <div
+                  className="rounded-circle bg-white d-flex align-items-center justify-content-center position-relative"
+                  style={{ width: 28, height: 28 }}
+                >
+                  <FontAwesomeIcon icon={faBell} style={{ color: '#222', fontSize: 12 }} />
+                  <span
+                    className="position-absolute bg-danger rounded-circle"
+                    style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
+                  />
+                </div>
+                Notifications
+              </Dropdown.Item>
+
+              <Dropdown.Divider />
+
+              {/* Profile */}
+              <Dropdown.Item as="div" className="px-3 py-2">
+                <div className="d-flex align-items-center gap-2">
+                  <img
+                    src="https://i.pravatar.cc/40"
+                    alt="Profile"
+                    className="rounded-circle"
+                    width="28"
+                    height="28"
+                  />
+                  <div className="d-flex flex-column">
+                    <strong className="small mb-0">Marco Botton</strong>
+                    <small className="text-muted">Admin</small>
+                  </div>
+                </div>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        )}
       </div>
     </Navbar>
   );
