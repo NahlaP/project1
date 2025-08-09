@@ -163,7 +163,6 @@
 
 
 
-// dashboard/layouts/navbars/NavbarTop.js
 import { Nav, Navbar } from 'react-bootstrap';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -171,14 +170,16 @@ import { faLightbulb, faBars } from '@fortawesome/free-solid-svg-icons';
 import { faBell } from '@fortawesome/free-regular-svg-icons';
 
 const NavbarTop = ({ isMobile, toggleMenu }) => {
-  const [localMobile, setLocalMobile] = useState(false);
+  const [localCompact, setLocalCompact] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => setLocalMobile(window.innerWidth <= 768);
+    const handleResize = () => setLocalCompact(window.innerWidth <= 1200);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const compact = isMobile || localCompact; // trust parent, fallback to local
 
   return (
     <Navbar
@@ -189,8 +190,8 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         height: '68px',
         position: 'fixed',
         top: 0,
-        left: isMobile ? 0 : '250px',
-        width: isMobile ? '100%' : 'calc(100% - 250px)',
+        left: compact ? 0 : '250px',
+        width: compact ? '100%' : 'calc(100% - 250px)',
         zIndex: 1030,
         borderBottom: '1px solid #e0e0e0',
         display: 'flex',
@@ -198,21 +199,17 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
       }}
     >
       <div className="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">
-        {/* 🍔 Hamburger (mobile only) */}
-        {(isMobile || localMobile) && (
+        {/* 🍔 Hamburger (compact only) */}
+        {compact && (
           <button
             type="button"
             aria-label="Open menu"
             onClick={toggleMenu}
-            className="btn d-inline-flex d-md-none p-0 me-2"
+            className="btn d-inline-flex p-0 me-2"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              background: '#fff',
-              border: '1px solid #e0e0e0',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 12,
+              background: '#fff', border: '1px solid #e0e0e0',
+              alignItems: 'center', justifyContent: 'center',
             }}
           >
             <FontAwesomeIcon icon={faBars} style={{ fontSize: 16, color: '#111' }} />
@@ -220,25 +217,20 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         )}
 
         {/* Search Bar */}
-        <div className="flex-grow-1 pe-3" style={{ minWidth: '200px' }}>
+        <div className="flex-grow-1 pe-3" style={{ minWidth: 200 }}>
           <input
             type="text"
             className="form-control rounded-pill px-4"
             placeholder="Search..."
             style={{
-              height: '40px',
-              background: '#fff',
-              border: 'none',
-              boxShadow: 'none',
-              maxWidth: '400px',
-              width: '100%',
+              height: 40, background: '#fff', border: 'none', boxShadow: 'none',
+              maxWidth: compact ? 300 : 400, width: '100%',
             }}
           />
         </div>
 
         {/* Right Side Icons and Profile */}
         <Nav className="d-flex align-items-center gap-3 flex-nowrap">
-          {/* 💡 Bulb */}
           <div
             className="rounded-circle bg-white d-flex align-items-center justify-content-center"
             style={{ width: 32, height: 32, padding: 10 }}
@@ -246,7 +238,6 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
             <FontAwesomeIcon icon={faLightbulb} style={{ color: '#FE3131', fontSize: 12 }} />
           </div>
 
-          {/* 🔔 Bell */}
           <div
             className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
             style={{ width: 32, height: 32, padding: 8 }}
@@ -254,17 +245,10 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
             <FontAwesomeIcon icon={faBell} style={{ color: '#222', fontSize: 12 }} />
             <span
               className="position-absolute bg-danger rounded-circle"
-              style={{
-                width: 6,
-                height: 6,
-                border: '1.5px solid white',
-                top: 3,
-                right: 3,
-              }}
+              style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
             />
           </div>
 
-          {/* 👤 Profile */}
           <div className="d-flex align-items-center gap-2">
             <img
               src="https://i.pravatar.cc/40"

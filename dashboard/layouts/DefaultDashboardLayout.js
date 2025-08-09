@@ -149,35 +149,35 @@
 
 
 
-// dashboard/layouts/DefaultDashboardLayout.js
 import { useState, useEffect } from 'react';
 import NavbarTop from './navbars/NavbarTop';
 import { Row, Col } from 'react-bootstrap';
 
 const NAVBAR_H = 68;
+const BREAKPOINT = 1200; // <= this width == hamburger / off-canvas
 
 const ION7DashboardLayout = (props) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
 
   const toggleMenu = () => setShowMenu(prev => !prev);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;  // S23 Ultra viewport ≈ 412px → true
-      setIsMobile(mobile);
-      if (!mobile) setShowMenu(false);
+      const compact = window.innerWidth <= BREAKPOINT;
+      setIsCompact(compact);
+      if (!compact) setShowMenu(false);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // NEW: add/remove a class on <body> so CSS can slide the sidebar
+  // Add/remove class on body so SCSS can slide the sidebar
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    document.body.classList.toggle('sidebar-open', isMobile && showMenu);
-  }, [isMobile, showMenu]);
+    document.body.classList.toggle('sidebar-open', isCompact && showMenu);
+  }, [isCompact, showMenu]);
 
   return (
     <div id="db-wrapper">
@@ -186,33 +186,33 @@ const ION7DashboardLayout = (props) => {
         style={{
           marginLeft: 0,
           transition: 'margin-left 0.3s ease-in-out',
-          paddingTop: isMobile ? NAVBAR_H : 0, // keeps content below navbar on phones
+          paddingTop: isCompact ? NAVBAR_H : 0, // keep below navbar when compact
           backgroundColor: '#F1F1F1',
           minHeight: '100vh',
         }}
       >
         <div className="header">
           <NavbarTop
-            isMobile={isMobile}
-            toggleMenu={toggleMenu}  // <-- make sure the hamburger calls this
-            sidebarVisible={false}
+            // pass compact state so the navbar knows when to show hamburger
+            isMobile={isCompact}
+            toggleMenu={toggleMenu}
+            sidebarVisible={!isCompact}
           />
         </div>
 
         {props.children}
 
-        {/* Backdrop for mobile when sidebar is open */}
-        {isMobile && showMenu && (
-          <div
-            onClick={() => setShowMenu(false)}
-            className="mobile-backdrop"
-          />
+        {/* Backdrop when sidebar is open in compact */}
+        {isCompact && showMenu && (
+          <div className="mobile-backdrop" onClick={() => setShowMenu(false)} />
         )}
 
         <div className="px-6 border-top py-3 bg-white">
           <Row>
             <Col sm={12} className="text-center">
-              <p className="m-0">© {new Date().getFullYear()} ION7 CMS. All rights reserved.</p>
+              <p className="m-0">
+                © {new Date().getFullYear()} ION7 CMS. All rights reserved.
+              </p>
             </Col>
           </Row>
         </div>
