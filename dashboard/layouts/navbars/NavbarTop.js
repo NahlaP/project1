@@ -34,18 +34,21 @@
 
 
 
+
+
+
 // import { Nav, Navbar } from 'react-bootstrap';
 // import { useEffect, useState } from 'react';
 // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
+// import { faLightbulb, faBars } from '@fortawesome/free-solid-svg-icons';
 // import { faBell } from '@fortawesome/free-regular-svg-icons';
 
-// const NavbarTop = () => {
-//   const [isMobile, setIsMobile] = useState(false);
+// const NavbarTop = ({ isMobile, toggleMenu }) => {
+//   const [localMobile, setLocalMobile] = useState(false);
 
 //   useEffect(() => {
 //     const handleResize = () => {
-//       setIsMobile(window.innerWidth <= 768);
+//       setLocalMobile(window.innerWidth <= 768);
 //     };
 //     handleResize();
 //     window.addEventListener('resize', handleResize);
@@ -70,6 +73,17 @@
 //       }}
 //     >
 //       <div className="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">
+//         {/* 🍔 Hamburger Icon on Mobile */}
+//         {/* {localMobile && (
+//           <button
+//             className="btn btn-outline-dark d-md-none"
+//             onClick={toggleMenu}
+//             style={{ marginRight: '12px' }}
+//           >
+//             <FontAwesomeIcon icon={faBars} />
+//           </button>
+//         )} */}
+
 //         {/* Search Bar */}
 //         <div className="flex-grow-1 pe-3" style={{ minWidth: '200px' }}>
 //           <input
@@ -89,7 +103,7 @@
 
 //         {/* Right Side Icons and Profile */}
 //         <Nav className="d-flex align-items-center gap-3 flex-nowrap">
-//           {/* 🔴 Bulb Icon */}
+//           {/* 💡 Bulb */}
 //           <div
 //             className="rounded-circle bg-white d-flex align-items-center justify-content-center"
 //             style={{
@@ -101,7 +115,7 @@
 //             <FontAwesomeIcon icon={faLightbulb} style={{ color: '#FE3131', fontSize: 12 }} />
 //           </div>
 
-//           {/* 🔔 Bell Icon with Dot */}
+//           {/* 🔔 Bell */}
 //           <div
 //             className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
 //             style={{
@@ -123,7 +137,7 @@
 //             ></span>
 //           </div>
 
-//           {/* 👤 Profile Info */}
+//           {/* 👤 Profile */}
 //           <div className="d-flex align-items-center gap-2">
 //             <img
 //               src="https://i.pravatar.cc/40"
@@ -147,6 +161,9 @@
 
 
 
+
+
+// dashboard/layouts/navbars/NavbarTop.js
 import { Nav, Navbar } from 'react-bootstrap';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -157,9 +174,7 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
   const [localMobile, setLocalMobile] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      setLocalMobile(window.innerWidth <= 768);
-    };
+    const handleResize = () => setLocalMobile(window.innerWidth <= 768);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -183,16 +198,26 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
       }}
     >
       <div className="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">
-        {/* 🍔 Hamburger Icon on Mobile */}
-        {/* {localMobile && (
+        {/* 🍔 Hamburger (mobile only) */}
+        {(isMobile || localMobile) && (
           <button
-            className="btn btn-outline-dark d-md-none"
+            type="button"
+            aria-label="Open menu"
             onClick={toggleMenu}
-            style={{ marginRight: '12px' }}
+            className="btn d-inline-flex d-md-none p-0 me-2"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 12,
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <FontAwesomeIcon icon={faBars} />
+            <FontAwesomeIcon icon={faBars} style={{ fontSize: 16, color: '#111' }} />
           </button>
-        )} */}
+        )}
 
         {/* Search Bar */}
         <div className="flex-grow-1 pe-3" style={{ minWidth: '200px' }}>
@@ -216,11 +241,7 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
           {/* 💡 Bulb */}
           <div
             className="rounded-circle bg-white d-flex align-items-center justify-content-center"
-            style={{
-              width: 32,
-              height: 32,
-              padding: 10,
-            }}
+            style={{ width: 32, height: 32, padding: 10 }}
           >
             <FontAwesomeIcon icon={faLightbulb} style={{ color: '#FE3131', fontSize: 12 }} />
           </div>
@@ -228,11 +249,7 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
           {/* 🔔 Bell */}
           <div
             className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
-            style={{
-              width: 32,
-              height: 32,
-              padding: 8,
-            }}
+            style={{ width: 32, height: 32, padding: 8 }}
           >
             <FontAwesomeIcon icon={faBell} style={{ color: '#222', fontSize: 12 }} />
             <span
@@ -244,7 +261,7 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
                 top: 3,
                 right: 3,
               }}
-            ></span>
+            />
           </div>
 
           {/* 👤 Profile */}

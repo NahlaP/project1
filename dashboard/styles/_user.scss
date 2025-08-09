@@ -123,3 +123,46 @@
     border-bottom: none !important;
   }
 }
+
+
+
+/* ----- Mobile-only sidebar behavior (≤768px) ----- */
+@media (max-width: 768px) {
+  /* hide the vertical sidebar off-canvas by default */
+  .navbar-vertical {
+    position: fixed;
+    top: 68px; /* same as NAVBAR_H */
+    bottom: 0;
+    left: -260px;          /* off-screen */
+    width: 250px;          /* your sidebar width */
+    z-index: 1040;
+    transition: left .25s ease;
+    background-color: #fff !important;
+    border-right: 1px solid #e5e7eb;
+  }
+
+  /* when body has .sidebar-open, slide it in */
+  body.sidebar-open .navbar-vertical {
+    left: 0;
+  }
+
+  /* page content should never shift on mobile */
+  #page-content {
+    margin-left: 0 !important;
+    overflow-x: hidden;
+  }
+
+  /* backdrop behind the opened sidebar */
+  .mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+    z-index: 1035;
+  }
+}
+
+/* (optional) ensure we keep light theme look on devices that auto-dark */
+@media (max-width: 768px) {
+  :root { color-scheme: light; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+}
