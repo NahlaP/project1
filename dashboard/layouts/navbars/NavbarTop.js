@@ -300,13 +300,15 @@ import { faBell } from '@fortawesome/free-regular-svg-icons';
 
 const NavbarTop = ({ isMobile, toggleMenu }) => {
   const [localCompact, setLocalCompact] = useState(false);
-  const [isNarrow, setIsNarrow] = useState(false); // 343–498px fix
+  const [isNarrow, setIsNarrow] = useState(false); // 321–494px
+  const [isTiny, setIsTiny] = useState(false);     // ≤320px
 
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
       setLocalCompact(w <= 993);
-      setIsNarrow(w >= 343 && w <= 498);
+      setIsNarrow(w >= 321 && w <= 494);
+      setIsTiny(w <= 320);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -330,17 +332,18 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         borderBottom: '1px solid #e0e0e0',
         display: 'flex',
         alignItems: 'center',
-        // Narrow-only: slightly reduce side padding so everything fits on one line
+        // tighten side padding only in 321–494
         paddingLeft: isNarrow ? 8 : undefined,
         paddingRight: isNarrow ? 8 : undefined,
+        overflow: 'hidden', // avoid accidental wrap/overflow bars
       }}
     >
       <div
         className="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2"
         style={{
-          // Narrow-only: prevent wrapping (keeps height 68px)
-          flexWrap: isNarrow ? 'nowrap' : undefined,
-          columnGap: isNarrow ? 8 : undefined,
+          // Never wrap in narrow/tiny range to keep height 68px
+          flexWrap: (isNarrow || isTiny) ? 'nowrap' : undefined,
+          columnGap: (isNarrow || isTiny) ? 8 : undefined,
         }}
       >
         {/* 🍔 Hamburger (compact only) */}
@@ -366,35 +369,36 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         )}
 
         {/* Search Bar */}
-        <div
-          className="flex-grow-1 pe-3"
-          style={{
-            // Narrow-only: reduce min/max so icons fit on the right
-            minWidth: isNarrow ? 120 : 200,
-            maxWidth: isNarrow ? 180 : (compact ? 300 : 400),
-            flex: isNarrow ? '1 1 auto' : undefined,
-          }}
-        >
-          <input
-            type="text"
-            className="form-control rounded-pill px-4"
-            placeholder="Search..."
+        {!isTiny && (
+          <div
+            className="flex-grow-1 pe-3"
             style={{
-              height: 40,
-              background: '#fff',
-              border: 'none',
-              boxShadow: 'none',
-              width: '100%',
+              // cap width in 321–494 so icons fit
+              minWidth: isNarrow ? 110 : 200,
+              maxWidth: isNarrow ? 160 : (compact ? 300 : 400),
+              flex: '1 1 auto',
             }}
-          />
-        </div>
+          >
+            <input
+              type="text"
+              className="form-control rounded-pill px-4"
+              placeholder="Search..."
+              style={{
+                height: 40,
+                background: '#fff',
+                border: 'none',
+                boxShadow: 'none',
+                width: '100%',
+              }}
+            />
+          </div>
+        )}
 
         {/* Right Side Icons and Profile */}
         <Nav
           className="d-flex align-items-center gap-3 flex-nowrap"
           style={{
-            // Narrow-only: tighten the gap a touch
-            gap: isNarrow ? 8 : undefined,
+            gap: (isNarrow || isTiny) ? 8 : undefined,
             flex: '0 0 auto',
           }}
         >
@@ -433,7 +437,7 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
               width="30"
               height="30"
             />
-            {/* This block already hides under 576px (Bootstrap d-none d-sm-flex) */}
+            {/* Already hidden below 576px via Bootstrap */}
             <div className="d-none d-sm-flex flex-column">
               <strong className="fs-6">Marco Botton</strong>
               <small className="text-muted">Admin</small>
