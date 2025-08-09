@@ -332,18 +332,19 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         borderBottom: '1px solid #e0e0e0',
         display: 'flex',
         alignItems: 'center',
-        // tighten side padding only in 321–494
         paddingLeft: isNarrow ? 8 : undefined,
         paddingRight: isNarrow ? 8 : undefined,
-        overflow: 'hidden', // avoid accidental wrap/overflow bars
+        overflow: 'hidden', // prevent second line
       }}
     >
       <div
-        className="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2"
+        className="d-flex align-items-center w-100"
         style={{
-          // Never wrap in narrow/tiny range to keep height 68px
-          flexWrap: (isNarrow || isTiny) ? 'nowrap' : undefined,
-          columnGap: (isNarrow || isTiny) ? 8 : undefined,
+          // lock to one row in 321–494
+          flexWrap: (isNarrow || isTiny) ? 'nowrap' : 'wrap',
+          columnGap: (isNarrow || isTiny) ? 8 : 12,
+          justifyContent: 'space-between',
+          minWidth: 0, // allow children to shrink
         }}
       >
         {/* 🍔 Hamburger (compact only) */}
@@ -371,12 +372,12 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
         {/* Search Bar */}
         {!isTiny && (
           <div
-            className="flex-grow-1 pe-3"
+            className="pe-3"
             style={{
-              // cap width in 321–494 so icons fit
-              minWidth: isNarrow ? 110 : 200,
-              maxWidth: isNarrow ? 160 : (compact ? 300 : 400),
-              flex: '1 1 auto',
+              // let it shrink first so icons never wrap
+              flex: '1 1 0',
+              minWidth: 0,
+              maxWidth: isNarrow ? 150 : (compact ? 300 : 400),
             }}
           >
             <input
@@ -394,13 +395,10 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
           </div>
         )}
 
-        {/* Right Side Icons and Profile */}
+        {/* Right Side Icons and Profile (fixed width block) */}
         <Nav
           className="d-flex align-items-center gap-3 flex-nowrap"
-          style={{
-            gap: (isNarrow || isTiny) ? 8 : undefined,
-            flex: '0 0 auto',
-          }}
+          style={{ flex: '0 0 auto', gap: (isNarrow || isTiny) ? 8 : 12 }}
         >
           {/* 💡 Bulb */}
           <div
@@ -418,13 +416,7 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
             <FontAwesomeIcon icon={faBell} style={{ color: '#222', fontSize: 12 }} />
             <span
               className="position-absolute bg-danger rounded-circle"
-              style={{
-                width: 6,
-                height: 6,
-                border: '1.5px solid white',
-                top: 3,
-                right: 3,
-              }}
+              style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
             />
           </div>
 
@@ -437,7 +429,6 @@ const NavbarTop = ({ isMobile, toggleMenu }) => {
               width="30"
               height="30"
             />
-            {/* Already hidden below 576px via Bootstrap */}
             <div className="d-none d-sm-flex flex-column">
               <strong className="fs-6">Marco Botton</strong>
               <small className="text-muted">Admin</small>
