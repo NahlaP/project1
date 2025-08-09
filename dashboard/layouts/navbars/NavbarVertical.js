@@ -389,21 +389,226 @@
 
 
 
+// // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarVertical.js
+// import Link from 'next/link';
+// import { useRouter } from 'next/router';
+// import SimpleBar from 'simplebar-react';
+// import 'simplebar/dist/simplebar.min.css';
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+// import { faHeadset, faBars } from '@fortawesome/free-solid-svg-icons';
+// import { useState, useEffect } from 'react';
+
+// const BREAKPOINT = 993;      // <= 993px => hamburger/off-canvas
+// const NAVBAR_H = 68;         // height of your fixed top navbar
+
+// const SidebarItem = ({ icon, label, href }) => {
+//   const router = useRouter();
+//   const isActive = router.pathname === href;
+
+//   return (
+//     <Link
+//       href={href}
+//       className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 ${
+//         isActive ? 'bg-white text-danger rounded-pill fw-semibold' : 'text-dark'
+//       }`}
+//       style={{ textDecoration: 'none' }}
+//     >
+//       <i className={`fe fe-${icon} fs-5`}></i>
+//       <span>{label}</span>
+//     </Link>
+//   );
+// };
+
+// const SidebarDashly = () => {
+//   const [isCompact, setIsCompact] = useState(false); // <= 993px
+//   const [isOpen, setIsOpen] = useState(true);
+
+//   useEffect(() => {
+//     const handleResize = () => {
+//       const compact = window.innerWidth <= BREAKPOINT;
+//       setIsCompact(compact);
+//       setIsOpen(!compact); // open on desktop, closed in compact
+//     };
+
+//     handleResize();
+//     window.addEventListener('resize', handleResize);
+//     return () => window.removeEventListener('resize', handleResize);
+//   }, []);
+
+//   // Prevent page scroll and allow CSS hooks when the drawer is open on compact
+//   useEffect(() => {
+//     if (typeof document === 'undefined') return;
+//     document.body.style.overflow = isCompact && isOpen ? 'hidden' : '';
+//     return () => { document.body.style.overflow = ''; };
+//   }, [isCompact, isOpen]);
+
+//   return (
+//     <>
+//       {/* Hamburger Button (compact only) */}
+//       {isCompact && (
+//         <button
+//           className="btn btn-outline-secondary position-fixed"
+//           style={{
+//             top: 16,
+//             left: 16,
+//             zIndex: 2000,
+//             borderRadius: 8,
+//             background: '#fff',
+//             border: '1px solid #e0e0e0'
+//           }}
+//           onClick={() => setIsOpen(!isOpen)}
+//           aria-label="Toggle sidebar"
+//         >
+//           <FontAwesomeIcon icon={faBars} />
+//         </button>
+//       )}
+
+//       {/* Sidebar */}
+//       <aside
+//         className="d-flex flex-column position-fixed"
+//         style={{
+//           top: isCompact ? NAVBAR_H : 0,            // drop under top bar in compact
+//           left: isCompact ? (isOpen ? 0 : -256) : 0, // off-canvas slide on compact
+//           width: 256,
+//           height: isCompact ? `calc(100vh - ${NAVBAR_H}px)` : '100vh',
+//           backgroundColor: '#F1F1F1',
+//           zIndex: 1050,
+//           transition: 'left 0.3s ease-in-out',
+//           boxShadow: isCompact && isOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none',
+//           borderRight: '1px solid #dee2e6',
+//           overflow: 'hidden'
+//         }}
+//       >
+//         <SimpleBar style={{ height: '100%' }}>
+//           {/* Logo */}
+//           <div className="px-4 pt-2 pb-4 d-flex align-items-center gap-2">
+//             <img
+//               src="/images/svg/download.png"
+//               alt="Logo"
+//               style={{
+//                 width: 140,
+//                 height: 60,
+//                 borderRadius: 12,
+//                 objectFit: 'cover',
+//               }}
+//             />
+//           </div>
+
+//           {/* Main Menu */}
+//           <div className="px-3 pt-2">
+//             <p className="text-uppercase small fw-bold text-muted px-2 mb-2">Main Menu</p>
+//             <SidebarItem icon="bar-chart" label="Dashboard" href="/dashboard" />
+//             <SidebarItem icon="file" label="Content" href="/content" />
+//             <SidebarItem icon="image" label="Media" href="/media" />
+//             <SidebarItem icon="user" label="Users" href="/users" />
+//             <SidebarItem icon="message-circle" label="Comments" href="/comments" />
+//           </div>
+
+//           {/* Settings */}
+//           <div className="px-3 pt-4">
+//             <p className="text-uppercase small fw-bold text-muted px-2 mb-2">Settings</p>
+//             <SidebarItem icon="settings" label="General" href="/settings/general" />
+//             <SidebarItem icon="eye" label="Appearance" href="/settings/appearance" />
+//             <SidebarItem icon="shield" label="Security" href="/settings/security" />
+//           </div>
+
+//           {/* Support Box */}
+//           <div className="px-4 py-4 mt-auto">
+//             <div
+//               style={{
+//                 width: '100%',
+//                 backgroundColor: '#FFFFFF',
+//                 borderRadius: 20,
+//                 padding: 12,
+//                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//                 justifyContent: 'center',
+//                 alignItems: 'center',
+//               }}
+//             >
+//               <div
+//                 className="fw-semibold text-dark mb-2 d-flex align-items-center"
+//                 style={{ fontSize: 14, gap: 6 }}
+//               >
+//                 <FontAwesomeIcon icon={faHeadset} style={{ width: 14, height: 14 }} />
+//                 <span>Need help?</span>
+//               </div>
+//               <div className="text-muted mb-3 text-center" style={{ fontSize: 13, lineHeight: 1.4 }}>
+//                 Contact our support team for assistance
+//               </div>
+//               <button
+//                 className="btn btn-outline-dark btn-sm"
+//                 style={{ width: '100%', height: 38, fontSize: 13, borderRadius: 12 }}
+//               >
+//                 Contact Support
+//               </button>
+//             </div>
+//           </div>
+//         </SimpleBar>
+//       </aside>
+
+//       {/* Backdrop when drawer open (compact only) */}
+//       {isCompact && isOpen && (
+//         <div
+//           onClick={() => setIsOpen(false)}
+//           style={{
+//             position: 'fixed',
+//             inset: 0,
+//             background: 'rgba(0,0,0,.35)',
+//             zIndex: 1040
+//           }}
+//         />
+//       )}
+//     </>
+//   );
+// };
+
+// export default SidebarDashly;
+
+
+
+
+
 // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarVertical.js
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import SimpleBar from 'simplebar-react';
 import 'simplebar/dist/simplebar.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeadset, faBars } from '@fortawesome/free-solid-svg-icons';
+import {
+  faHeadset,
+  faBars,
+  faChartBar,
+  faFile,
+  faImage,
+  faUser,
+  faCommentDots,
+  faGear,
+  faEye,
+  faShieldHalved
+} from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
 
 const BREAKPOINT = 993;      // <= 993px => hamburger/off-canvas
 const NAVBAR_H = 68;         // height of your fixed top navbar
 
+// map old "fe" icon names to Font Awesome icons
+const iconMap = {
+  'bar-chart': faChartBar,
+  'file': faFile,
+  'image': faImage,
+  'user': faUser,
+  'message-circle': faCommentDots,
+  'settings': faGear,
+  'eye': faEye,
+  'shield': faShieldHalved
+};
+
 const SidebarItem = ({ icon, label, href }) => {
   const router = useRouter();
   const isActive = router.pathname === href;
+  const faIcon = iconMap[icon] || faFile; // fallback so it never renders blank
 
   return (
     <Link
@@ -413,7 +618,7 @@ const SidebarItem = ({ icon, label, href }) => {
       }`}
       style={{ textDecoration: 'none' }}
     >
-      <i className={`fe fe-${icon} fs-5`}></i>
+      <FontAwesomeIcon icon={faIcon} className="fs-5" />
       <span>{label}</span>
     </Link>
   );
@@ -435,11 +640,13 @@ const SidebarDashly = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Prevent page scroll and allow CSS hooks when the drawer is open on compact
+  // Prevent page scroll when drawer is open on compact
   useEffect(() => {
     if (typeof document === 'undefined') return;
     document.body.style.overflow = isCompact && isOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isCompact, isOpen]);
 
   return (
@@ -467,7 +674,7 @@ const SidebarDashly = () => {
       <aside
         className="d-flex flex-column position-fixed"
         style={{
-          top: isCompact ? NAVBAR_H : 0,            // drop under top bar in compact
+          top: isCompact ? NAVBAR_H : 0,             // drop under top bar in compact
           left: isCompact ? (isOpen ? 0 : -256) : 0, // off-canvas slide on compact
           width: 256,
           height: isCompact ? `calc(100vh - ${NAVBAR_H}px)` : '100vh',
@@ -489,7 +696,7 @@ const SidebarDashly = () => {
                 width: 140,
                 height: 60,
                 borderRadius: 12,
-                objectFit: 'cover',
+                objectFit: 'cover'
               }}
             />
           </div>
@@ -524,7 +731,7 @@ const SidebarDashly = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: 'center'
               }}
             >
               <div
