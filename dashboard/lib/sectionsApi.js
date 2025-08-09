@@ -1,58 +1,90 @@
 
+
 // import axios from 'axios';
+// import { backendBaseUrl } from './config'; // ✅ import from centralized config
 
-// const baseURL = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000/api';
-
-// const api = axios.create({ baseURL });
+// const api = axios.create({
+//   baseURL: `${backendBaseUrl}/api`, // ✅ dynamic baseURL from config
+// });
 
 // export const SectionsApi = {
-//   // list all sections (and pages) for a user/template
+//   // List all sections and pages for the given user/template
 //   list: (userId, templateId) => api.get(`/sections/${userId}/${templateId}`),
 
-//   // get ONE section/page by id  <-- use the safer /by-id/:id route we added
+//   // Get a single section/page by ID
 //   getOne: (id) => api.get(`/sections/by-id/${id}`),
 
-//   // create new section/page
+//   // Create a new section/page
 //   create: (userId, templateId, body) =>
 //     api.post(`/sections/${userId}/${templateId}`, body),
 
+//   // Reorder sections/pages
+//   reorder: (userId, templateId, items) =>
+//     api.post(`/sections/reorder/${userId}/${templateId}`, { items }),
 
-// reorder: (userId, templateId, items) =>
-//   api.post(`/sections/reorder/${userId}/${templateId}`, { items }),
-
-
-//   // update a section/page
+//   // Update a section/page
 //   patch: (id, body) => api.patch(`/sections/${id}`, body),
 
-//   // delete a section/page
+//   // Delete a section/page
 //   remove: (id) => api.delete(`/sections/${id}`),
 // };
 
-import axios from 'axios';
-import { backendBaseUrl } from './config'; // ✅ import from centralized config
+
+
+// C:\Users\97158\Desktop\project1\dashboard\lib\sectionsApi.js
+import axios from "axios";
+import { backendBaseUrl } from "./config";
 
 const api = axios.create({
-  baseURL: `${backendBaseUrl}/api`, // ✅ dynamic baseURL from config
+  baseURL: `${backendBaseUrl}/api`,
+  timeout: 20000,
+  headers: { "Content-Type": "application/json" },
 });
 
+/**
+ * Sections API
+ * All methods return the raw Axios promise so you can access res.data/res.status.
+ */
 export const SectionsApi = {
-  // List all sections and pages for the given user/template
-  list: (userId, templateId) => api.get(`/sections/${userId}/${templateId}`),
+  /**
+   * List sections/pages for a user+template.
+   * Optional query params (server-side filtering): { parentPageId, type, slug, title, order }
+   */
+  list(userId, templateId, params = {}) {
+    return api.get(`/sections/${userId}/${templateId}`, { params });
+  },
 
-  // Get a single section/page by ID
-  getOne: (id) => api.get(`/sections/by-id/${id}`),
+  /** Convenience: list only sections assigned to a specific page */
+  listByParent(userId, templateId, parentPageId) {
+    return api.get(`/sections/${userId}/${templateId}`, {
+      params: { parentPageId },
+    });
+  },
 
-  // Create a new section/page
-  create: (userId, templateId, body) =>
-    api.post(`/sections/${userId}/${templateId}`, body),
+  /** Get one section/page by _id */
+  getOne(id) {
+    return api.get(`/sections/by-id/${id}`);
+  },
 
-  // Reorder sections/pages
-  reorder: (userId, templateId, items) =>
-    api.post(`/sections/reorder/${userId}/${templateId}`, { items }),
+  /** Create a new section/page */
+  create(userId, templateId, body) {
+    return api.post(`/sections/${userId}/${templateId}`, body);
+  },
 
-  // Update a section/page
-  patch: (id, body) => api.patch(`/sections/${id}`, body),
+  /** Reorder sections/pages (expects [{ _id, order }, ...]) */
+  reorder(userId, templateId, items) {
+    return api.post(`/sections/reorder/${userId}/${templateId}`, { items });
+  },
 
-  // Delete a section/page
-  remove: (id) => api.delete(`/sections/${id}`),
+  /** Patch a section/page */
+  patch(id, body) {
+    return api.patch(`/sections/${id}`, body);
+  },
+
+  /** Delete a section/page */
+  remove(id) {
+    return api.delete(`/sections/${id}`);
+  },
 };
+
+export default SectionsApi;

@@ -1014,6 +1014,7 @@ import {
 } from "react-bootstrap";
 import SidebarDashly from '../../layouts/navbars/NavbarVertical'; // import your Sidebar component
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import Image from "next/image";
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1522,13 +1523,21 @@ export default function DashboardHome() {
                   </h5>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-3 d-flex align-items-start gap-3">
-                      <img
+                      {/* <img
                         src="/images/user1.jpg"
                         alt=""
                         width="40"
                         height="40"
                         className="rounded-circle object-fit-cover"
-                      />
+                      /> */}
+                      
+<Image
+  src="/images/user1.jpg"
+  alt=""
+  width={40}
+  height={40}
+  className="rounded-circle object-fit-cover"
+/>
                       <div>
                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
                         <br />
