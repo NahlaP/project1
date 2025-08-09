@@ -154,7 +154,7 @@ import { useState, useEffect } from 'react';
 import NavbarTop from './navbars/NavbarTop';
 import { Row, Col } from 'react-bootstrap';
 
-const NAVBAR_H = 68; // your NavbarTop height
+const NAVBAR_H = 68;
 
 const ION7DashboardLayout = (props) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -164,14 +164,20 @@ const ION7DashboardLayout = (props) => {
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
+      const mobile = window.innerWidth <= 768;  // S23 Ultra viewport ≈ 412px → true
       setIsMobile(mobile);
-      setShowMenu(false);
+      if (!mobile) setShowMenu(false);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // NEW: add/remove a class on <body> so CSS can slide the sidebar
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.classList.toggle('sidebar-open', isMobile && showMenu);
+  }, [isMobile, showMenu]);
 
   return (
     <div id="db-wrapper">
@@ -180,10 +186,7 @@ const ION7DashboardLayout = (props) => {
         style={{
           marginLeft: 0,
           transition: 'margin-left 0.3s ease-in-out',
-          // ⬇️ only affect mobile spacing so content isn't hidden by the header
-          paddingTop: isMobile ? NAVBAR_H : 0,
-          paddingLeft: isMobile ? 16 : 0,
-          paddingRight: isMobile ? 16 : 0,
+          paddingTop: isMobile ? NAVBAR_H : 0, // keeps content below navbar on phones
           backgroundColor: '#F1F1F1',
           minHeight: '100vh',
         }}
@@ -191,12 +194,20 @@ const ION7DashboardLayout = (props) => {
         <div className="header">
           <NavbarTop
             isMobile={isMobile}
-            toggleMenu={toggleMenu}
+            toggleMenu={toggleMenu}  // <-- make sure the hamburger calls this
             sidebarVisible={false}
           />
         </div>
 
         {props.children}
+
+        {/* Backdrop for mobile when sidebar is open */}
+        {isMobile && showMenu && (
+          <div
+            onClick={() => setShowMenu(false)}
+            className="mobile-backdrop"
+          />
+        )}
 
         <div className="px-6 border-top py-3 bg-white">
           <Row>
