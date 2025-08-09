@@ -213,1381 +213,19 @@
 
 
 
-// import {
-//   Container,
-//   Row,
-//   Col,
-//   Card,
-//   Button,
-//   Badge,
-//   ProgressBar,
-// } from "react-bootstrap";
-// import Link from "next/link";
-// import { FaBell, FaUserCircle } from "react-icons/fa";
 
-// export default function DashboardHome() {
-//   const red = "#FE3131";
-//   const green = "#D5FF40";
-//   const pageBg = "#F1F1F1";
 
-//   return (
-//     <div style={{ backgroundColor: pageBg, minHeight: "100vh", padding: "2rem" }}>
-//       <Container fluid>
-//         <h4 className="fw-bold">Welcome back, Marco!</h4>
-//         <p className="text-muted">
-//           Here's your website overview and next steps to complete your setup.
-//         </p>
 
-//         <Row className="g-4 mt-2">
-//           {/* Subscription */}
-//           <Col md={4}>
-//             <Card className="shadow-sm h-100" style={{ backgroundColor: "#FFFFFF" }}>
-//               <Card.Body>
-//                 <h6>
-//                   <Badge style={{ backgroundColor: green, color: "#000" }} className="me-2">
-//                     Pro Plan
-//                   </Badge>
-//                   <Badge bg="secondary">Monthly</Badge>
-//                 </h6>
-//                 <h4 className="fw-bold">
-//                   $29.99 <small className="text-muted fs-6 fw-normal">/month</small>
-//                 </h4>
-//                 <p className="text-muted small mb-1">
-//                   Next billing date <strong>Feb 15, 2024</strong>
-//                 </p>
-//                 <p className="text-muted small mb-2">
-//                   Storage used <strong>8.2GB / 50GB</strong>
-//                 </p>
-//                 <ProgressBar
-//                   now={(8.2 / 50) * 100}
-//                   className="mb-3"
-//                   style={{ height: "6px", backgroundColor: "#ddd" }}
-//                 />
-//                 <Button variant="outline-dark" size="sm" className="w-100">
-//                   Manage Subscription
-//                 </Button>
-//               </Card.Body>
-//             </Card>
-//           </Col>
 
-//           {/* Domain */}
-//           <Col md={4}>
-//             <Card className="shadow-sm h-100" style={{ backgroundColor: "#FFFFFF" }}>
-//               <Card.Body>
-//                 <h5 className="fw-bold mb-2">marcobotton.com</h5>
-//                 <Badge
-//                   style={{ backgroundColor: green, color: "#000", fontWeight: 600 }}
-//                   className="me-2"
-//                 >
-//                   Connected
-//                 </Badge>
-//                 <Badge
-//                   style={{ backgroundColor: green, color: "#000", fontWeight: 600 }}
-//                 >
-//                   SSL Active
-//                 </Badge>
-//                 <p className="text-muted small mt-3 mb-0">
-//                   Domain expires: <strong>Dec 25, 2024</strong>
-//                 </p>
-//                 <p className="text-muted small mb-3">
-//                   DNS Status: <span className="text-success">Active</span>
-//                 </p>
-//                 <Button
-//                   style={{ backgroundColor: red, borderColor: red }}
-//                   className="me-2"
-//                   size="sm"
-//                 >
-//                   View Site
-//                 </Button>
-//                 <Button variant="outline-dark" size="sm">
-//                   Settings
-//                 </Button>
-//               </Card.Body>
-//             </Card>
-//           </Col>
 
-//           {/* Website Editor */}
-//           <Col md={4}>
-//             <Card className="shadow-sm h-100" style={{ backgroundColor: "#FFFFFF" }}>
-//               <Card.Body>
-//                 <h6 className="fw-bold">Edit My Website</h6>
-//                 <p className="text-muted small mb-1">
-//                   Quick access to your website editor and customization tools.
-//                 </p>
-//                 <p className="text-muted small mb-1">Last edited: 2 hours ago</p>
-//                 <p className="text-muted small mb-1">
-//                   Draft changes: <strong>3 pending</strong>
-//                 </p>
-//                 <p className="text-muted small mb-3">
-//                   Template: <strong>Modern Blog</strong>
-//                 </p>
-//                 <Button
-//                   style={{ backgroundColor: red, borderColor: red }}
-//                   size="sm"
-//                   className="me-2"
-//                 >
-//                   Open Editor
-//                 </Button>
-//                 <Button variant="outline-dark" size="sm">
-//                   Preview Changes
-//                 </Button>
-//               </Card.Body>
-//             </Card>
-//           </Col>
-//         </Row>
 
-//         {/* Stats */}
-//         <Row className="g-4 mt-3">
-//           {[
-//             {
-//               label: "SUBSCRIBERS",
-//               value: "2,548",
-//               change: "+12.5%",
-//               compare: "Compared to 2,267 last month",
-//             },
-//             {
-//               label: "PAGE VIEWS",
-//               value: "42.5k",
-//               change: "+8.2%",
-//               compare: "Compared to 39.3k last month",
-//             },
-//             {
-//               label: "BOUNCE RATE",
-//               value: "28.3%",
-//               change: "+2.1%",
-//               compare: "Compared to 26.2% last month",
-//             },
-//           ].map((stat, i) => (
-//             <Col md={4} key={i}>
-//               <Card className="text-center shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
-//                 <Card.Body>
-//                   <p className="text-uppercase text-muted fw-bold small mb-1">
-//                     {stat.label}
-//                   </p>
-//                   <h4 className="fw-bold">{stat.value}</h4>
-//                   <Badge
-//                     style={{
-//                       backgroundColor: green,
-//                       color: "#000",
-//                       fontWeight: 600,
-//                     }}
-//                   >
-//                     {stat.change}
-//                   </Badge>
-//                   <p className="text-muted small mt-2">{stat.compare}</p>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-//           ))}
-//         </Row>
 
-//         {/* Recent Activity */}
-//         <Row className="mt-4">
-//           <Col md={12}>
-//             <Card className="shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
-//               <Card.Body>
-//                 <h6 className="fw-bold mb-3">Recent Activity</h6>
-//                 <ul className="list-unstyled mb-0">
-//                   <li className="mb-3 d-flex align-items-center gap-2">
-//                     <img
-//                       src="/images/user1.jpg"
-//                       alt=""
-//                       width="32"
-//                       height="32"
-//                       className="rounded-circle"
-//                     />
-//                     <div>
-//                       <strong>Sarah Johnson</strong> published a new article
-//                       <br />
-//                       <small className="text-muted">
-//                         “Design Systems in 2023” · 2 hours ago
-//                       </small>
-//                     </div>
-//                   </li>
-//                   <li className="mb-3 d-flex align-items-center gap-2">
-//                     <img
-//                       src="/images/user2.jpg"
-//                       alt=""
-//                       width="32"
-//                       height="32"
-//                       className="rounded-circle"
-//                     />
-//                     <div>
-//                       <strong>Robert Chen</strong> updated the homepage banner
-//                       <br />
-//                       <small className="text-muted">4 hours ago</small>
-//                     </div>
-//                   </li>
-//                   <li className="d-flex align-items-center gap-2">
-//                     <img
-//                       src="/images/user3.jpg"
-//                       alt=""
-//                       width="32"
-//                       height="32"
-//                       className="rounded-circle"
-//                     />
-//                     <div>
-//                       <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
-//                       <br />
-//                       <small className="text-muted">Yesterday at 2:45 PM</small>
-//                     </div>
-//                   </li>
-//                 </ul>
-//               </Card.Body>
-//             </Card>
-//           </Col>
-//         </Row>
-//       </Container>
-
-//       {/* Floating Icons */}
-//       <div className="position-fixed end-0 top-0 mt-3 me-4 d-flex gap-3">
-//         <FaBell size={18} className="text-muted" />
-//         <FaUserCircle size={22} className="text-muted" />
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-
-// import { useEffect, useState } from "react";
-// import { useRouter } from "next/router";
-// import axios from "axios";
-// import {
-//   Container,
-//   Row,
-//   Col,
-//   Card,
-//   Button,
-//   Badge,
-//   ProgressBar,
-// } from "react-bootstrap";
-// import Link from "next/link";
-
-
-// export default function DashboardHome() {
-//    const [homePageId, setHomePageId] = useState(null);
-//   const router = useRouter();
-
-//   useEffect(() => {
-//     async function fetchHomePage() {
-//       try {
-//         const res = await axios.get(`http://localhost:5000/api/sections?userId=demo-user&templateId=gym-template-1&type=page&slug=home`);
-//         const page = res.data[0];
-//         setHomePageId(page?._id);
-//       } catch (err) {
-//         console.error("Error fetching home page", err);
-//       }
-//     }
-
-//     fetchHomePage();
-//   }, []);
-
-//   const red = "#FE3131";
-//   const green = "#D5FF40";
-//   const pageBg = "#F1F1F1";
-  
-
-//   return (
-    
-//     // <div style={{ backgroundColor: pageBg, minHeight: "100vh", padding: "2rem" }}>
-//     <div style={{ backgroundColor: pageBg, minHeight: "100vh", padding: "2rem", paddingTop: "6rem" }}>
-
-//       <Container fluid>
-//         <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}> 
-//           Welcome back, Marco!
-//         </h5>
-//         <br/>
-//         <p className="text-dark">
-//           Here's your website overview and next steps to complete your setup.
-//         </p>
-
-//         <Row className="g-4 mt-2">
-//           {/* Subscription */}
-//           <Col md={4}>
-//   <Card
-//     // className="shadow-sm h-100 border-0 rounded-4"
-//     className="custom-card-shadow border-0 rounded-4"
-//      style={{
-//       backgroundColor: "#ffffff",
-//       width: "362.67px",
-//       height: "326px",
-
-//     }}
-//   >
-//     <Card.Body className="position-relative px-4 pt-5 pb-4">
-     
-
-//       {/* Title and Icon */}
-//       <div className="d-flex justify-content-between align-items-start mb-3">
-//         <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
-//           Current Subscription
-//         </h5>
-//         <img src="/icons/crown.svg" alt="Pro Plan" width={18} height={18} />
-//       </div>
-
-//       {/* Plan Badges */}
-//       <div className="d-flex gap-2 mb-3">
-//         <span
-//           className="px-2 py-1 rounded-pill fw-bold"
-//           style={{
-//             backgroundColor: "#D5FF40",
-//             fontSize: "0.75rem",
-//             color: "#000",
-//           }}
-//         >
-//           Pro Plan
-//         </span>
-//         <span
-//           className="px-3 py-1 rounded-pill fw-bold"
-//           style={{
-//             backgroundColor: "#E1E1E1",
-//             fontSize: "0.75rem",
-//             color: "#000",
-//             minWidth: "70px",
-//             textAlign: "center",
-//           }}
-//         >
-//           Monthly
-//         </span>
-//       </div>
-
-//       {/* Price */}
-//       <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5",fontSize: "1.7rem" }}>
-//         $29.99{" "}
-//         <small className="text-dark fs-6 fw-normal align-middle">/month</small>
-//       </h4>
-
-//       {/* Billing Date */}
-//       <div className="d-flex justify-content-between text-dark small mb-1">
-//         <span>Next billing date</span>
-//         <span className="fw-semibold text-dark">Feb 15, 2024</span>
-//       </div>
-
-//       {/* Storage */}
-//       <div className="d-flex justify-content-between text-dark small mb-3">
-//         <span>Storage used</span>
-//         <span className="fw-semibold text-dark">8.2GB / 50GB</span>
-//       </div>
-
-//       {/* Progress bar */}
-//       <div
-//         className="mb-3"
-//         style={{
-//           height: "6px",
-//           backgroundColor: "#E5E7EB",
-//           borderRadius: "4px",
-//         }}
-//       >
-//         <div
-//           style={{
-//             width: `${(8.2 / 50) * 100}%`,
-//             height: "100%",
-//             backgroundColor: "#FE3131",
-//             borderRadius: "4px",
-//           }}
-//         ></div>
-//       </div>
-
-//       {/* Manage Button */}
- 
-//       <Button
-//   variant="#FFFFFF"
-//   className="w-100 fw-medium rounded-3"
-//   style={{
-//     fontSize: "0.92rem",
-//     padding: "6px 0",
-//     border: "1px solid #D1D1D1",        // subtle grey border
-//     boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-//     color: "#111",
-//   }}
-// >
-//   Manage Subscription
-// </Button>
-
-//     </Card.Body>
-//   </Card>
-// </Col>
-
-//  <Col md={4}>
-//   <Card
-//     className="custom-card-shadow border-0 rounded-4"
-//     style={{
-//       backgroundColor: "#ffffff",
-//       width: "362.67px",
-//       height: "326px",
-//     }}
-//   >
-//     <Card.Body className="position-relative px-4 pt-4 pb-3">
-//       {/* Header */}
-//       <div className="d-flex justify-content-between align-items-start mb-2">
-//         <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
-//           Domain Information
-//         </h5>
-//          <img src="/icons/globe-icon.png" alt="Domain" width={18} height={18} />
-//       </div>
-
-//       {/* Domain (lowered slightly) */}
-//       <h6
-//         className="fw-bold mb-2 mt-3"
-//         style={{ fontSize: "1rem", marginTop: "4px" }}
-//       >
-//         marcobotton.com
-//       </h6>
-
-//       {/* Badges */}
-//       <div className="d-flex gap-2 mb-3">
-//         <span
-//           className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//           style={{
-//             fontSize: "0.75rem",
-//             backgroundColor: "#D5FF40",
-//             color: "#000",
-//           }}
-//         >
-//          ✔ Connected
-//         </span>
-//         <span
-//           className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//           style={{
-//             fontSize: "0.75rem",
-//             backgroundColor: "#D5FF40",
-//             color: "#000",
-//           }}
-//         >
-//           SSL Active
-//         </span>
-//       </div>
-
-//       {/* Domain Info */}
-//       <div className="d-flex justify-content-between text-dark small mb-1">
-//         <span>Domain expires</span>
-//         <span className="fw-semibold text-dark">Dec 25, 2024</span>
-//       </div>
-
-//       <div className="d-flex justify-content-between text-dark small mb-3">
-//         <span>DNS Status</span>
-//         {/* <span className="fw-semibold" style={{ color: "#C1F44B" }}>
-//           Active
-//         </span> */}
-//         <span
-//           className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//           style={{
-//             fontSize: "0.75rem",
-//             backgroundColor: "#D5FF40",
-//             color: "#000",
-//           }}
-//         >
-//            Active
-//         </span>
-//       </div>
-
-//       {/* Buttons */}
-//       <div className="d-flex gap-2">
-//         <Button
-//           variant="danger"
-//           className="fw-medium rounded-3 w-50"
-//           style={{
-//              backgroundColor: "#FF3C3C",
-//             fontSize: "0.92rem",
-//             padding: "6px 0",
-//           }}
-//         >
-//           View Site
-//         </Button>
-//         <Button
-//           variant="#FFFFFF"
-//           className="fw-medium border border-dark-subtle rounded-3 w-50"
-//           style={{
-//             fontSize: "0.92rem",
-//             padding: "6px 0",
-//             color:"#111"
-//           }}
-//         >
-//           Settings
-//         </Button>
-//       </div>
-//     </Card.Body>
-//   </Card>
-// </Col>
-
-// <Col md={4}>
-//   <Card
-//     // className="shadow-sm border-0 rounded-4"
-//      className="custom-card-shadow border-0 rounded-4"
-//    style={{
-//       backgroundColor: "#ffffff",
-//       width: "362.67px",
-//       height: "326px",
-//     }}
-//   >
-//    <Card.Body className="position-relative px-4 pt-4 pb-3">
-//       {/* Header */}
-//       <div className="d-flex justify-content-between align-items-start mb-2">
-//         <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
-//           Edit My Website
-//         </h5>
-//         <img
-//           src="/icons/edit-icon.png"
-//           alt="Edit"
-//           width={30}
-//           height={30}
-//         />
-//       </div>
-
-//       {/* Subtext */}
-//       <p className="text-dark mb-3" style={{ fontSize: "0.88rem" }}>
-//         Quick access to your website editor and customization tools.
-//       </p>
-
-//       {/* Info Rows */}
-//       <div className="d-flex justify-content-between text-dark small mb-1">
-//         <span>Last edited</span>
-//         <span className="fw-semibold text-dark">2 hours ago</span>
-//       </div>
-//       <div className="d-flex justify-content-between  text-dark small mb-1">
-//         <span>Draft changes</span>
-//         <span className="fw-semibold text-dark">3 pending</span>
-//       </div>
-//       <div className="d-flex justify-content-between text-dark  small mb-3">
-//         <span>Template</span>
-//         <span className="fw-semibold text-dark">Modern Blog</span>
-//       </div>
-
-//       {/* Action Buttons */}
-//      <div className="d-flex flex-column gap-2">
-//                   {homePageId ? (
-//                     <Button
-//                       onClick={() => router.push(`/editorpages/page/${homePageId}`)}
-//                       style={{
-//                         backgroundColor: "#FF3C3C",
-//                         border: "none",
-//                         borderRadius: "10px",
-//                         padding: "8px 0",
-//                         fontWeight: 500,
-//                       }}
-//                     >
-//                       Open Editor
-//                     </Button>
-//                   ) : (
-//                     <Button disabled>Loading...</Button>
-//                   )}
-//         <Button
-//           variant="#FFFFFF"
-//           className="fw-medium border border-dark-subtle rounded-3"
-//           style={{
-//             fontSize: "0.92rem",
-//             padding: "8px 0",
-//             color:"#111"
-//           }}
-//         >
-//           Preview Changes
-//         </Button>
-//       </div>
-//     </Card.Body>
-//   </Card>
-// </Col>
-
-          
-//         </Row>
-// <Row className="g-4 mt-3">
-//   <Col>
-//     <Card
-//        className="custom-card-shadow border-0"
-//       style={{
-//         width: "363px",
-//         height: "148px",
-//         borderRadius: "20px",
-//         backgroundColor: "#ffffff",
-//         padding: "16px",
-//       }}
-//     >
-//       <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
-//         {/* Badge */}
-//         <div className="d-flex justify-content-end">
-//           <span
-//             className="px-2 py-1 rounded-pill fw-bold"
-//             style={{
-//               fontSize: "0.75rem",
-//               backgroundColor: "#D5FF40", 
-//               color: "#000",
-//             }}
-//           >
-//             +12.5%
-//           </span>
-//         </div>
-
-//         {/* Main Content */}
-//         <div>
-//           <h6
-//             className="text-uppercase text-muted fw-semibold mb-1"
-//             style={{ fontSize: "0.75rem" }}
-//           >
-//             Subscribers
-//           </h6>
-//           <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//             2,548
-//           </h3>
-//           <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//             Compared to 2,267 last month
-//           </p>
-//         </div>
-//       </Card.Body>
-//     </Card>
-//   </Col>
-
-//   <Col>
-//   <Card
-//     className="custom-card-shadow border-0"
-//     style={{
-//       width: "363px",
-//       height: "148px",
-//       borderRadius: "20px",
-//       backgroundColor: "#ffffff",
-//       padding: "16px",
-//     }}
-//   >
-//     <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
-//       {/* Badge */}
-//       <div className="d-flex justify-content-end">
-//         <span
-//           className="px-2 py-1 rounded-pill fw-bold"
-//           style={{
-//             fontSize: "0.75rem",
-//             backgroundColor: "#D5FF40", 
-//             color: "#000",
-//           }}
-//         >
-//           +8.2%
-//         </span>
-//       </div>
-
-//       {/* Text content */}
-//       <div>
-//         <h6
-//           className="text-uppercase text-muted fw-semibold mb-1"
-//           style={{ fontSize: "0.75rem" }}
-//         >
-//           Page Views
-//         </h6>
-//         <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//           42.5k
-//         </h3>
-//         <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//           Compared to 39.3k last month
-//         </p>
-//       </div>
-//     </Card.Body>
-//   </Card>
-// </Col>
-// <Col>
-//   <Card
-//     className="custom-card-shadow border-0"
-//     style={{
-//       width: "363px",
-//       height: "148px",
-//       borderRadius: "20px",
-//       backgroundColor: "#ffffff",
-//       padding: "16px",
-//     }}
-//   >
-//     <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
-//       {/* Badge */}
-//       <div className="d-flex justify-content-end">
-//         <span
-//           className="px-2 py-1 rounded-pill fw-bold"
-//           style={{
-//             fontSize: "0.75rem",
-//             backgroundColor: "#FF3B30", // red color
-//             color: "#fff",
-//           }}
-//         >
-//           +2.1%
-//         </span>
-//       </div>
-
-//       {/* Text content */}
-//       <div>
-//         <h6
-//           className="text-uppercase text-muted fw-semibold mb-1"
-//           style={{ fontSize: "0.75rem" }}
-//         >
-//           Bounce Rate
-//         </h6>
-//         <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//           28.3%
-//         </h3>
-//         <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//           Compared to 26.2% last month
-//         </p>
-//       </div>
-//     </Card.Body>
-//   </Card>
-// </Col>
-
-// </Row>
-       
-// <Row className="mt-6">
-//   <Col md={12}>
-//     <Card
-//       className="custom-card-shadow border-0"
-//       style={{
-//         backgroundColor: "#FFFFFF",
-//         borderRadius: "20px",
-//         height: "260px",
-//         padding: "24px",
-//       }}
-//     >
-//       <Card.Body className="p-0">
-//         <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
-//           Recent Activity
-//         </h5>
-//         <ul className="list-unstyled mb-0">
-//           <li className="mb-3 d-flex align-items-start gap-3">
-//             <img
-//               src="/images/user1.jpg"
-//               alt=""
-//               width="40"
-//               height="40"
-//               className="rounded-circle object-fit-cover"
-//             />
-//             <div>
-//               <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
-//               <br />
-//               <small className="text-muted">2 hours ago</small>
-//             </div>
-//           </li>
-//           <li className="mb-3 d-flex align-items-start gap-3">
-//             <img
-//               src="/images/user2.jpg"
-//               alt=""
-//               width="40"
-//               height="40"
-//               className="rounded-circle object-fit-cover"
-//             />
-//             <div>
-//               <strong>Robert Chen</strong> updated the homepage banner
-//               <br />
-//               <small className="text-muted">4 hours ago</small>
-//             </div>
-//           </li>
-//           <li className="d-flex align-items-start gap-3">
-//             <img
-//               src="/images/user3.jpg"
-//               alt=""
-//               width="40"
-//               height="40"
-//               className="rounded-circle object-fit-cover"
-//             />
-//             <div>
-//               <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
-//               <br />
-//               <small className="text-muted">Yesterday at 2:45 PM</small>
-//             </div>
-//           </li>
-//         </ul>
-//       </Card.Body>
-//     </Card>
-//   </Col>
-// </Row>
-
-
-//       </Container>
-
-    
-//     </div>
-//   );
-// }
-// import { useEffect, useState } from "react";
-// import { useRouter } from "next/router";
-// import axios from "axios";
-// import {
-//   Container,
-//   Row,
-//   Col,
-//   Card,
-//   Button,
-// } from "react-bootstrap";
-// import SidebarDashly from '../../layouts/navbars/NavbarVertical'; // import your Sidebar component
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// import Image from "next/image";
-// export default function DashboardHome() {
-//   const [homePageId, setHomePageId] = useState(null);
-//   const [sidebarOpen, setSidebarOpen] = useState(true);
-//   const [isMobile, setIsMobile] = useState(false);
-//   const router = useRouter();
-
-//   // Detect screen size for mobile
-//   useEffect(() => {
-//     const handleResize = () => {
-//       const mobile = window.innerWidth <= 768;
-//       setIsMobile(mobile);
-//       setSidebarOpen(!mobile);
-//     };
-//     handleResize();
-//     window.addEventListener("resize", handleResize);
-//     return () => window.removeEventListener("resize", handleResize);
-//   }, []);
-
-//   useEffect(() => {
-//     async function fetchHomePage() {
-//       try {
-//         const res = await axios.get(
-//           `http://localhost:5000/api/sections?userId=demo-user&templateId=gym-template-1&type=page&slug=home`
-//         );
-//         const page = res.data[0];
-//         setHomePageId(page?._id);
-//       } catch (err) {
-//         console.error("Error fetching home page", err);
-//       }
-//     }
-//     fetchHomePage();
-//   }, []);
-
-//   const red = "#FE3131";
-//   const green = "#D5FF40";
-//   const pageBg = "#F1F1F1";
-
-//   return (
-//     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
-//       {/* Sidebar with control */}
-//       <SidebarDashly
-//         isOpen={sidebarOpen}
-//         setIsOpen={setSidebarOpen}
-//         isMobile={isMobile}
-//       />
-
-// <FontAwesomeIcon icon="bars" size="lg" />
-//       {/* Main content shifts right when sidebar is open */}
-//       <main
-//         style={{
-//           flexGrow: 1,
-//           marginLeft: sidebarOpen ? 256 : 0, // width of sidebar
-//           padding: "2rem",
-//           paddingTop: "6rem",
-//           transition: "margin-left 0.3s ease-in-out",
-//           width: "100%",
-//           overflowX: "hidden",
-//         }}
-//       >
-//         <Container fluid>
-//           <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
-//             Welcome back, Marco!
-//           </h5>
-//           <br />
-//           {/* <p className="text-dark">
-//             Here's your website overview and next steps to complete your setup.
-//           </p> */}
-
-//           <p className="text-dark">
-//   Here&apos;s your website overview and next steps to complete your setup.
-// </p>
-
-
-//           <Row className="g-4 mt-2">
-//             {/* Subscription Card */}
-//             <Col md={4}>
-//               <Card
-//                 className="custom-card-shadow border-0 rounded-4"
-//                 style={{
-//                   backgroundColor: "#ffffff",
-//                   width: "362.67px",
-//                   height: "326px",
-//                 }}
-//               >
-//                 <Card.Body className="position-relative px-4 pt-5 pb-4">
-//                   {/* Title and Icon */}
-//                   <div className="d-flex justify-content-between align-items-start mb-3">
-//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
-//                       Current Subscription
-//                     </h5>
-//                     <img
-//                       src="/icons/crown.svg"
-//                       alt="Pro Plan"
-//                       width={18}
-//                       height={18}
-//                     />
-//                   </div>
-
-//                   {/* Plan Badges */}
-//                   <div className="d-flex gap-2 mb-3">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold"
-//                       style={{
-//                         backgroundColor: "#D5FF40",
-//                         fontSize: "0.75rem",
-//                         color: "#000",
-//                       }}
-//                     >
-//                       Pro Plan
-//                     </span>
-//                     <span
-//                       className="px-3 py-1 rounded-pill fw-bold"
-//                       style={{
-//                         backgroundColor: "#E1E1E1",
-//                         fontSize: "0.75rem",
-//                         color: "#000",
-//                         minWidth: "70px",
-//                         textAlign: "center",
-//                       }}
-//                     >
-//                       Monthly
-//                     </span>
-//                   </div>
-
-//                   {/* Price */}
-//                   <h4
-//                     className="fw-bold mb-3"
-//                     style={{ lineHeight: "1.5", fontSize: "1.7rem" }}
-//                   >
-//                     $29.99{" "}
-//                     <small className="text-dark fs-6 fw-normal align-middle">
-//                       /month
-//                     </small>
-//                   </h4>
-
-//                   {/* Billing Date */}
-//                   <div className="d-flex justify-content-between text-dark small mb-1">
-//                     <span>Next billing date</span>
-//                     <span className="fw-semibold text-dark">Feb 15, 2024</span>
-//                   </div>
-
-//                   {/* Storage */}
-//                   <div className="d-flex justify-content-between text-dark small mb-3">
-//                     <span>Storage used</span>
-//                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
-//                   </div>
-
-//                   {/* Progress bar */}
-//                   <div
-//                     className="mb-3"
-//                     style={{
-//                       height: "6px",
-//                       backgroundColor: "#E5E7EB",
-//                       borderRadius: "4px",
-//                     }}
-//                   >
-//                     <div
-//                       style={{
-//                         width: `${(8.2 / 50) * 100}%`,
-//                         height: "100%",
-//                         backgroundColor: "#FE3131",
-//                         borderRadius: "4px",
-//                       }}
-//                     ></div>
-//                   </div>
-
-//                   {/* Manage Button */}
-//                   <Button
-//                     variant="#FFFFFF"
-//                     className="w-100 fw-medium rounded-3"
-//                     style={{
-//                       fontSize: "0.92rem",
-//                       padding: "6px 0",
-//                       border: "1px solid #D1D1D1", // subtle grey border
-//                       boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-//                       color: "#111",
-//                     }}
-//                   >
-//                     Manage Subscription
-//                   </Button>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-
-//             {/* Domain Info Card */}
-//             <Col md={4}>
-//               <Card
-//                 className="custom-card-shadow border-0 rounded-4"
-//                 style={{
-//                   backgroundColor: "#ffffff",
-//                   width: "362.67px",
-//                   height: "326px",
-//                 }}
-//               >
-//                 <Card.Body className="position-relative px-4 pt-4 pb-3">
-//                   {/* Header */}
-//                   <div className="d-flex justify-content-between align-items-start mb-2">
-//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
-//                       Domain Information
-//                     </h5>
-//                     <img
-//                       src="/icons/globe-icon.png"
-//                       alt="Domain"
-//                       width={18}
-//                       height={18}
-//                     />
-//                   </div>
-
-//                   {/* Domain */}
-//                   <h6
-//                     className="fw-bold mb-2 mt-3"
-//                     style={{ fontSize: "1rem", marginTop: "4px" }}
-//                   >
-//                     marcobotton.com
-//                   </h6>
-
-//                   {/* Badges */}
-//                   <div className="d-flex gap-2 mb-3">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//                       style={{
-//                         fontSize: "0.75rem",
-//                         backgroundColor: "#D5FF40",
-//                         color: "#000",
-//                       }}
-//                     >
-//                       ✔ Connected
-//                     </span>
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//                       style={{
-//                         fontSize: "0.75rem",
-//                         backgroundColor: "#D5FF40",
-//                         color: "#000",
-//                       }}
-//                     >
-//                       SSL Active
-//                     </span>
-//                   </div>
-
-//                   {/* Domain Info */}
-//                   <div className="d-flex justify-content-between text-dark small mb-1">
-//                     <span>Domain expires</span>
-//                     <span className="fw-semibold text-dark">Dec 25, 2024</span>
-//                   </div>
-
-//                   <div className="d-flex justify-content-between text-dark small mb-3">
-//                     <span>DNS Status</span>
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//                       style={{
-//                         fontSize: "0.75rem",
-//                         backgroundColor: "#D5FF40",
-//                         color: "#000",
-//                       }}
-//                     >
-//                       Active
-//                     </span>
-//                   </div>
-
-//                   {/* Buttons */}
-//                   <div className="d-flex gap-2">
-//                     <Button
-//                       variant="danger"
-//                       className="fw-medium rounded-3 w-50"
-//                       style={{
-//                         backgroundColor: "#FF3C3C",
-//                         fontSize: "0.92rem",
-//                         padding: "6px 0",
-//                       }}
-//                     >
-//                       View Site
-//                     </Button>
-//                     <Button
-//                       variant="#FFFFFF"
-//                       className="fw-medium border border-dark-subtle rounded-3 w-50"
-//                       style={{
-//                         fontSize: "0.92rem",
-//                         padding: "6px 0",
-//                         color: "#111",
-//                       }}
-//                     >
-//                       Settings
-//                     </Button>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-
-//             {/* Edit My Website Card */}
-//             <Col md={4}>
-//               <Card
-//                 className="custom-card-shadow border-0 rounded-4"
-//                 style={{
-//                   backgroundColor: "#ffffff",
-//                   width: "362.67px",
-//                   height: "326px",
-//                 }}
-//               >
-//                 <Card.Body className="position-relative px-4 pt-4 pb-3">
-//                   {/* Header */}
-//                   <div className="d-flex justify-content-between align-items-start mb-2">
-//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
-//                       Edit My Website
-//                     </h5>
-//                     <img src="/icons/edit-icon.png" alt="Edit" width={30} height={30} />
-//                   </div>
-
-//                   {/* Subtext */}
-//                   <p className="text-dark mb-3" style={{ fontSize: "0.88rem" }}>
-//                     Quick access to your website editor and customization tools.
-//                   </p>
-
-//                   {/* Info Rows */}
-//                   <div className="d-flex justify-content-between text-dark small mb-1">
-//                     <span>Last edited</span>
-//                     <span className="fw-semibold text-dark">2 hours ago</span>
-//                   </div>
-//                   <div className="d-flex justify-content-between  text-dark small mb-1">
-//                     <span>Draft changes</span>
-//                     <span className="fw-semibold text-dark">3 pending</span>
-//                   </div>
-//                   <div className="d-flex justify-content-between text-dark  small mb-3">
-//                     <span>Template</span>
-//                     <span className="fw-semibold text-dark">Modern Blog</span>
-//                   </div>
-
-//                   {/* Action Buttons */}
-//                   <div className="d-flex flex-column gap-2">
-//                     {homePageId ? (
-//                       <Button
-//                         onClick={() => router.push(`/editorpages/page/${homePageId}`)}
-//                         style={{
-//                           backgroundColor: "#FF3C3C",
-//                           border: "none",
-//                           borderRadius: "10px",
-//                           padding: "8px 0",
-//                           fontWeight: 500,
-//                         }}
-//                       >
-//                         Open Editor
-//                       </Button>
-//                     ) : (
-//                       <Button disabled>Loading...</Button>
-//                     )}
-//                     <Button
-//                       variant="#FFFFFF"
-//                       className="fw-medium border border-dark-subtle rounded-3"
-//                       style={{
-//                         fontSize: "0.92rem",
-//                         padding: "8px 0",
-//                         color: "#111",
-//                       }}
-//                     >
-//                       Preview Changes
-//                     </Button>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-//           </Row>
-
-//           {/* Other cards */}
-//           <Row className="g-4 mt-3">
-//             <Col>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{
-//                   width: "363px",
-//                   height: "148px",
-//                   borderRadius: "20px",
-//                   backgroundColor: "#ffffff",
-//                   padding: "16px",
-//                 }}
-//               >
-//                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
-//                   <div className="d-flex justify-content-end">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold"
-//                       style={{
-//                         fontSize: "0.75rem",
-//                         backgroundColor: "#D5FF40",
-//                         color: "#000",
-//                       }}
-//                     >
-//                       +12.5%
-//                     </span>
-//                   </div>
-//                   <div>
-//                     <h6
-//                       className="text-uppercase text-muted fw-semibold mb-1"
-//                       style={{ fontSize: "0.75rem" }}
-//                     >
-//                       Subscribers
-//                     </h6>
-//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//                       2,548
-//                     </h3>
-//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//                       Compared to 2,267 last month
-//                     </p>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-
-//             <Col>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{
-//                   width: "363px",
-//                   height: "148px",
-//                   borderRadius: "20px",
-//                   backgroundColor: "#ffffff",
-//                   padding: "16px",
-//                 }}
-//               >
-//                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
-//                   <div className="d-flex justify-content-end">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold"
-//                       style={{
-//                         fontSize: "0.75rem",
-//                         backgroundColor: "#D5FF40",
-//                         color: "#000",
-//                       }}
-//                     >
-//                       +8.2%
-//                     </span>
-//                   </div>
-//                   <div>
-//                     <h6
-//                       className="text-uppercase text-muted fw-semibold mb-1"
-//                       style={{ fontSize: "0.75rem" }}
-//                     >
-//                       Page Views
-//                     </h6>
-//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//                       42.5k
-//                     </h3>
-//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//                       Compared to 39.3k last month
-//                     </p>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-
-//             <Col>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{
-//                   width: "363px",
-//                   height: "148px",
-//                   borderRadius: "20px",
-//                   backgroundColor: "#ffffff",
-//                   padding: "16px",
-//                 }}
-//               >
-//                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
-//                   <div className="d-flex justify-content-end">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold"
-//                       style={{
-//                         fontSize: "0.75rem",
-//                         backgroundColor: "#FF3B30", // red color
-//                         color: "#fff",
-//                       }}
-//                     >
-//                       +2.1%
-//                     </span>
-//                   </div>
-//                   <div>
-//                     <h6
-//                       className="text-uppercase text-muted fw-semibold mb-1"
-//                       style={{ fontSize: "0.75rem" }}
-//                     >
-//                       Bounce Rate
-//                     </h6>
-//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//                       28.3%
-//                     </h3>
-//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//                       Compared to 26.2% last month
-//                     </p>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-//           </Row>
-
-//           <Row className="mt-6">
-//             <Col md={12}>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{
-//                   backgroundColor: "#FFFFFF",
-//                   borderRadius: "20px",
-//                   height: "295px",
-//                   padding: "24px",
-//                 }}
-//               >
-//                 <Card.Body className="p-0">
-//                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
-//                     Recent Activity
-//                   </h5>
-//                   <ul className="list-unstyled mb-0">
-//                     <li className="mb-3 d-flex align-items-start gap-3">
-//                       {/* <img
-//                         src="/images/user1.jpg"
-//                         alt=""
-//                         width="40"
-//                         height="40"
-//                         className="rounded-circle object-fit-cover"
-//                       /> */}
-                      
-// <Image
-//   src="/images/user1.jpg"
-//   alt=""
-//   width={40}
-//   height={40}
-//   className="rounded-circle object-fit-cover"
-// />
-//                       <div>
-//                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
-//                         <br />
-//                         <small className="text-muted">2 hours ago</small>
-//                       </div>
-//                     </li>
-//                     <li className="mb-3 d-flex align-items-start gap-3">
-//                       <img
-//                         src="/images/user2.jpg"
-//                         alt=""
-//                         width="40"
-//                         height="40"
-//                         className="rounded-circle object-fit-cover"
-//                       />
-//                       <div>
-//                         <strong>Robert Chen</strong> updated the homepage banner
-//                         <br />
-//                         <small className="text-muted">4 hours ago</small>
-//                       </div>
-//                     </li>
-//                     <li className="d-flex align-items-start gap-3">
-//                       <img
-//                         src="/images/user3.jpg"
-//                         alt=""
-//                         width="40"
-//                         height="40"
-//                         className="rounded-circle object-fit-cover"
-//                       />
-//                       <div>
-//                         <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
-//                         <br />
-//                         <small className="text-muted">Yesterday at 2:45 PM</small>
-//                       </div>
-//                     </li>
-//                   </ul>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-//           </Row>
-//         </Container>
-//       </main>
-//     </div>
-//   );
-// }
 
 
 
 
 // // C:\Users\97158\Desktop\project1\dashboard\pages\dashboard\index.js
-// import { useEffect, useState } from "react";
+// import { useEffect, useMemo, useState } from "react";
 // import { useRouter } from "next/router";
 // import axios from "axios";
 // import { Container, Row, Col, Card, Button } from "react-bootstrap";
@@ -1595,14 +233,43 @@
 // import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 // import Image from "next/image";
 
-// // ✅ centralized config (no hardcoded localhost)
-// import { backendBaseUrl, userId, templateId } from "../../lib/config";
+// const USER_ID = "demo-user";
+// const TEMPLATE_ID = "gym-template-1";
+
+// // Resolve API base at RUNTIME so we don’t need a rebuild
+// function useApiBase() {
+//   return useMemo(() => {
+//     const PROD = "https://project1backend-2xvq.onrender.com";
+//     const env = (typeof window !== "undefined" && window.__API_BASE__) || process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+//     if (env && env.trim()) return env.trim();
+//     if (typeof window !== "undefined") {
+//       return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
+//     }
+//     return PROD;
+//   }, []);
+// }
 
 // export default function DashboardHome() {
 //   const [homePageId, setHomePageId] = useState(null);
+//   const [fetchErr, setFetchErr] = useState(null);
 //   const [sidebarOpen, setSidebarOpen] = useState(true);
 //   const [isMobile, setIsMobile] = useState(false);
 //   const router = useRouter();
+//   const API_BASE = useApiBase();
+//   const pageBg = "#F1F1F1";
+
+//   // Make sure axios points to the right base at runtime (no rebuild required)
+//   useEffect(() => {
+//     const base = API_BASE;
+//     const id = axios.interceptors.request.use((cfg) => {
+//       // rewrite any hardcoded localhost URL
+//       if (cfg.url?.startsWith("http://localhost:5000")) {
+//         cfg.url = cfg.url.replace("http://localhost:5000", base);
+//       }
+//       return cfg;
+//     });
+//     return () => axios.interceptors.request.eject(id);
+//   }, [API_BASE]);
 
 //   // Detect screen size for mobile
 //   useEffect(() => {
@@ -1616,35 +283,65 @@
 //     return () => window.removeEventListener("resize", handleResize);
 //   }, []);
 
-//   // ✅ fetch home page id using backendBaseUrl and filter client-side by slug/type
+//   // Fetch the home page id, with logging and fallback
 //   useEffect(() => {
 //     let cancelled = false;
 
 //     async function fetchHomePage() {
+//       setFetchErr(null);
 //       try {
-//         const res = await axios.get(`${backendBaseUrl}/api/sections`, {
-//           params: {
-//             userId,
-//             templateId,
-//             type: "page",
-//             slug: "home",
-//           },
+//         console.info("[dashboard] API_BASE:", API_BASE);
+
+//         // Primary query
+//         const primary = await axios.get(`${API_BASE}/api/sections`, {
+//           params: { userId: USER_ID, templateId: TEMPLATE_ID, type: "page", slug: "home" },
+//           timeout: 15000,
 //         });
 
-//         // handle either [] or {data: []}
-//         const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
+//         const pRows = Array.isArray(primary.data) ? primary.data : primary.data?.data || [];
+//         console.info("[dashboard] primary len:", pRows.length);
 
-//         // ✅ Don’t trust order. Find the matching page.
-//         const home = rows.find(
-//           (r) =>
-//             r?.type === "page" &&
-//             (r?.slug === "home" || (r?.title || "").toLowerCase() === "home")
-//         );
+//         let page =
+//           pRows.find(
+//             (r) =>
+//               r?.type === "page" &&
+//               (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
+//           ) || null;
 
-//         if (!cancelled) setHomePageId(home?._id ?? null);
+//         // Fallback: list all
+//         if (!page) {
+//           console.warn("[dashboard] primary empty, fallback list…");
+//           const fallback = await axios.get(`${API_BASE}/api/sections/${USER_ID}/${TEMPLATE_ID}`, {
+//             timeout: 15000,
+//           });
+
+//           const fRows = Array.isArray(fallback.data) ? fallback.data : fallback.data?.data || [];
+//           console.info("[dashboard] fallback len:", fRows.length);
+
+//           page =
+//             fRows.find(
+//               (r) =>
+//                 r?.type === "page" &&
+//                 (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
+//             ) || null;
+//         }
+
+//         if (!cancelled) {
+//           if (page?._id) {
+//             setHomePageId(page._id);
+//             console.info("[dashboard] homePageId:", page._id);
+//           } else {
+//             setHomePageId(null);
+//             setFetchErr("Could not locate a 'home' page in API response.");
+//             console.error("[dashboard] no home page found");
+//           }
+//         }
 //       } catch (err) {
-//         console.error("Error fetching home page", err);
-//         if (!cancelled) setHomePageId(null);
+//         if (!cancelled) {
+//           setHomePageId(null);
+//           setFetchErr(err?.message || "Request failed");
+//           console.error("[dashboard] fetch error:", err);
+//         }
 //       }
 //     }
 
@@ -1652,9 +349,7 @@
 //     return () => {
 //       cancelled = true;
 //     };
-//   }, []);
-
-//   const pageBg = "#F1F1F1";
+//   }, [API_BASE]);
 
 //   return (
 //     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
@@ -1663,11 +358,10 @@
 
 //       <FontAwesomeIcon icon="bars" size="lg" />
 
-//       {/* Main content shifts right when sidebar is open */}
 //       <main
 //         style={{
 //           flexGrow: 1,
-//           marginLeft: sidebarOpen ? 256 : 0, // width of sidebar
+//           marginLeft: sidebarOpen ? 256 : 0,
 //           padding: "2rem",
 //           paddingTop: "6rem",
 //           transition: "margin-left 0.3s ease-in-out",
@@ -1680,7 +374,27 @@
 //             Welcome back, Marco!
 //           </h5>
 //           <br />
-//           <p className="text-dark">Here&apos;s your website overview and next steps to complete your setup.</p>
+//           <p className="text-dark">
+//             Here&apos;s your website overview and next steps to complete your setup.
+//           </p>
+
+//           {/* small debug banner so we can SEE what’s wrong on anyone’s machine */}
+//           {fetchErr && (
+//             <div
+//               style={{
+//                 background: "#fff3cd",
+//                 border: "1px solid #ffeeba",
+//                 color: "#856404",
+//                 borderRadius: 8,
+//                 padding: "10px 12px",
+//                 marginBottom: 16,
+//                 maxWidth: 740,
+//               }}
+//             >
+//               <strong>Heads up:</strong> {fetchErr} <br />
+//               API Base: <code>{API_BASE}</code>
+//             </div>
+//           )}
 
 //           <Row className="g-4 mt-2">
 //             {/* Subscription Card */}
@@ -1690,7 +404,6 @@
 //                 style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
 //               >
 //                 <Card.Body className="position-relative px-4 pt-5 pb-4">
-//                   {/* Title and Icon */}
 //                   <div className="d-flex justify-content-between align-items-start mb-3">
 //                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
 //                       Current Subscription
@@ -1698,69 +411,39 @@
 //                     <img src="/icons/crown.svg" alt="Pro Plan" width={18} height={18} />
 //                   </div>
 
-//                   {/* Plan Badges */}
 //                   <div className="d-flex gap-2 mb-3">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold"
-//                       style={{ backgroundColor: "#D5FF40", fontSize: "0.75rem", color: "#000" }}
-//                     >
+//                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ backgroundColor: "#D5FF40", fontSize: "0.75rem", color: "#000" }}>
 //                       Pro Plan
 //                     </span>
 //                     <span
 //                       className="px-3 py-1 rounded-pill fw-bold"
-//                       style={{
-//                         backgroundColor: "#E1E1E1",
-//                         fontSize: "0.75rem",
-//                         color: "#000",
-//                         minWidth: "70px",
-//                         textAlign: "center",
-//                       }}
+//                       style={{ backgroundColor: "#E1E1E1", fontSize: "0.75rem", color: "#000", minWidth: "70px", textAlign: "center" }}
 //                     >
 //                       Monthly
 //                     </span>
 //                   </div>
 
-//                   {/* Price */}
 //                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
-//                     $29.99{" "}
-//                     <small className="text-dark fs-6 fw-normal align-middle">/month</small>
+//                     $29.99 <small className="text-dark fs-6 fw-normal align-middle">/month</small>
 //                   </h4>
 
-//                   {/* Billing Date */}
 //                   <div className="d-flex justify-content-between text-dark small mb-1">
 //                     <span>Next billing date</span>
 //                     <span className="fw-semibold text-dark">Feb 15, 2024</span>
 //                   </div>
-
-//                   {/* Storage */}
 //                   <div className="d-flex justify-content-between text-dark small mb-3">
 //                     <span>Storage used</span>
 //                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
 //                   </div>
 
-//                   {/* Progress bar */}
 //                   <div className="mb-3" style={{ height: "6px", backgroundColor: "#E5E7EB", borderRadius: "4px" }}>
-//                     <div
-//                       style={{
-//                         width: `${(8.2 / 50) * 100}%`,
-//                         height: "100%",
-//                         backgroundColor: "#FE3131",
-//                         borderRadius: "4px",
-//                       }}
-//                     />
+//                     <div style={{ width: `${(8.2 / 50) * 100}%`, height: "100%", backgroundColor: "#FE3131", borderRadius: "4px" }} />
 //                   </div>
 
-//                   {/* Manage Button */}
 //                   <Button
 //                     variant="#FFFFFF"
 //                     className="w-100 fw-medium rounded-3"
-//                     style={{
-//                       fontSize: "0.92rem",
-//                       padding: "6px 0",
-//                       border: "1px solid #D1D1D1",
-//                       boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-//                       color: "#111",
-//                     }}
+//                     style={{ fontSize: "0.92rem", padding: "6px 0", border: "1px solid #D1D1D1", boxShadow: "0 1px 2px rgba(0,0,0,.05)", color: "#111" }}
 //                   >
 //                     Manage Subscription
 //                   </Button>
@@ -1770,12 +453,8 @@
 
 //             {/* Domain Info Card */}
 //             <Col md={4}>
-//               <Card
-//                 className="custom-card-shadow border-0 rounded-4"
-//                 style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
-//               >
+//               <Card className="custom-card-shadow border-0 rounded-4" style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}>
 //                 <Card.Body className="position-relative px-4 pt-4 pb-3">
-//                   {/* Header */}
 //                   <div className="d-flex justify-content-between align-items-start mb-2">
 //                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
 //                       Domain Information
@@ -1783,28 +462,19 @@
 //                     <img src="/icons/globe-icon.png" alt="Domain" width={18} height={18} />
 //                   </div>
 
-//                   {/* Domain */}
 //                   <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem", marginTop: "4px" }}>
 //                     marcobotton.com
 //                   </h6>
 
-//                   {/* Badges */}
 //                   <div className="d-flex gap-2 mb-3">
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//                       style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}
-//                     >
+//                     <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
 //                       ✔ Connected
 //                     </span>
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//                       style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}
-//                     >
+//                     <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
 //                       SSL Active
 //                     </span>
 //                   </div>
 
-//                   {/* Domain Info */}
 //                   <div className="d-flex justify-content-between text-dark small mb-1">
 //                     <span>Domain expires</span>
 //                     <span className="fw-semibold text-dark">Dec 25, 2024</span>
@@ -1812,28 +482,16 @@
 
 //                   <div className="d-flex justify-content-between text-dark small mb-3">
 //                     <span>DNS Status</span>
-//                     <span
-//                       className="px-2 py-1 rounded-pill fw-bold d-inline-block"
-//                       style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}
-//                     >
+//                     <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
 //                       Active
 //                     </span>
 //                   </div>
 
-//                   {/* Buttons */}
 //                   <div className="d-flex gap-2">
-//                     <Button
-//                       variant="danger"
-//                       className="fw-medium rounded-3 w-50"
-//                       style={{ backgroundColor: "#FF3C3C", fontSize: "0.92rem", padding: "6px 0" }}
-//                     >
+//                     <Button variant="danger" className="fw-medium rounded-3 w-50" style={{ backgroundColor: "#FF3C3C", fontSize: "0.92rem", padding: "6px 0" }}>
 //                       View Site
 //                     </Button>
-//                     <Button
-//                       variant="#FFFFFF"
-//                       className="fw-medium border border-dark-subtle rounded-3 w-50"
-//                       style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}
-//                     >
+//                     <Button variant="#FFFFFF" className="fw-medium border border-dark-subtle rounded-3 w-50" style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}>
 //                       Settings
 //                     </Button>
 //                   </div>
@@ -1843,12 +501,8 @@
 
 //             {/* Edit My Website Card */}
 //             <Col md={4}>
-//               <Card
-//                 className="custom-card-shadow border-0 rounded-4"
-//                 style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
-//               >
+//               <Card className="custom-card-shadow border-0 rounded-4" style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}>
 //                 <Card.Body className="position-relative px-4 pt-4 pb-3">
-//                   {/* Header */}
 //                   <div className="d-flex justify-content-between align-items-start mb-2">
 //                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
 //                       Edit My Website
@@ -1856,12 +510,10 @@
 //                     <img src="/icons/edit-icon.png" alt="Edit" width={30} height={30} />
 //                   </div>
 
-//                   {/* Subtext */}
 //                   <p className="text-dark mb-3" style={{ fontSize: "0.88rem" }}>
 //                     Quick access to your website editor and customization tools.
 //                   </p>
 
-//                   {/* Info Rows */}
 //                   <div className="d-flex justify-content-between text-dark small mb-1">
 //                     <span>Last edited</span>
 //                     <span className="fw-semibold text-dark">2 hours ago</span>
@@ -1875,24 +527,18 @@
 //                     <span className="fw-semibold text-dark">Modern Blog</span>
 //                   </div>
 
-//                   {/* Action Buttons */}
 //                   <div className="d-flex flex-column gap-2">
 //                     {homePageId ? (
 //                       <Button
 //                         onClick={() => router.push(`/editorpages/page/${homePageId}`)}
-//                         style={{
-//                           backgroundColor: "#FF3C3C",
-//                           border: "none",
-//                           borderRadius: "10px",
-//                           padding: "8px 0",
-//                           fontWeight: 500,
-//                         }}
+//                         style={{ backgroundColor: "#FF3C3C", border: "none", borderRadius: "10px", padding: "8px 0", fontWeight: 500 }}
 //                       >
 //                         Open Editor
 //                       </Button>
 //                     ) : (
-//                       <Button disabled>Loading...</Button>
+//                       <Button disabled>coming</Button>
 //                     )}
+
 //                     <Button
 //                       variant="#FFFFFF"
 //                       className="fw-medium border border-dark-subtle rounded-3"
@@ -1909,10 +555,7 @@
 //           {/* Other cards */}
 //           <Row className="g-4 mt-3">
 //             <Col>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
-//               >
+//               <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
 //                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
 //                   <div className="d-flex justify-content-end">
 //                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
@@ -1935,10 +578,7 @@
 //             </Col>
 
 //             <Col>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
-//               >
+//               <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
 //                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
 //                   <div className="d-flex justify-content-end">
 //                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
@@ -1961,10 +601,7 @@
 //             </Col>
 
 //             <Col>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}
-//               >
+//               <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
 //                 <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
 //                   <div className="d-flex justify-content-end">
 //                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#FF3B30", color: "#fff" }}>
@@ -1989,23 +626,14 @@
 
 //           <Row className="mt-6">
 //             <Col md={12}>
-//               <Card
-//                 className="custom-card-shadow border-0"
-//                 style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", height: "295px", padding: "24px" }}
-//               >
+//               <Card className="custom-card-shadow border-0" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", height: "295px", padding: "24px" }}>
 //                 <Card.Body className="p-0">
 //                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
 //                     Recent Activity
 //                   </h5>
 //                   <ul className="list-unstyled mb-0">
 //                     <li className="mb-3 d-flex align-items-start gap-3">
-//                       <Image
-//                         src="/images/user1.jpg"
-//                         alt=""
-//                         width={40}
-//                         height={40}
-//                         className="rounded-circle object-fit-cover"
-//                       />
+//                       <Image src="/images/user1.jpg" alt="" width={40} height={40} className="rounded-circle object-fit-cover" />
 //                       <div>
 //                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
 //                         <br />
@@ -2013,13 +641,7 @@
 //                       </div>
 //                     </li>
 //                     <li className="mb-3 d-flex align-items-start gap-3">
-//                       <img
-//                         src="/images/user2.jpg"
-//                         alt=""
-//                         width="40"
-//                         height="40"
-//                         className="rounded-circle object-fit-cover"
-//                       />
+//                       <img src="/images/user2.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
 //                       <div>
 //                         <strong>Robert Chen</strong> updated the homepage banner
 //                         <br />
@@ -2027,13 +649,7 @@
 //                       </div>
 //                     </li>
 //                     <li className="d-flex align-items-start gap-3">
-//                       <img
-//                         src="/images/user3.jpg"
-//                         alt=""
-//                         width="40"
-//                         height="40"
-//                         className="rounded-circle object-fit-cover"
-//                       />
+//                       <img src="/images/user3.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
 //                       <div>
 //                         <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
 //                         <br />
@@ -2054,6 +670,9 @@
 
 
 
+
+
+
 // C:\Users\97158\Desktop\project1\dashboard\pages\dashboard\index.js
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
@@ -2061,16 +680,18 @@ import axios from "axios";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars } from "@fortawesome/free-solid-svg-icons"; // ✅ ensure imported
 import Image from "next/image";
 
 const USER_ID = "demo-user";
 const TEMPLATE_ID = "gym-template-1";
 
-// Resolve API base at RUNTIME so we don’t need a rebuild
 function useApiBase() {
   return useMemo(() => {
     const PROD = "https://project1backend-2xvq.onrender.com";
-    const env = (typeof window !== "undefined" && window.__API_BASE__) || process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+    const env =
+      (typeof window !== "undefined" && window.__API_BASE__) ||
+      process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
     if (env && env.trim()) return env.trim();
     if (typeof window !== "undefined") {
       return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
@@ -2083,16 +704,14 @@ export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
   const [fetchErr, setFetchErr] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isBelowLg, setIsBelowLg] = useState(false); // < 992px
   const router = useRouter();
   const API_BASE = useApiBase();
   const pageBg = "#F1F1F1";
 
-  // Make sure axios points to the right base at runtime (no rebuild required)
   useEffect(() => {
-    const base = API_BASE;
     const id = axios.interceptors.request.use((cfg) => {
-      // rewrite any hardcoded localhost URL
+      const base = API_BASE;
       if (cfg.url?.startsWith("http://localhost:5000")) {
         cfg.url = cfg.url.replace("http://localhost:5000", base);
       }
@@ -2101,36 +720,28 @@ export default function DashboardHome() {
     return () => axios.interceptors.request.eject(id);
   }, [API_BASE]);
 
-  // Detect screen size for mobile
+  // ✅ treat <992px as tablet/mobile; don't push layout there
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      setSidebarOpen(!mobile);
+    const onResize = () => {
+      const below = window.innerWidth < 992; // Bootstrap lg breakpoint
+      setIsBelowLg(below);
+      setSidebarOpen(!below); // open on desktop, slide-over on <lg
     };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Fetch the home page id, with logging and fallback
   useEffect(() => {
     let cancelled = false;
-
-    async function fetchHomePage() {
+    (async () => {
       setFetchErr(null);
       try {
-        console.info("[dashboard] API_BASE:", API_BASE);
-
-        // Primary query
         const primary = await axios.get(`${API_BASE}/api/sections`, {
           params: { userId: USER_ID, templateId: TEMPLATE_ID, type: "page", slug: "home" },
           timeout: 15000,
         });
-
         const pRows = Array.isArray(primary.data) ? primary.data : primary.data?.data || [];
-        console.info("[dashboard] primary len:", pRows.length);
-
         let page =
           pRows.find(
             (r) =>
@@ -2138,16 +749,11 @@ export default function DashboardHome() {
               (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
           ) || null;
 
-        // Fallback: list all
         if (!page) {
-          console.warn("[dashboard] primary empty, fallback list…");
           const fallback = await axios.get(`${API_BASE}/api/sections/${USER_ID}/${TEMPLATE_ID}`, {
             timeout: 15000,
           });
-
           const fRows = Array.isArray(fallback.data) ? fallback.data : fallback.data?.data || [];
-          console.info("[dashboard] fallback len:", fRows.length);
-
           page =
             fRows.find(
               (r) =>
@@ -2156,26 +762,15 @@ export default function DashboardHome() {
             ) || null;
         }
 
-        if (!cancelled) {
-          if (page?._id) {
-            setHomePageId(page._id);
-            console.info("[dashboard] homePageId:", page._id);
-          } else {
-            setHomePageId(null);
-            setFetchErr("Could not locate a 'home' page in API response.");
-            console.error("[dashboard] no home page found");
-          }
-        }
+        if (!cancelled) setHomePageId(page?._id || null);
+        if (!page) setFetchErr("Could not locate a 'home' page in API response.");
       } catch (err) {
         if (!cancelled) {
           setHomePageId(null);
           setFetchErr(err?.message || "Request failed");
-          console.error("[dashboard] fetch error:", err);
         }
       }
-    }
-
-    fetchHomePage();
+    })();
     return () => {
       cancelled = true;
     };
@@ -2183,23 +778,33 @@ export default function DashboardHome() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
-      {/* Sidebar with control */}
-      <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isMobile} />
+      {/* Sidebar behaves as push on ≥lg, overlay on <lg */}
+      <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
 
-      <FontAwesomeIcon icon="bars" size="lg" />
+      {/* Hamburger visible only on <lg */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen((s) => !s)}
+        className="btn btn-link d-lg-none position-fixed top-0 start-0 m-3 p-2 z-3"
+        aria-label="Toggle menu"
+        style={{ background: "#fff", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,.12)" }}
+      >
+        <FontAwesomeIcon icon={faBars} />
+      </button>
 
       <main
         style={{
           flexGrow: 1,
-          marginLeft: sidebarOpen ? 256 : 0,
+          // ✅ Only push content when sidebar is open on desktop
+          marginLeft: !isBelowLg && sidebarOpen ? 256 : 0,
+          transition: "margin-left 0.25s ease",
           padding: "2rem",
           paddingTop: "6rem",
-          transition: "margin-left 0.3s ease-in-out",
           width: "100%",
           overflowX: "hidden",
         }}
       >
-        <Container fluid>
+        <Container fluid="xxl">
           <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
             Welcome back, Marco!
           </h5>
@@ -2208,31 +813,18 @@ export default function DashboardHome() {
             Here&apos;s your website overview and next steps to complete your setup.
           </p>
 
-          {/* small debug banner so we can SEE what’s wrong on anyone’s machine */}
           {fetchErr && (
-            <div
-              style={{
-                background: "#fff3cd",
-                border: "1px solid #ffeeba",
-                color: "#856404",
-                borderRadius: 8,
-                padding: "10px 12px",
-                marginBottom: 16,
-                maxWidth: 740,
-              }}
-            >
+            <div className="mb-3 p-3 rounded" style={{ background: "#fff3cd", border: "1px solid #ffeeba", color: "#856404", maxWidth: 740 }}>
               <strong>Heads up:</strong> {fetchErr} <br />
               API Base: <code>{API_BASE}</code>
             </div>
           )}
 
+          {/* ===== TOP 3 CARDS ===== */}
           <Row className="g-4 mt-2">
-            {/* Subscription Card */}
-            <Col md={4}>
-              <Card
-                className="custom-card-shadow border-0 rounded-4"
-                style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}
-              >
+            {/* Use responsive cols; remove fixed widths/heights; let them grow */}
+            <Col xs={12} md={6} lg={4}>
+              <Card className="custom-card-shadow border-0 ion-card h-100">
                 <Card.Body className="position-relative px-4 pt-5 pb-4">
                   <div className="d-flex justify-content-between align-items-start mb-3">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
@@ -2241,16 +833,9 @@ export default function DashboardHome() {
                     <img src="/icons/crown.svg" alt="Pro Plan" width={18} height={18} />
                   </div>
 
-                  <div className="d-flex gap-2 mb-3">
-                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ backgroundColor: "#D5FF40", fontSize: "0.75rem", color: "#000" }}>
-                      Pro Plan
-                    </span>
-                    <span
-                      className="px-3 py-1 rounded-pill fw-bold"
-                      style={{ backgroundColor: "#E1E1E1", fontSize: "0.75rem", color: "#000", minWidth: "70px", textAlign: "center" }}
-                    >
-                      Monthly
-                    </span>
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">Pro Plan</span>
+                    <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">Monthly</span>
                   </div>
 
                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
@@ -2266,14 +851,14 @@ export default function DashboardHome() {
                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
                   </div>
 
-                  <div className="mb-3" style={{ height: "6px", backgroundColor: "#E5E7EB", borderRadius: "4px" }}>
-                    <div style={{ width: `${(8.2 / 50) * 100}%`, height: "100%", backgroundColor: "#FE3131", borderRadius: "4px" }} />
+                  <div className="mb-3 progress thin">
+                    <div className="progress-bar bg-danger" style={{ width: `${(8.2 / 50) * 100}%` }} />
                   </div>
 
                   <Button
-                    variant="#FFFFFF"
-                    className="w-100 fw-medium rounded-3"
-                    style={{ fontSize: "0.92rem", padding: "6px 0", border: "1px solid #D1D1D1", boxShadow: "0 1px 2px rgba(0,0,0,.05)", color: "#111" }}
+                    variant="light"
+                    className="w-100 fw-medium rounded-3 border"
+                    style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}
                   >
                     Manage Subscription
                   </Button>
@@ -2281,9 +866,8 @@ export default function DashboardHome() {
               </Card>
             </Col>
 
-            {/* Domain Info Card */}
-            <Col md={4}>
-              <Card className="custom-card-shadow border-0 rounded-4" style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}>
+            <Col xs={12} md={6} lg={4}>
+              <Card className="custom-card-shadow border-0 ion-card h-100">
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
@@ -2292,17 +876,13 @@ export default function DashboardHome() {
                     <img src="/icons/globe-icon.png" alt="Domain" width={18} height={18} />
                   </div>
 
-                  <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem", marginTop: "4px" }}>
+                  <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem" }}>
                     marcobotton.com
                   </h6>
 
-                  <div className="d-flex gap-2 mb-3">
-                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
-                      ✔ Connected
-                    </span>
-                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
-                      SSL Active
-                    </span>
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">✔ Connected</span>
+                    <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">SSL Active</span>
                   </div>
 
                   <div className="d-flex justify-content-between text-dark small mb-1">
@@ -2312,16 +892,14 @@ export default function DashboardHome() {
 
                   <div className="d-flex justify-content-between text-dark small mb-3">
                     <span>DNS Status</span>
-                    <span className="px-2 py-1 rounded-pill fw-bold d-inline-block" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
-                      Active
-                    </span>
+                    <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">Active</span>
                   </div>
 
                   <div className="d-flex gap-2">
-                    <Button variant="danger" className="fw-medium rounded-3 w-50" style={{ backgroundColor: "#FF3C3C", fontSize: "0.92rem", padding: "6px 0" }}>
+                    <Button className="fw-medium rounded-3 w-50 btn-danger" style={{ padding: "6px 0" }}>
                       View Site
                     </Button>
-                    <Button variant="#FFFFFF" className="fw-medium border border-dark-subtle rounded-3 w-50" style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}>
+                    <Button className="fw-medium rounded-3 w-50 border" style={{ padding: "6px 0", color: "#111", background: "#fff" }}>
                       Settings
                     </Button>
                   </div>
@@ -2329,9 +907,8 @@ export default function DashboardHome() {
               </Card>
             </Col>
 
-            {/* Edit My Website Card */}
-            <Col md={4}>
-              <Card className="custom-card-shadow border-0 rounded-4" style={{ backgroundColor: "#ffffff", width: "362.67px", height: "326px" }}>
+            <Col xs={12} md={6} lg={4}>
+              <Card className="custom-card-shadow border-0 ion-card h-100">
                 <Card.Body className="position-relative px-4 pt-4 pb-3">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
@@ -2348,11 +925,11 @@ export default function DashboardHome() {
                     <span>Last edited</span>
                     <span className="fw-semibold text-dark">2 hours ago</span>
                   </div>
-                  <div className="d-flex justify-content-between  text-dark small mb-1">
+                  <div className="d-flex justify-content-between text-dark small mb-1">
                     <span>Draft changes</span>
                     <span className="fw-semibold text-dark">3 pending</span>
                   </div>
-                  <div className="d-flex justify-content-between text-dark  small mb-3">
+                  <div className="d-flex justify-content-between text-dark small mb-3">
                     <span>Template</span>
                     <span className="fw-semibold text-dark">Modern Blog</span>
                   </div>
@@ -2366,14 +943,9 @@ export default function DashboardHome() {
                         Open Editor
                       </Button>
                     ) : (
-                      <Button disabled>coming</Button>
+                      <Button disabled>Loading…</Button>
                     )}
-
-                    <Button
-                      variant="#FFFFFF"
-                      className="fw-medium border border-dark-subtle rounded-3"
-                      style={{ fontSize: "0.92rem", padding: "8px 0", color: "#111" }}
-                    >
+                    <Button className="fw-medium border rounded-3" style={{ fontSize: "0.92rem", padding: "8px 0", color: "#111", background: "#fff" }}>
                       Preview Changes
                     </Button>
                   </div>
@@ -2382,15 +954,13 @@ export default function DashboardHome() {
             </Col>
           </Row>
 
-          {/* Other cards */}
+          {/* ===== METRIC CARDS ===== */}
           <Row className="g-4 mt-3">
-            <Col>
-              <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
-                <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
+            <Col xs={12} md={6} lg={4}>
+              <Card className="custom-card-shadow border-0 metric-card h-100">
+                <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
-                      +12.5%
-                    </span>
+                    <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">+12.5%</span>
                   </div>
                   <div>
                     <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
@@ -2407,13 +977,11 @@ export default function DashboardHome() {
               </Card>
             </Col>
 
-            <Col>
-              <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
-                <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
+            <Col xs={12} md={6} lg={4}>
+              <Card className="custom-card-shadow border-0 metric-card h-100">
+                <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#D5FF40", color: "#000" }}>
-                      +8.2%
-                    </span>
+                    <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">+8.2%</span>
                   </div>
                   <div>
                     <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
@@ -2430,11 +998,11 @@ export default function DashboardHome() {
               </Card>
             </Col>
 
-            <Col>
-              <Card className="custom-card-shadow border-0" style={{ width: "363px", height: "148px", borderRadius: "20px", backgroundColor: "#ffffff", padding: "16px" }}>
-                <Card.Body className="p-0 d-flex flex-column justify-content-between h-100">
+            <Col xs={12} md={6} lg={4}>
+              <Card className="custom-card-shadow border-0 metric-card h-100">
+                <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ fontSize: "0.75rem", backgroundColor: "#FF3B30", color: "#fff" }}>
+                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ background: "#FF3B30", color: "#fff" }}>
                       +2.1%
                     </span>
                   </div>
@@ -2454,10 +1022,10 @@ export default function DashboardHome() {
             </Col>
           </Row>
 
-          <Row className="mt-6">
-            <Col md={12}>
-              <Card className="custom-card-shadow border-0" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", height: "295px", padding: "24px" }}>
-                <Card.Body className="p-0">
+          <Row className="mt-4">
+            <Col xs={12}>
+              <Card className="custom-card-shadow border-0 rounded-4">
+                <Card.Body className="p-4">
                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
                     Recent Activity
                   </h5>
