@@ -28,6 +28,7 @@ const allowedOrigins = [
   "https://project1-dash.vercel.app",
   "https://project1-o4nf.vercel.app",
   "http://localhost:3000",
+   'https://project1-three-olive.vercel.app', 
 ];
 
 app.use(
