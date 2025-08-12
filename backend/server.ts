@@ -28,7 +28,10 @@ const allowedOrigins = [
   "https://project1-dash.vercel.app",
   "https://project1-o4nf.vercel.app",
   "http://localhost:3000",
-   'https://project1-three-olive.vercel.app', 
+   "https://project1-three-olive.vercel.app", 
+     "http://127.0.0.1:5500",
+  "http://localhost:5500",
+ 
 ];
 
 app.use(
@@ -52,8 +55,7 @@ app.get("/", (req, res) => {
 console.log("📂 Serving static HTML from:", path.join(__dirname, '..', 'frontend1html'));
 app.use('/frontend1html', express.static(path.join(__dirname, '..', 'frontend1html')));
 
-// ✅ Serve uploaded images
-// Serve static files from uploads folder
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use("/api/upload", uploadRoutes);
 
@@ -74,9 +76,13 @@ app.use("/api", pageRoutes);
 mongoose
   .connect(process.env.MONGO_URI as string)
   .then(() => {
-    console.log('✅ MongoDB connected!');
+    console.log(' MongoDB connected!');
     app.listen(process.env.PORT || 5000, () => {
-      console.log(`✅ Server running at http://localhost:${process.env.PORT || 5000}`);
+      console.log(` Server running at http://localhost:${process.env.PORT || 5000}`);
     });
   })
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+  .catch((err) => console.error(' MongoDB connection error:', err));
+
+
+
+

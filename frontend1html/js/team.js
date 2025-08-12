@@ -74,7 +74,6 @@ async function loadTeamSection() {
       col.className = `col-lg-3 col-md-6 wow fadeInUp`;
       col.setAttribute("data-wow-delay", `${delay.toFixed(1)}s`);
 
-      // ✅ Updated image URL
       const imageUrl = member.imageUrl
         ? `https://project1backend-2xvq.onrender.com${member.imageUrl}`
         : "/img/default.jpg";

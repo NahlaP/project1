@@ -1,4 +1,4 @@
-const isLocal = false; // ✅ change to true when testing locally
+const isLocal = false; 
 
 export const backendBaseUrl = isLocal
   ? "http://localhost:5000"

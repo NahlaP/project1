@@ -46,7 +46,7 @@ router.post("/:folder", (req: Request, res: Response, next: NextFunction) => {
       return res.status(500).json({ error: err.message });
     }
 
-    const file = (req as any).file; // 👈 Fix TypeScript complaining
+    const file = (req as any).file; 
     if (!file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
