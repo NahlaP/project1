@@ -4,43 +4,444 @@
 
 
 
+// // C:\Users\97158\Desktop\project1\dashboard\pages\dashboard\index.js
+// import { useEffect, useMemo, useState } from "react";
+// import { useRouter } from "next/router";
+// import axios from "axios";
+// import { Container, Row, Col, Card, Button } from "react-bootstrap";
+// import SidebarDashly from "../../layouts/navbars/NavbarVertical";
+// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+// import { faBars } from "@fortawesome/free-solid-svg-icons"; // ✅ ensure imported
+// import Image from "next/image";
+
+// const USER_ID = "demo-user";
+// const TEMPLATE_ID = "gym-template-1";
+
+// // function useApiBase() {
+// //   return useMemo(() => {
+// // const PROD = "http://3.109.207.179";
+
+// //     const env =
+// //       (typeof window !== "undefined" && window.__API_BASE__) ||
+// //       process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+// //     if (env && env.trim()) return env.trim();
+// //     if (typeof window !== "undefined") {
+// //       return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
+// //     }
+// //     return PROD;
+// //   }, []);
+// // }
+
+
+// function useApiBase() {
+//   return (
+//     (typeof window !== "undefined" && window.__API_BASE__) ||
+//     process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+//     "http://3.109.207.179"
+//   );
+// }
+
+
+// export default function DashboardHome() {
+//   const [homePageId, setHomePageId] = useState(null);
+//   const [fetchErr, setFetchErr] = useState(null);
+//   const [sidebarOpen, setSidebarOpen] = useState(true);
+//   const [isBelowLg, setIsBelowLg] = useState(false); // < 992px
+//   const router = useRouter();
+//   const API_BASE = useApiBase();
+//   const pageBg = "#F1F1F1";
+
+//   // useEffect(() => {
+//   //   const id = axios.interceptors.request.use((cfg) => {
+//   //     const base = API_BASE;
+//   //     if (cfg.url?.startsWith("http://localhost:5000")) {
+//   //       cfg.url = cfg.url.replace("http://localhost:5000", base);
+//   //     }
+//   //     return cfg;
+//   //   });
+//   //   return () => axios.interceptors.request.eject(id);
+//   // }, [API_BASE]);
+
+//   useEffect(() => {
+//   const id = axios.interceptors.request.use((cfg) => {
+//     const base = API_BASE;
+//     if (!cfg.url) return cfg;
+
+//     // Rewrite any old Render host → EC2
+//     cfg.url = cfg.url.replace("https://project1backend-2xvq.onrender.com", base);
+
+//     // Prefix relative paths with base (e.g. "/api/sections")
+//     if (!/^https?:\/\//i.test(cfg.url)) {
+//       cfg.url = `${base}${cfg.url.startsWith("/") ? "" : "/"}${cfg.url}`;
+//     }
+//     return cfg;
+//   });
+//   return () => axios.interceptors.request.eject(id);
+// }, [API_BASE]);
+
+//   useEffect(() => {
+//     const onResize = () => {
+//       const below = window.innerWidth < 992; 
+//       setIsBelowLg(below);
+//       setSidebarOpen(!below); 
+//     };
+//     onResize();
+//     window.addEventListener("resize", onResize);
+//     return () => window.removeEventListener("resize", onResize);
+//   }, []);
+
+//   useEffect(() => {
+//     let cancelled = false;
+//     (async () => {
+//       setFetchErr(null);
+//       try {
+//         const primary = await axios.get(`${API_BASE}/api/sections`, {
+//           params: { userId: USER_ID, templateId: TEMPLATE_ID, type: "page", slug: "home" },
+//           timeout: 15000,
+//         });
+//         const pRows = Array.isArray(primary.data) ? primary.data : primary.data?.data || [];
+//         let page =
+//           pRows.find(
+//             (r) =>
+//               r?.type === "page" &&
+//               (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
+//           ) || null;
+
+//         if (!page) {
+//           const fallback = await axios.get(`${API_BASE}/api/sections/${USER_ID}/${TEMPLATE_ID}`, {
+//             timeout: 15000,
+//           });
+//           const fRows = Array.isArray(fallback.data) ? fallback.data : fallback.data?.data || [];
+//           page =
+//             fRows.find(
+//               (r) =>
+//                 r?.type === "page" &&
+//                 (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
+//             ) || null;
+//         }
+
+//         if (!cancelled) setHomePageId(page?._id || null);
+//         if (!page) setFetchErr("Could not locate a 'home' page in API response.");
+//       } catch (err) {
+//         if (!cancelled) {
+//           setHomePageId(null);
+//           setFetchErr(err?.message || "Request failed");
+//         }
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [API_BASE]);
+
+//   return (
+//     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
+
+//       <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
+
+//       <button
+//         type="button"
+//         onClick={() => setSidebarOpen((s) => !s)}
+//         className="btn btn-link d-lg-none position-fixed top-0 start-0 m-3 p-2 z-3"
+//         aria-label="Toggle menu"
+//         style={{ background: "#fff", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,.12)" }}
+//       >
+//         <FontAwesomeIcon icon={faBars} />
+//       </button>
+
+//       <main
+//         style={{
+//           flexGrow: 1,
+
+//           marginLeft: !isBelowLg && sidebarOpen ? 256 : 0,
+//           transition: "margin-left 0.25s ease",
+//           padding: "2rem",
+//           paddingTop: "6rem",
+//           width: "100%",
+//           overflowX: "hidden",
+//         }}
+//       >
+//         <Container fluid="xxl">
+//           <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
+//             Welcome back, Marco!
+//           </h5>
+//           <br />
+//           <p className="text-dark">
+//             Here&apos;s your website overview and next steps to complete your setup.
+//           </p>
+
+//           {fetchErr && (
+//             <div className="mb-3 p-3 rounded" style={{ background: "#fff3cd", border: "1px solid #ffeeba", color: "#856404", maxWidth: 740 }}>
+//               <strong>Heads up:</strong> {fetchErr} <br />
+//               API Base: <code>{API_BASE}</code>
+//             </div>
+//           )}
+
+       
+//           <Row className="g-4 mt-2">
+
+//             <Col xs={12} md={6} lg={4}>
+//               <Card className="custom-card-shadow border-0 ion-card h-100">
+//                 <Card.Body className="position-relative px-4 pt-5 pb-4">
+//                   <div className="d-flex justify-content-between align-items-start mb-3">
+//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
+//                       Current Subscription
+//                     </h5>
+//                     <img src="/icons/crown.svg" alt="Pro Plan" width={18} height={18} />
+//                   </div>
+
+//                   <div className="d-flex flex-wrap gap-2 mb-3">
+//                     <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">Pro Plan</span>
+//                     <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">Monthly</span>
+//                   </div>
+
+//                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
+//                     $29.99 <small className="text-dark fs-6 fw-normal align-middle">/month</small>
+//                   </h4>
+
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Next billing date</span>
+//                     <span className="fw-semibold text-dark">Feb 15, 2024</span>
+//                   </div>
+//                   <div className="d-flex justify-content-between text-dark small mb-3">
+//                     <span>Storage used</span>
+//                     <span className="fw-semibold text-dark">8.2GB / 50GB</span>
+//                   </div>
+
+//                   <div className="mb-3 progress thin">
+//                     <div className="progress-bar bg-danger" style={{ width: `${(8.2 / 50) * 100}%` }} />
+//                   </div>
+
+//                   <Button
+//                     variant="light"
+//                     className="w-100 fw-medium rounded-3 border"
+//                     style={{ fontSize: "0.92rem", padding: "6px 0", color: "#111" }}
+//                   >
+//                     Manage Subscription
+//                   </Button>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             <Col xs={12} md={6} lg={4}>
+//               <Card className="custom-card-shadow border-0 ion-card h-100">
+//                 <Card.Body className="position-relative px-4 pt-4 pb-3">
+//                   <div className="d-flex justify-content-between align-items-start mb-2">
+//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
+//                       Domain Information
+//                     </h5>
+//                     <img src="/icons/globe-icon.png" alt="Domain" width={18} height={18} />
+//                   </div>
+
+//                   <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem" }}>
+//                     marcobotton.com
+//                   </h6>
+
+//                   <div className="d-flex flex-wrap gap-2 mb-3">
+//                     <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">✔ Connected</span>
+//                     <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">SSL Active</span>
+//                   </div>
+
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Domain expires</span>
+//                     <span className="fw-semibold text-dark">Dec 25, 2024</span>
+//                   </div>
+
+//                   <div className="d-flex justify-content-between text-dark small mb-3">
+//                     <span>DNS Status</span>
+//                     <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">Active</span>
+//                   </div>
+
+//                   <div className="d-flex gap-2">
+//                     <Button className="fw-medium rounded-3 w-50 btn-danger" style={{ padding: "6px 0" }}>
+//                       View Site
+//                     </Button>
+//                     <Button className="fw-medium rounded-3 w-50 border" style={{ padding: "6px 0", color: "#111", background: "#fff" }}>
+//                       Settings
+//                     </Button>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             <Col xs={12} md={6} lg={4}>
+//               <Card className="custom-card-shadow border-0 ion-card h-100">
+//                 <Card.Body className="position-relative px-4 pt-4 pb-3">
+//                   <div className="d-flex justify-content-between align-items-start mb-2">
+//                     <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
+//                       Edit My Website
+//                     </h5>
+//                     <img src="/icons/edit-icon.png" alt="Edit" width={30} height={30} />
+//                   </div>
+
+//                   <p className="text-dark mb-3" style={{ fontSize: "0.88rem" }}>
+//                     Quick access to your website editor and customization tools.
+//                   </p>
+
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Last edited</span>
+//                     <span className="fw-semibold text-dark">2 hours ago</span>
+//                   </div>
+//                   <div className="d-flex justify-content-between text-dark small mb-1">
+//                     <span>Draft changes</span>
+//                     <span className="fw-semibold text-dark">3 pending</span>
+//                   </div>
+//                   <div className="d-flex justify-content-between text-dark small mb-3">
+//                     <span>Template</span>
+//                     <span className="fw-semibold text-dark">Modern Blog</span>
+//                   </div>
+
+//                   <div className="d-flex flex-column gap-2">
+//                     {homePageId ? (
+//                       <Button
+//                         onClick={() => router.push(`/editorpages/page/${homePageId}`)}
+//                         style={{ backgroundColor: "#FF3C3C", border: "none", borderRadius: "10px", padding: "8px 0", fontWeight: 500 }}
+//                       >
+//                         Open Editor
+//                       </Button>
+//                     ) : (
+//                       <Button disabled>Loading…</Button>
+//                     )}
+//                     <Button className="fw-medium border rounded-3" style={{ fontSize: "0.92rem", padding: "8px 0", color: "#111", background: "#fff" }}>
+//                       Preview Changes
+//                     </Button>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+//           </Row>
+
+         
+//           <Row className="g-4 mt-3">
+//             <Col xs={12} md={6} lg={4}>
+//               <Card className="custom-card-shadow border-0 metric-card h-100">
+//                 <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
+//                   <div className="d-flex justify-content-end">
+//                     <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">+12.5%</span>
+//                   </div>
+//                   <div>
+//                     <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
+//                       Subscribers
+//                     </h6>
+//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
+//                       2,548
+//                     </h3>
+//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+//                       Compared to 2,267 last month
+//                     </p>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             <Col xs={12} md={6} lg={4}>
+//               <Card className="custom-card-shadow border-0 metric-card h-100">
+//                 <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
+//                   <div className="d-flex justify-content-end">
+//                     <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">+8.2%</span>
+//                   </div>
+//                   <div>
+//                     <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
+//                       Page Views
+//                     </h6>
+//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
+//                       42.5k
+//                     </h3>
+//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+//                       Compared to 39.3k last month
+//                     </p>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+
+//             <Col xs={12} md={6} lg={4}>
+//               <Card className="custom-card-shadow border-0 metric-card h-100">
+//                 <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
+//                   <div className="d-flex justify-content-end">
+//                     <span className="px-2 py-1 rounded-pill fw-bold" style={{ background: "#FF3B30", color: "#fff" }}>
+//                       +2.1%
+//                     </span>
+//                   </div>
+//                   <div>
+//                     <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
+//                       Bounce Rate
+//                     </h6>
+//                     <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
+//                       28.3%
+//                     </h3>
+//                     <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+//                       Compared to 26.2% last month
+//                     </p>
+//                   </div>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+//           </Row>
+
+//           <Row className="mt-4">
+//             <Col xs={12}>
+//               <Card className="custom-card-shadow border-0 rounded-4">
+//                 <Card.Body className="p-4">
+//                   <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
+//                     Recent Activity
+//                   </h5>
+//                   <ul className="list-unstyled mb-0">
+//                     <li className="mb-3 d-flex align-items-start gap-3">
+//                       <Image src="/images/user1.jpg" alt="" width={40} height={40} className="rounded-circle object-fit-cover" />
+//                       <div>
+//                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
+//                         <br />
+//                         <small className="text-muted">2 hours ago</small>
+//                       </div>
+//                     </li>
+//                     <li className="mb-3 d-flex align-items-start gap-3">
+//                       <img src="/images/user2.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
+//                       <div>
+//                         <strong>Robert Chen</strong> updated the homepage banner
+//                         <br />
+//                         <small className="text-muted">4 hours ago</small>
+//                       </div>
+//                     </li>
+//                     <li className="d-flex align-items-start gap-3">
+//                       <img src="/images/user3.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
+//                       <div>
+//                         <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
+//                         <br />
+//                         <small className="text-muted">Yesterday at 2:45 PM</small>
+//                       </div>
+//                     </li>
+//                   </ul>
+//                 </Card.Body>
+//               </Card>
+//             </Col>
+//           </Row>
+//         </Container>
+//       </main>
+//     </div>
+//   );
+// }
+
+
+
+
+
 // C:\Users\97158\Desktop\project1\dashboard\pages\dashboard\index.js
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars } from "@fortawesome/free-solid-svg-icons"; // ✅ ensure imported
+import { faBars } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
 
 const USER_ID = "demo-user";
 const TEMPLATE_ID = "gym-template-1";
 
-// function useApiBase() {
-//   return useMemo(() => {
-// const PROD = "http://3.109.207.179";
-
-//     const env =
-//       (typeof window !== "undefined" && window.__API_BASE__) ||
-//       process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-//     if (env && env.trim()) return env.trim();
-//     if (typeof window !== "undefined") {
-//       return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
-//     }
-//     return PROD;
-//   }, []);
-// }
-
-
-function useApiBase() {
-  return (
-    (typeof window !== "undefined" && window.__API_BASE__) ||
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-    "http://3.109.207.179"
-  );
-}
-
+// Same-origin axios instance → requests go to https://your-vercel-domain/...,
+// and Next.js rewrites proxy to your EC2 backend.
+const http = axios.create({ baseURL: "" });
 
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
@@ -48,42 +449,13 @@ export default function DashboardHome() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isBelowLg, setIsBelowLg] = useState(false); // < 992px
   const router = useRouter();
-  const API_BASE = useApiBase();
   const pageBg = "#F1F1F1";
-
-  // useEffect(() => {
-  //   const id = axios.interceptors.request.use((cfg) => {
-  //     const base = API_BASE;
-  //     if (cfg.url?.startsWith("http://localhost:5000")) {
-  //       cfg.url = cfg.url.replace("http://localhost:5000", base);
-  //     }
-  //     return cfg;
-  //   });
-  //   return () => axios.interceptors.request.eject(id);
-  // }, [API_BASE]);
-
-  useEffect(() => {
-  const id = axios.interceptors.request.use((cfg) => {
-    const base = API_BASE;
-    if (!cfg.url) return cfg;
-
-    // Rewrite any old Render host → EC2
-    cfg.url = cfg.url.replace("https://project1backend-2xvq.onrender.com", base);
-
-    // Prefix relative paths with base (e.g. "/api/sections")
-    if (!/^https?:\/\//i.test(cfg.url)) {
-      cfg.url = `${base}${cfg.url.startsWith("/") ? "" : "/"}${cfg.url}`;
-    }
-    return cfg;
-  });
-  return () => axios.interceptors.request.eject(id);
-}, [API_BASE]);
 
   useEffect(() => {
     const onResize = () => {
-      const below = window.innerWidth < 992; 
+      const below = window.innerWidth < 992;
       setIsBelowLg(below);
-      setSidebarOpen(!below); 
+      setSidebarOpen(!below);
     };
     onResize();
     window.addEventListener("resize", onResize);
@@ -95,28 +467,44 @@ export default function DashboardHome() {
     (async () => {
       setFetchErr(null);
       try {
-        const primary = await axios.get(`${API_BASE}/api/sections`, {
-          params: { userId: USER_ID, templateId: TEMPLATE_ID, type: "page", slug: "home" },
+        // Primary: find 'home' page by slug/type
+        const primary = await http.get("/api/sections", {
+          params: {
+            userId: USER_ID,
+            templateId: TEMPLATE_ID,
+            type: "page",
+            slug: "home",
+          },
           timeout: 15000,
         });
-        const pRows = Array.isArray(primary.data) ? primary.data : primary.data?.data || [];
+
+        const pRows = Array.isArray(primary.data)
+          ? primary.data
+          : primary.data?.data || [];
+
         let page =
           pRows.find(
             (r) =>
               r?.type === "page" &&
-              (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
+              (r?.slug?.toLowerCase() === "home" ||
+                r?.title?.toLowerCase() === "home")
           ) || null;
 
+        // Fallback: list all and search
         if (!page) {
-          const fallback = await axios.get(`${API_BASE}/api/sections/${USER_ID}/${TEMPLATE_ID}`, {
-            timeout: 15000,
-          });
-          const fRows = Array.isArray(fallback.data) ? fallback.data : fallback.data?.data || [];
+          const fallback = await http.get(
+            `/api/sections/${USER_ID}/${TEMPLATE_ID}`,
+            { timeout: 15000 }
+          );
+          const fRows = Array.isArray(fallback.data)
+            ? fallback.data
+            : fallback.data?.data || [];
           page =
             fRows.find(
               (r) =>
                 r?.type === "page" &&
-                (r?.slug?.toLowerCase() === "home" || r?.title?.toLowerCase() === "home")
+                (r?.slug?.toLowerCase() === "home" ||
+                  r?.title?.toLowerCase() === "home")
             ) || null;
         }
 
@@ -132,11 +520,10 @@ export default function DashboardHome() {
     return () => {
       cancelled = true;
     };
-  }, [API_BASE]);
+  }, []);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
-
       <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
 
       <button
@@ -152,7 +539,6 @@ export default function DashboardHome() {
       <main
         style={{
           flexGrow: 1,
-
           marginLeft: !isBelowLg && sidebarOpen ? 256 : 0,
           transition: "margin-left 0.25s ease",
           padding: "2rem",
@@ -171,15 +557,20 @@ export default function DashboardHome() {
           </p>
 
           {fetchErr && (
-            <div className="mb-3 p-3 rounded" style={{ background: "#fff3cd", border: "1px solid #ffeeba", color: "#856404", maxWidth: 740 }}>
-              <strong>Heads up:</strong> {fetchErr} <br />
-              API Base: <code>{API_BASE}</code>
+            <div
+              className="mb-3 p-3 rounded"
+              style={{
+                background: "#fff3cd",
+                border: "1px solid #ffeeba",
+                color: "#856404",
+                maxWidth: 740,
+              }}
+            >
+              <strong>Heads up:</strong> {fetchErr}
             </div>
           )}
 
-       
           <Row className="g-4 mt-2">
-
             <Col xs={12} md={6} lg={4}>
               <Card className="custom-card-shadow border-0 ion-card h-100">
                 <Card.Body className="position-relative px-4 pt-5 pb-4">
@@ -196,7 +587,8 @@ export default function DashboardHome() {
                   </div>
 
                   <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
-                    $29.99 <small className="text-dark fs-6 fw-normal align-middle">/month</small>
+                    $29.99{" "}
+                    <small className="text-dark fs-6 fw-normal align-middle">/month</small>
                   </h4>
 
                   <div className="d-flex justify-content-between text-dark small mb-1">
@@ -256,7 +648,10 @@ export default function DashboardHome() {
                     <Button className="fw-medium rounded-3 w-50 btn-danger" style={{ padding: "6px 0" }}>
                       View Site
                     </Button>
-                    <Button className="fw-medium rounded-3 w-50 border" style={{ padding: "6px 0", color: "#111", background: "#fff" }}>
+                    <Button
+                      className="fw-medium rounded-3 w-50 border"
+                      style={{ padding: "6px 0", color: "#111", background: "#fff" }}
+                    >
                       Settings
                     </Button>
                   </div>
@@ -295,14 +690,23 @@ export default function DashboardHome() {
                     {homePageId ? (
                       <Button
                         onClick={() => router.push(`/editorpages/page/${homePageId}`)}
-                        style={{ backgroundColor: "#FF3C3C", border: "none", borderRadius: "10px", padding: "8px 0", fontWeight: 500 }}
+                        style={{
+                          backgroundColor: "#FF3C3C",
+                          border: "none",
+                          borderRadius: "10px",
+                          padding: "8px 0",
+                          fontWeight: 500,
+                        }}
                       >
                         Open Editor
                       </Button>
                     ) : (
                       <Button disabled>Loading…</Button>
                     )}
-                    <Button className="fw-medium border rounded-3" style={{ fontSize: "0.92rem", padding: "8px 0", color: "#111", background: "#fff" }}>
+                    <Button
+                      className="fw-medium border rounded-3"
+                      style={{ fontSize: "0.92rem", padding: "8px 0", color: "#111", background: "#fff" }}
+                    >
                       Preview Changes
                     </Button>
                   </div>
@@ -311,7 +715,6 @@ export default function DashboardHome() {
             </Col>
           </Row>
 
-         
           <Row className="g-4 mt-3">
             <Col xs={12} md={6} lg={4}>
               <Card className="custom-card-shadow border-0 metric-card h-100">
@@ -359,7 +762,10 @@ export default function DashboardHome() {
               <Card className="custom-card-shadow border-0 metric-card h-100">
                 <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                   <div className="d-flex justify-content-end">
-                    <span className="px-2 py-1 rounded-pill fw-bold" style={{ background: "#FF3B30", color: "#fff" }}>
+                    <span
+                      className="px-2 py-1 rounded-pill fw-bold"
+                      style={{ background: "#FF3B30", color: "#fff" }}
+                    >
                       +2.1%
                     </span>
                   </div>
@@ -388,7 +794,13 @@ export default function DashboardHome() {
                   </h5>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-3 d-flex align-items-start gap-3">
-                      <Image src="/images/user1.jpg" alt="" width={40} height={40} className="rounded-circle object-fit-cover" />
+                      <Image
+                        src="/images/user1.jpg"
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="rounded-circle object-fit-cover"
+                      />
                       <div>
                         <strong>Sarah Johnson</strong> published a new article “Design Systems in 2023”
                         <br />
@@ -396,7 +808,13 @@ export default function DashboardHome() {
                       </div>
                     </li>
                     <li className="mb-3 d-flex align-items-start gap-3">
-                      <img src="/images/user2.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
+                      <img
+                        src="/images/user2.jpg"
+                        alt=""
+                        width="40"
+                        height="40"
+                        className="rounded-circle object-fit-cover"
+                      />
                       <div>
                         <strong>Robert Chen</strong> updated the homepage banner
                         <br />
@@ -404,7 +822,13 @@ export default function DashboardHome() {
                       </div>
                     </li>
                     <li className="d-flex align-items-start gap-3">
-                      <img src="/images/user3.jpg" alt="" width="40" height="40" className="rounded-circle object-fit-cover" />
+                      <img
+                        src="/images/user3.jpg"
+                        alt=""
+                        width="40"
+                        height="40"
+                        className="rounded-circle object-fit-cover"
+                      />
                       <div>
                         <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
                         <br />
