@@ -1,4 +1,5 @@
 
+<<<<<<< HEAD
 // .navbar-vertical {
 //   background-color: #ffffff !important;
 //   border-right: 1px solid #e5e7eb;
@@ -110,6 +111,8 @@ $small_screen: 991px;
 $neon_orange: #FF6431;
 $mavsketch_color: #ff3130;
 
+=======
+>>>>>>> origin/nahla-update
 
 
 .navbar-vertical {
@@ -131,7 +134,11 @@ $mavsketch_color: #ff3130;
   color: #0d6efd !important;
   font-weight: 600;
   border-left: 4px solid #0d6efd;
+<<<<<<< HEAD
   padding-left: calc(1rem - 4px); // adjust padding when border is present
+=======
+  padding-left: calc(1rem - 4px); 
+>>>>>>> origin/nahla-update
   border-radius: 0;
 }
 
@@ -147,8 +154,13 @@ $mavsketch_color: #ff3130;
 
 // 🔴 Red active style
 .nav-link-custom.active-link {
+<<<<<<< HEAD
   background-color: #fff5f5 !important;    // Light red bg
   color: #dc3545 !important;              // Red text (Bootstrap danger)
+=======
+  background-color: #fff5f5 !important;    
+  color: #dc3545 !important;              
+>>>>>>> origin/nahla-update
   font-weight: 600;
   border-left: 4px solid #dc3545 !important;
   padding-left: calc(1rem - 4px);
@@ -178,10 +190,17 @@ $mavsketch_color: #ff3130;
 .custom-card-shadow {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
+<<<<<<< HEAD
 // 🔴 Exact active sidebar item style (like image)
 .navbar-vertical .nav-link-custom.active-link-red {
   background-color: #fff5f5 !important; // Light red background
   color: #FE3131 !important;            // Red text
+=======
+
+.navbar-vertical .nav-link-custom.active-link-red {
+  background-color: #fff5f5 !important; 
+  color: #FE3131 !important;            
+>>>>>>> origin/nahla-update
   font-weight: 600;
   border-radius: 20px !important;
   padding: 10px 16px !important;
@@ -208,6 +227,7 @@ $mavsketch_color: #ff3130;
   .border-md-bottom { border-bottom: none !important; }
 }
 
+<<<<<<< HEAD
 /* ===== COMPACT (≤993px): off-canvas sidebar + backdrop ===== */
 @media (max-width: 993px) {
   .navbar-vertical {
@@ -215,6 +235,15 @@ $mavsketch_color: #ff3130;
     top: 68px;              /* same as navbar height */
     bottom: 0;
     left: -260px;           /* hidden off-screen */
+=======
+
+@media (max-width: 993px) {
+  .navbar-vertical {
+    position: fixed;
+    top: 68px;             
+    bottom: 0;
+    left: -260px;           
+>>>>>>> origin/nahla-update
     width: 250px;
     z-index: 1040;
     transition: left .25s ease;
@@ -223,11 +252,19 @@ $mavsketch_color: #ff3130;
   }
 
   body.sidebar-open .navbar-vertical {
+<<<<<<< HEAD
     left: 0;                /* slide in when hamburger clicked */
   }
 
   #page-content {
     margin-left: 0 !important;   /* never reserve 250px in compact */
+=======
+    left: 0;              
+  }
+
+  #page-content {
+    margin-left: 0 !important;  
+>>>>>>> origin/nahla-update
     overflow-x: hidden;
   }
 
@@ -239,16 +276,25 @@ $mavsketch_color: #ff3130;
   }
 }
 .badge-soft-black {
+<<<<<<< HEAD
   background-color: $primary !important;
   color: #000 !important;
   font-weight: 600;
   font-size: 0.75rem;
   padding: 6px 10px !important;
+=======
+  background-color: #D5FF40 !important;
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+>>>>>>> origin/nahla-update
   border-radius: 999px;
   display: inline-block;
   line-height: 1;
 }
 
+<<<<<<< HEAD
 .badge-soft-primary {
   background-color:  #000 !important;
   color: $primary !important;
@@ -267,10 +313,19 @@ $mavsketch_color: #ff3130;
   font-weight: 600;
   font-size: 0.75rem;
   padding: 6px 10px !important;
+=======
+.badge-soft-gray {
+  background-color: #E1E1E1 !important;
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+>>>>>>> origin/nahla-update
   border-radius: 999px;
   display: inline-block;
   line-height: 1;
 }
+<<<<<<< HEAD
 
 .badge-soft-white {
   background-color: $light !important;
@@ -573,3 +628,5 @@ div:has(aside.side-nav-custom) {
     transform: rotate(360deg);
   }
 }
+=======
+>>>>>>> origin/nahla-update

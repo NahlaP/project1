@@ -6,20 +6,38 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
+<<<<<<< HEAD
     "dev": "ts-node-dev --respawn --transpile-only server.ts"
+=======
+    "dev": "ts-node-dev -r dotenv/config --respawn --transpile-only server.ts"
+>>>>>>> origin/nahla-update
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+<<<<<<< HEAD
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
+=======
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@aws-sdk/s3-request-presigner": "^3.864.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+>>>>>>> origin/nahla-update
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.18.0",
     "mongoose": "^8.16.4",
     "multer": "^2.0.2",
+<<<<<<< HEAD
     "openai": "^5.11.0"
+=======
+    "multer-s3": "^3.0.1",
+    "openai": "^5.11.0",
+    "path": "^0.12.7"
+>>>>>>> origin/nahla-update
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -27,6 +45,10 @@
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
+<<<<<<< HEAD
+=======
+    "@types/multer-s3": "^3.0.3",
+>>>>>>> origin/nahla-update
     "@types/node": "^24.1.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"

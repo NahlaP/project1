@@ -49,6 +49,7 @@ const ION7DashboardLayout = (props) => {
       <div
         id="page-content"
         style={{
+<<<<<<< HEAD
           paddingTop: isCompact ? NAVBAR_H : 0,
         }}
       >
@@ -62,11 +63,31 @@ const ION7DashboardLayout = (props) => {
       </div>
 
       {props.children}
+=======
+          marginLeft: 0,
+          transition: 'margin-left 0.3s ease-in-out',
+          paddingTop: isCompact ? NAVBAR_H : 0,   
+          backgroundColor: '#F1F1F1',
+          minHeight: '100vh',
+        }}
+      >
+        <div className="header">
+          <NavbarTop
+            isMobile={isCompact}
+            toggleMenu={toggleMenu}
+            sidebarVisible={!isCompact}
+
+          />
+        </div>
+
+        {props.children}
+>>>>>>> origin/nahla-update
 
         {isCompact && showMenu && (
           <div className="mobile-backdrop" onClick={() => setShowMenu(false)} />
         )}
 
+<<<<<<< HEAD
         <div className="px-6 py-3 footer-custom">
           <Row>
             <Col sm={12} className="text-center">
@@ -77,6 +98,13 @@ const ION7DashboardLayout = (props) => {
             alt="Mavsketch"
           />
     . All rights reserved.
+=======
+        <div className="px-6 border-top py-3 bg-white">
+          <Row>
+            <Col sm={12} className="text-center">
+              <p className="m-0">
+                © {new Date().getFullYear()} ION7 CMS. All rights reserved.
+>>>>>>> origin/nahla-update
               </p>
             </Col>
           </Row>

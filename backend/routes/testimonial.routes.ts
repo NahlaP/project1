@@ -5,6 +5,10 @@
 //   getTestimonials,
 //   createTestimonial,
 //   deleteTestimonial,
+<<<<<<< HEAD
+=======
+//   updateTestimonial,
+>>>>>>> origin/nahla-update
 // } from "../controllers/testimonial.controller";
 
 // const router = express.Router();
@@ -23,10 +27,32 @@
 //   createTestimonial
 // );
 
+<<<<<<< HEAD
 // // DELETE
 // router.delete("/:id", deleteTestimonial);
 
 // export default router;
+=======
+// // PATCH - Edit testimonial by ID with optional image upload
+// router.patch(
+//   "/:id",
+//   (req, res, next) => {
+//     req.params.folder = "testimonials"; // ensure folder param for multer
+//     next();
+//   },
+//   upload.single("image"),
+//   updateTestimonial
+// );
+
+// // DELETE testimonial
+// router.delete("/:id", deleteTestimonial);
+
+// export default router;
+
+
+
+
+>>>>>>> origin/nahla-update
 import express from "express";
 import { upload } from "../middleware/upload";
 import {
@@ -38,6 +64,7 @@ import {
 
 const router = express.Router();
 
+<<<<<<< HEAD
 // GET all testimonials
 router.get("/:userId/:templateId", getTestimonials);
 
@@ -46,24 +73,45 @@ router.post(
   "/:userId/:templateId",
   (req, res, next) => {
     req.params.folder = "testimonials";
+=======
+router.get("/:userId/:templateId", getTestimonials);
+
+// Create → s3://.../sections/testimonials/...
+router.post(
+  "/:userId/:templateId",
+  (req, _res, next) => {
+    req.params.folder = "sections/testimonials";
+>>>>>>> origin/nahla-update
     next();
   },
   upload.single("image"),
   createTestimonial
 );
 
+<<<<<<< HEAD
 // PATCH - Edit testimonial by ID with optional image upload
 router.patch(
   "/:id",
   (req, res, next) => {
     req.params.folder = "testimonials"; // ensure folder param for multer
+=======
+// Update → s3://.../sections/testimonials/<id>/...
+router.patch(
+  "/:id",
+  (req, _res, next) => {
+    const { id } = req.params;
+    req.params.folder = `sections/testimonials/${id}`;
+>>>>>>> origin/nahla-update
     next();
   },
   upload.single("image"),
   updateTestimonial
 );
 
+<<<<<<< HEAD
 // DELETE testimonial
+=======
+>>>>>>> origin/nahla-update
 router.delete("/:id", deleteTestimonial);
 
 export default router;
