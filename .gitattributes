@@ -1,0 +1,4 @@
+* text=auto
+*.{js,ts,tsx,jsx,json,md,yml,yaml} text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
