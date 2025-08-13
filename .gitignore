@@ -1,6 +1,28 @@
+# All node modules
 node_modules/
+
+# Env files
 .env
+/dashboard/.env
+/frontendnext/.env
+/backend/.env
+
+# Builds / outputs
+dist/
 .next/
 out/
-dist/
 .vercel
+
+# Backend build/artifacts
+/backend/dist/
+/backend/uploads/
+/backend/*.zip
+/backend_upload/
+
+# Keep TS source
+!/backend/lib/
+
+# General
+*.pem
+*.zip
+.DS_Store
