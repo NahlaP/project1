@@ -181,60 +181,57 @@ import React, { useEffect, useState } from "react";
 import {
   Container, Row, Col, Card, Form, Button, Image as RBImage, Alert,
 } from "react-bootstrap";
-import EditorDashboardLayout from "../../layouts/EditorDashboardLayout";
+import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
 import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
-const API = backendBaseUrl || ""; // '' → '/api/...'
+// Use same pattern as About: keep '' so '/api/...' hits Next.js rewrite
+const API = backendBaseUrl || "";
 
+// -------- helpers --------
 const ABS = (u = "") => /^https?:\/\//i.test(u);
 const join = (base, p = "") => (ABS(p) ? p : `${base}${p.startsWith("/") ? p : `/${p}`}`);
 
-const s3Url = ({ bucket, key, region }) => {
-  if (!bucket || !key) return "";
-  const r = region || process.env.NEXT_PUBLIC_AWS_REGION || "ap-south-1";
-  return `https://${bucket}.s3.${r}.amazonaws.com/${key}`;
-};
-
-const normalizeImageFromResponse = (data) =>
-  data?.result?.imageUrl ||
-  data?.imageUrl ||
-  s3Url({ bucket: data?.bucket, key: data?.key, region: data?.region }) ||
-  "";
-
 function HeroEditorPage() {
-  const [hero, setHero] = useState({ content: "", imageUrl: "" });
+  // Keep BOTH: imageKey (persistent S3 key) + displayUrl (short-lived presigned URL for preview)
+  const [hero, setHero] = useState({
+    content: "",
+    imageKey: "",
+    displayUrl: "", // presigned URL from backend for preview only
+  });
+
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load (mirrors About)
+  // Fetch from backend (uses presigned URL for display)
+  const refreshHero = async () => {
+    try {
+      const res = await fetch(`${API}/api/hero/${userId}/${templateId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `GET failed: ${res.status}`);
+
+      setHero({
+        content: data?.content || "",
+        imageKey: data?.imageKey || "",
+        displayUrl: data?.imageUrl || "", // presigned (expires ~60s)
+      });
+    } catch (e) {
+      console.error("❌ Get Hero error:", e);
+      setError("Could not load current hero data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      setError("");
-      setLoading(true);
-      try {
-        const res = await fetch(`${API}/api/hero/${userId}/${templateId}`);
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-        const data = await res.json();
-
-        const img =
-          data?.imageUrl ||
-          s3Url({ bucket: data?.bucket, key: data?.key, region: data?.region }) ||
-          "";
-
-        setHero({ content: data?.content || "", imageUrl: img });
-      } catch (e) {
-        console.error("❌ Failed to load Hero", e);
-        setError("Could not load current hero data.");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    setLoading(true);
+    setError("");
+    refreshHero();
   }, []);
 
-  // Upload (About-style first, fallback to legacy)
+  // Upload image -> returns { key, bucket }, then refetch to get presigned URL
   const handleUploadImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -245,41 +242,30 @@ function HeroEditorPage() {
 
     try {
       const form = new FormData();
-      form.append("image", file);
+      form.append("image", file); // field name must be 'image' (multer-s3)
 
-      // 1) matches About
-      let res = await fetch(`${API}/api/hero/${userId}/${templateId}/image`, {
+      const res = await fetch(`${API}/api/hero/upload-image`, {
         method: "POST",
         body: form,
       });
 
-      // 2) fallback to your Postman route
-      if (!res.ok) {
-        res = await fetch(`${API}/api/hero/upload-image`, {
-          method: "POST",
-          body: form,
-        });
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Upload failed");
 
-      const raw = await res.text();
-      let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
-      if (!res.ok) throw new Error(data?.message || raw || "Upload failed");
+      // Persist the S3 key in state; preview via a fresh presigned URL by refetching
+      setHero((p) => ({ ...p, imageKey: data.key }));
+      await refreshHero();
 
-      const newUrl = normalizeImageFromResponse(data);
-      if (!newUrl) throw new Error("No image URL returned from server");
-
-      const withBuster = newUrl + (newUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
-      setHero((p) => ({ ...p, imageUrl: withBuster }));
       setSuccess("✅ Image uploaded!");
-    } catch (e) {
-      console.error("❌ Upload failed", e);
+    } catch (e2) {
+      console.error("❌ Upload Hero Image error:", e2);
       setError("Image upload failed. Check Network tab for details.");
     } finally {
       setUploading(false);
     }
   };
 
-  // Save (About-style first, fallback to legacy)
+  // Save content + imageKey (backend stores the S3 key, NOT a URL)
   const handleSave = async () => {
     setSaving(true);
     setSuccess("");
@@ -288,46 +274,45 @@ function HeroEditorPage() {
     try {
       const payload = {
         content: hero.content,
-        imageUrl: hero.imageUrl,
+        imageKey: hero.imageKey || undefined, // backend also accepts imageUrl but prefers key
       };
 
-      // 1) matches About
-      let res = await fetch(`${API}/api/hero/${userId}/${templateId}`, {
-        method: "PUT",
+      const res = await fetch(`${API}/api/hero/save`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      // 2) fallback to your legacy route
-      if (!res.ok) {
-        res = await fetch(`${API}/api/hero/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Save failed");
 
-      const raw = await res.text();
-      let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
-      if (!res.ok) throw new Error(data?.message || raw || "Save failed");
-
+      // data: { content, imageKey }
+      setHero((p) => ({ ...p, imageKey: data.imageKey || p.imageKey }));
       setSuccess("✅ Saved!");
-    } catch (e) {
-      console.error("❌ Save failed", e);
+    } catch (e2) {
+      console.error("❌ Save Hero error:", e2);
       setError("Save failed. Open DevTools → Network to see details.");
     } finally {
       setSaving(false);
     }
   };
 
-  // Preview (same style as About)
-  const previewUrl = hero.imageUrl
-    ? (ABS(hero.imageUrl) ? hero.imageUrl : join(backendBaseUrl, hero.imageUrl))
-    : join(backendBaseUrl, "/img/about.jpg"); // harmless fallback
+  // Manually refresh the presigned URL if it expires (after ~60s)
+  const handleRefreshPreview = async () => {
+    setError("");
+    await refreshHero();
+  };
+
+  // Preview URL (if you ever return relative paths, join with backendBaseUrl)
+  const previewUrl = hero.displayUrl
+    ? (ABS(hero.displayUrl) ? hero.displayUrl : join(backendBaseUrl, hero.displayUrl))
+    : ""; // show placeholder when empty
 
   return (
     <Container fluid className="py-4">
-      <Row><Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col></Row>
+      <Row>
+        <Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col>
+      </Row>
 
       {success && <Alert variant="success">{success}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
@@ -340,45 +325,51 @@ function HeroEditorPage() {
             {/* Preview */}
             <div className="row g-5 mb-4">
               <div className="col-lg-6">
-                <RBImage
-                  src={previewUrl}
-                  alt="Hero"
-                  className="img-fluid"
-                  style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
-                  onError={() => setError("Image failed to load (check S3 ACL/URL).")}
-                />
+                {previewUrl ? (
+                  <RBImage
+                    src={previewUrl}
+                    alt="Hero"
+                    className="img-fluid"
+                    style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
+                    onError={() => setError("Image failed to load (presigned URL may have expired).")}
+                  />
+                ) : (
+                  <div className="text-muted">No image uploaded yet</div>
+                )}
+                <div className="d-flex gap-2 mt-2">
+                  <Form.Control type="file" onChange={handleUploadImage} disabled={uploading} />
+                  <Button variant="outline-secondary" onClick={handleRefreshPreview}>
+                    Refresh preview
+                  </Button>
+                </div>
+                {uploading && <small className="text-muted">Uploading…</small>}
               </div>
+
               <div className="col-lg-6">
-                <h1 className="display-6 text-uppercase mb-4">
-                  {hero.content || "Your hero headline..."}
-                </h1>
+                <Form.Group className="mb-3">
+                  <Form.Label>Hero Headline</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={hero.content || ""}
+                    onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
+                    placeholder="Write a motivational welcome message..."
+                  />
+                </Form.Group>
+
+                <div className="small text-muted">
+                  <div><strong>Stored key:</strong> {hero.imageKey || "(none)"} </div>
+                  <div><strong>Preview URL:</strong> {hero.displayUrl ? "presigned (expires ~60s)" : "(none)"} </div>
+                </div>
               </div>
             </div>
 
-            {/* Editor */}
-            <Form>
-              <Form.Group className="mb-3">
-                <Form.Label>Hero Headline</Form.Label>
-                <Form.Control
-                  as="textarea" rows={3}
-                  value={hero.content || ""}
-                  onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
-                  placeholder="Write a motivational welcome message..."
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-4">
-                <Form.Label>Image (upload)</Form.Label>
-                <Form.Control type="file" onChange={handleUploadImage} />
-                {uploading && <small className="text-muted">Uploading…</small>}
-              </Form.Group>
-
-              <div className="d-flex justify-content-end">
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? "Saving…" : "💾 Save"}
-                </Button>
-              </div>
-            </Form>
+            {/* Save */}
+            <div className="d-flex justify-content-end">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Saving…" : "💾 Save"}
+              </Button>
+            </div>
           </>
         )}
       </Card>
