@@ -207,6 +207,7 @@
 
 
 
+// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\teamS.js
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -233,39 +234,40 @@ function TeamEditor() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Helpers
-  const clearAlertsSoon = () => {
+  const clearAlertsSoon = () =>
     setTimeout(() => {
       setSuccess('');
       setError('');
     }, 2500);
+
+  const normalizeMembers = (payload) =>
+    Array.isArray(payload) ? payload : payload?.members || [];
+
+  // Prefer presigned URL from API; fallback to legacy /uploads path
+  const imgSrc = (m) => {
+    if (m?.imageUrl) return m.imageUrl; // presigned S3 URL from API (expires ~60s)
+    if (m?.imageKey?.startsWith('/uploads/')) {
+      return `${backendBaseUrl}${m.imageKey}`; // legacy local uploads
+    }
+    return '';
   };
 
-  const normalizeMembers = (payload) => {
-    // Accepts {members: [...] } or [...]
-    if (Array.isArray(payload)) return payload;
-    if (payload && Array.isArray(payload.members)) return payload.members;
-    return [];
+  const reloadTeam = async () => {
+    const res = await fetch(`${backendBaseUrl}/api/team/${userId}/${templateId}`);
+    const json = await res.json();
+    setMembers(normalizeMembers(json));
   };
 
-  const imgSrc = (url) =>
-    url?.startsWith('http')
-      ? url
-      : `${backendBaseUrl}${url?.startsWith('/') ? '' : '/'}${url || ''}`;
-
-  // Load
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${backendBaseUrl}/api/team/${userId}/${templateId}`);
-        const json = await res.json();
-        setMembers(normalizeMembers(json));
-      } catch (e) {
-        console.error(e);
+        await reloadTeam();
+      } catch {
         setError('Failed to load team');
         clearAlertsSoon();
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resetForm = () => {
@@ -274,67 +276,38 @@ function TeamEditor() {
     setEditingId(null);
   };
 
-  // Upload image (Services-style)
-  const uploadMemberImage = async (memberId, file) => {
-    const fd = new FormData();
-    fd.append('image', file); // IMPORTANT: field name must be "image"
-    const res = await fetch(
-      `${backendBaseUrl}/api/team/${userId}/${templateId}/${memberId}/image`,
-      { method: 'POST', body: fd }
-    );
-    const data = await res.json();
-    // Expecting { result } with updated doc or array
-    // If backend returns full doc, normalize to members array
-    return data;
-  };
-
-  // Add (create first → get _id → optional image upload like Services)
+  // ADD: multipart (name, role, socials JSON string, optional image)
   const handleAdd = async () => {
     setLoading(true);
     setSuccess('');
     setError('');
     try {
-      // 1) Create member without image to get _id
-      const createRes = await fetch(`${backendBaseUrl}/api/team/${userId}/${templateId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          role: form.role,
-          socials: form.socialLinks || {},
-        }),
-      });
-      const created = await createRes.json();
-      const createdMember = created?.data || created; // tolerate different shapes
-      const newId = createdMember?._id;
+      const fd = new FormData();
+      fd.append('name', form.name);
+      fd.append('role', form.role);
+      fd.append('socials', JSON.stringify(form.socialLinks || {}));
+      if (imageFile) fd.append('image', imageFile);
 
-      if (!newId) {
-        throw new Error('No _id returned on create');
-      }
+      const res = await fetch(
+        `${backendBaseUrl}/api/team/${userId}/${templateId}`,
+        { method: 'POST', body: fd }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to add');
 
-      // 2) If image selected, upload it via member image route
-      if (imageFile) {
-        const imgRes = await uploadMemberImage(newId, imageFile);
+      // API shape: { message, data: { ...member } }
+      const created = data?.data || data;
+      // Optimistic add:
+      setMembers((prev) => [...prev, created]);
 
-        if (imgRes?.result) {
-          // backend returned full updated doc -> normalize members from it
-          setMembers(normalizeMembers(imgRes.result));
-        } else {
-          // If backend returns only the updated member, patch it locally
-          setMembers((prev) =>
-            prev.map((m) => (m._id === newId ? { ...m, imageUrl: imgRes?.imageUrl || m.imageUrl } : m))
-          );
-        }
-      } else {
-        // No image; just append created member
-        setMembers((prev) => [...prev, createdMember]);
-      }
+      // Refresh list to get fresh presigned URLs for all members
+      await reloadTeam();
 
       setSuccess('✅ Team member added');
       resetForm();
     } catch (e) {
       console.error(e);
-      setError('Failed to add member');
+      setError(e?.message || 'Failed to add member');
     } finally {
       setLoading(false);
       clearAlertsSoon();
@@ -352,52 +325,39 @@ function TeamEditor() {
     window.scrollTo(0, 0);
   };
 
-  // Update (patch fields → optional image upload like Services)
+  // UPDATE: multipart (name, role, socials JSON string, optional image)
   const handleUpdate = async () => {
     if (!editingId) return;
     setLoading(true);
     setSuccess('');
     setError('');
     try {
-      // 1) Patch fields (JSON)
-      const patchRes = await fetch(`${backendBaseUrl}/api/team/${editingId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          role: form.role,
-          socials: form.socialLinks || {},
-        }),
-      });
-      const patched = await patchRes.json();
-      const updatedMember = patched?.data || patched;
+      const fd = new FormData();
+      fd.append('name', form.name);
+      fd.append('role', form.role);
+      fd.append('socials', JSON.stringify(form.socialLinks || {}));
+      if (imageFile) fd.append('image', imageFile);
 
-      // 2) If a new image was selected, upload via Services-style endpoint
-      if (imageFile) {
-        const imgRes = await uploadMemberImage(editingId, imageFile);
-        if (imgRes?.result) {
-          // Full doc returned
-          setMembers(normalizeMembers(imgRes.result));
-        } else {
-          // Only one member returned or imageUrl—merge minimal
-          setMembers((prev) =>
-            prev.map((m) =>
-              m._id === editingId
-                ? { ...(updatedMember || m), imageUrl: imgRes?.imageUrl || updatedMember?.imageUrl || m.imageUrl }
-                : m
-            )
-          );
-        }
-      } else {
-        // No image change; just replace member in list
-        setMembers((prev) => prev.map((m) => (m._id === editingId ? updatedMember : m)));
-      }
+      const res = await fetch(`${backendBaseUrl}/api/team/${editingId}`, {
+        method: 'PATCH',
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to update');
+
+      const updated = data?.data || data;
+
+      // Replace the edited member locally
+      setMembers((prev) => prev.map((m) => (m._id === editingId ? updated : m)));
+
+      // Refresh list to renew presigned URLs (avoid 403 after 60s)
+      await reloadTeam();
 
       setSuccess('✅ Member updated');
       resetForm();
     } catch (e) {
       console.error(e);
-      setError('Failed to update member');
+      setError(e?.message || 'Failed to update member');
     } finally {
       setLoading(false);
       clearAlertsSoon();
@@ -409,12 +369,17 @@ function TeamEditor() {
     setSuccess('');
     setError('');
     try {
-      await fetch(`${backendBaseUrl}/api/team/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${backendBaseUrl}/api/team/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to delete');
+
       setMembers((prev) => prev.filter((m) => m._id !== id));
       setSuccess('🗑️ Member deleted');
     } catch (e) {
       console.error(e);
-      setError('Failed to delete member');
+      setError(e?.message || 'Failed to delete member');
     } finally {
       setLoading(false);
       clearAlertsSoon();
@@ -424,7 +389,9 @@ function TeamEditor() {
   return (
     <Container fluid className="py-4">
       <Row>
-        <Col><h4 className="fw-bold">👥 Team Section Editor</h4></Col>
+        <Col>
+          <h4 className="fw-bold">👥 Team Section Editor</h4>
+        </Col>
       </Row>
 
       {success && <Alert variant="success">{success}</Alert>}
@@ -437,24 +404,27 @@ function TeamEditor() {
               <Form.Label>Name</Form.Label>
               <Form.Control
                 value={form.name}
-                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Role</Form.Label>
               <Form.Control
                 value={form.role}
-                onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
+                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
               />
             </Form.Group>
 
-            {/* Socials (optional quick fields) */}
+            {/* Socials quick fields */}
             <Form.Group className="mb-2">
               <Form.Label>Facebook</Form.Label>
               <Form.Control
                 value={form.socialLinks.facebook || ''}
                 onChange={(e) =>
-                  setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, facebook: e.target.value } }))
+                  setForm((p) => ({
+                    ...p,
+                    socialLinks: { ...p.socialLinks, facebook: e.target.value },
+                  }))
                 }
               />
             </Form.Group>
@@ -463,7 +433,10 @@ function TeamEditor() {
               <Form.Control
                 value={form.socialLinks.instagram || ''}
                 onChange={(e) =>
-                  setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, instagram: e.target.value } }))
+                  setForm((p) => ({
+                    ...p,
+                    socialLinks: { ...p.socialLinks, instagram: e.target.value },
+                  }))
                 }
               />
             </Form.Group>
@@ -472,7 +445,10 @@ function TeamEditor() {
               <Form.Control
                 value={form.socialLinks.twitter || ''}
                 onChange={(e) =>
-                  setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, twitter: e.target.value } }))
+                  setForm((p) => ({
+                    ...p,
+                    socialLinks: { ...p.socialLinks, twitter: e.target.value },
+                  }))
                 }
               />
             </Form.Group>
@@ -481,21 +457,40 @@ function TeamEditor() {
               <Form.Control
                 value={form.socialLinks.linkedin || ''}
                 onChange={(e) =>
-                  setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, linkedin: e.target.value } }))
+                  setForm((p) => ({
+                    ...p,
+                    socialLinks: { ...p.socialLinks, linkedin: e.target.value },
+                  }))
                 }
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>{editingId ? 'Replace Image (optional)' : 'Image'}</Form.Label>
-              <Form.Control type="file" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+              <Form.Label>
+                {editingId ? 'Replace Image (optional)' : 'Image'}
+              </Form.Label>
+              <Form.Control
+                type="file"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              />
             </Form.Group>
 
             <Button disabled={loading} onClick={editingId ? handleUpdate : handleAdd}>
-              {editingId ? (loading ? 'Updating…' : '✏️ Update Member') : (loading ? 'Adding…' : '➕ Add Member')}
+              {editingId
+                ? loading
+                  ? 'Updating…'
+                  : '✏️ Update Member'
+                : loading
+                ? 'Adding…'
+                : '➕ Add Member'}
             </Button>
             {editingId && (
-              <Button variant="secondary" className="ms-2" onClick={resetForm} disabled={loading}>
+              <Button
+                variant="secondary"
+                className="ms-2"
+                onClick={resetForm}
+                disabled={loading}
+              >
                 Cancel
               </Button>
             )}
@@ -517,16 +512,18 @@ function TeamEditor() {
             {members.map((m) => (
               <tr key={m._id}>
                 <td>
-                  {m.imageUrl ? (
+                  {imgSrc(m) ? (
                     <Image
-                      src={imgSrc(m.imageUrl)}
+                      src={imgSrc(m)}
                       alt="Team Member"
                       width={60}
                       height={60}
                       roundedCircle
                       style={{ objectFit: 'cover' }}
                     />
-                  ) : 'No image'}
+                  ) : (
+                    'No image'
+                  )}
                 </td>
                 <td>{m.name}</td>
                 <td>{m.role}</td>
@@ -550,7 +547,11 @@ function TeamEditor() {
               </tr>
             ))}
             {!members.length && (
-              <tr><td colSpan={4} className="text-center text-muted">No team members yet</td></tr>
+              <tr>
+                <td colSpan={4} className="text-center text-muted">
+                  No team members yet
+                </td>
+              </tr>
             )}
           </tbody>
         </Table>
