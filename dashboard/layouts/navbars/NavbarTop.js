@@ -28,10 +28,18 @@ const NavbarTop = ({ isMobile }) => {
   return (
     <Navbar
       expanded="lg"
-      className="px-4 nav-header-custom"
+      className="px-4"
       style={{
-        left: compact ? 0 : '256px',
-        width: compact ? '100%' : 'calc(100% - 256px)',
+        backgroundColor: '#F1F1F1',
+        height: '68px',
+        position: 'fixed',
+        top: 0,
+        left: compact ? 0 : '250px',
+        width: compact ? '100%' : 'calc(100% - 250px)',
+        zIndex: 1030,
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        alignItems: 'center',
       }}
     >
       <div className="d-flex justify-content-between align-items-center w-100 gap-2">
