@@ -176,60 +176,74 @@
 
 
 
+// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\heroS.js
 import React, { useEffect, useState } from "react";
 import {
-  Container, Row, Col, Card, Form, Button, Image as RBImage, Alert,
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Button,
+  Image as RBImage,
+  Alert,
 } from "react-bootstrap";
 import EditorDashboardLayout from "../../layouts/EditorDashboardLayout";
-import { userId, templateId } from "../../lib/config";
+import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
-// Always go through Next.js rewrites (same-origin) → proxies to BACKEND_ORIGIN
-const API = "/api";
+// Helpers — mirror About behavior
+const API = backendBaseUrl || ""; // keep '' so '/api/...' hits rewrite
 
-// Build a public URL if server returns { bucket, key } (no imageUrl)
-function s3PublicUrlFrom({ bucket, key, region }) {
+const isAbsolute = (u = "") => /^https?:\/\//i.test(u);
+const joinUrl = (base, path) => {
+  if (!path) return "";
+  if (isAbsolute(path)) return path;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${p}`;
+};
+
+// Build S3 URL when backend returns { bucket, key, region }
+const s3Url = ({ bucket, key, region }) => {
   if (!bucket || !key) return "";
-  // Default to Mumbai if region is not provided
-  const r = region || process.env.NEXT_PUBLIC_AWS_REGION || "ap-south-1";
+  const r = region || process.env.NEXT_PUBLIC_AWS_REGION || "ap-south-1"; // sensible default
   return `https://${bucket}.s3.${r}.amazonaws.com/${key}`;
-}
-
-// If server returns a relative path (e.g. "/uploads/foo.jpg"), ensure it goes via proxy
-function toDisplayUrl(raw) {
-  if (!raw) return "";
-  if (/^https?:\/\//i.test(raw)) return raw;
-  const path = raw.startsWith("/") ? raw : `/${raw}`;
-  return `/api${path}`;
-}
+};
 
 function HeroEditorPage() {
-  const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // final public URL to preview & save
+  const [hero, setHero] = useState({
+    content: "",
+    imageUrl: "", // may be absolute or relative
+  });
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fetch current hero
+  // Load current hero (like About)
   useEffect(() => {
     (async () => {
       setError("");
       setLoading(true);
       try {
-        const res = await fetch(`${API}/hero/${userId}/${templateId}`);
+        const res = await fetch(`${API}/api/hero/${userId}/${templateId}`);
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
-        setContent(data?.content || "");
 
+        // Accept absolute URL, backend-relative, or S3 fields
+        let img = "";
         if (data?.imageUrl) {
-          setImageUrl(/^https?:\/\//i.test(data.imageUrl) ? data.imageUrl : toDisplayUrl(data.imageUrl));
+          img = data.imageUrl;
         } else if (data?.bucket && data?.key) {
-          setImageUrl(s3PublicUrlFrom({ bucket: data.bucket, key: data.key, region: data.region }));
-        } else {
-          setImageUrl("");
+          img = s3Url({ bucket: data.bucket, key: data.key, region: data.region });
         }
+
+        setHero({
+          content: data?.content || "",
+          imageUrl: img || "",
+        });
       } catch (e) {
-        console.error("❌ Failed to fetch hero section", e);
+        console.error("❌ Failed to load Hero", e);
         setError("Could not load current hero data.");
       } finally {
         setLoading(false);
@@ -237,133 +251,187 @@ function HeroEditorPage() {
     })();
   }, []);
 
-  // Upload image
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("image", file); // must match backend multer field
-
+  // Upload image (same idea as About)
+  const handleUploadImage = async (e) => {
+    if (!e.target.files?.length) return;
     setUploading(true);
     setSuccess("");
     setError("");
 
     try {
-      const res = await fetch(`${API}/hero/upload-image`, { method: "POST", body: formData });
-      const text = await res.text(); // read raw first for better error logs
-      let data;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      const form = new FormData();
+      form.append("image", e.target.files[0]); // field name must match backend
 
+      // Prefer the About-style endpoint for consistency:
+      // POST /api/hero/:userId/:templateId/image
+      let res = await fetch(`${API}/api/hero/${userId}/${templateId}/image`, {
+        method: "POST",
+        body: form,
+      });
+
+      // If your backend only has /api/hero/upload-image, fall back:
+      if (!res.ok && res.status !== 200) {
+        res = await fetch(`${API}/api/hero/upload-image`, {
+          method: "POST",
+          body: form,
+        });
+      }
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
       if (!res.ok) throw new Error(data?.message || text || "Upload failed");
 
-      let publicUrl = "";
-      if (data?.imageUrl) {
-        publicUrl = /^https?:\/\//i.test(data.imageUrl) ? data.imageUrl : toDisplayUrl(data.imageUrl);
+      // Accept either { result: { imageUrl } } like About, or { imageUrl } or { bucket, key }
+      let newUrl = "";
+      const imgFromResult = data?.result?.imageUrl;
+      if (imgFromResult) {
+        newUrl = imgFromResult;
+      } else if (data?.imageUrl) {
+        newUrl = data.imageUrl;
       } else if (data?.bucket && data?.key) {
-        publicUrl = s3PublicUrlFrom({ bucket: data.bucket, key: data.key, region: data.region });
+        newUrl = s3Url({ bucket: data.bucket, key: data.key, region: data.region });
       } else {
         throw new Error("Server did not return imageUrl or {bucket,key}");
       }
 
-      // cache-bust preview
-      setImageUrl(publicUrl + (publicUrl.includes("?") ? "&" : "?") + "t=" + Date.now());
-      setSuccess("✅ Image uploaded successfully!");
-    } catch (err) {
-      console.error("❌ Upload error:", err);
+      // update state
+      setHero((p) => ({ ...p, imageUrl: newUrl }));
+      setSuccess("✅ Image uploaded!");
+    } catch (e) {
+      console.error("❌ Upload failed", e);
       setError("Image upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  // Save content + image
+  // Save (About uses PUT /api/about/:userId/:templateId)
   const handleSave = async () => {
+    setSaving(true);
     setSuccess("");
     setError("");
     try {
-      const payload = { content };
-      if (imageUrl) payload.imageUrl = imageUrl;
+      const payload = {
+        content: hero.content,
+        imageUrl: hero.imageUrl, // store absolute or backend-relative—backend should accept it
+      };
 
-      const res = await fetch(`${API}/hero/save`, {
-        method: "POST",
+      const res = await fetch(`${API}/api/hero/${userId}/${templateId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const text = await res.text();
       let data;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
 
       if (!res.ok) throw new Error(data?.message || text || "Save failed");
-      setSuccess("✅ Hero section saved successfully!");
-    } catch (err) {
-      console.error("❌ Save error:", err);
+      setSuccess("✅ Saved!");
+    } catch (e) {
+      console.error("❌ Save failed", e);
       setError("Could not save hero section.");
+    } finally {
+      setSaving(false);
     }
   };
+
+  // Final preview URL (match About’s `${backendBaseUrl}${about.imageUrl || "/img/about.jpg"}`)
+  const previewUrl = hero.imageUrl
+    ? isAbsolute(hero.imageUrl)
+      ? hero.imageUrl
+      : joinUrl(backendBaseUrl, hero.imageUrl)
+    : joinUrl(backendBaseUrl, "/img/about.jpg"); // fallback image
 
   return (
     <Container fluid className="py-4">
       <Row>
         <Col>
-          <h4 className="fw-bold">📝 Hero Section Editor</h4>
-          <p className="text-muted">Update the main banner of your homepage</p>
+          <h4 className="fw-bold">🖼️ Hero Section</h4>
         </Col>
       </Row>
 
-      <Card className="p-4 shadow-sm">
-        {success && <Alert variant="success">{success}</Alert>}
-        {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+      {error && <Alert variant="danger">{error}</Alert>}
 
-        {loading ? (
-          <div className="text-muted">Loading…</div>
-        ) : (
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Hero Headline</Form.Label>
+      {/* Preview */}
+      <Row className="mb-4">
+        <Col>
+          <Card className="p-4">
+            <div className="row g-5">
+              <div className="col-lg-6">
+                <img
+                  src={previewUrl}
+                  alt="Hero"
+                  className="img-fluid"
+                  style={{ maxHeight: "350px", objectFit: "cover", width: "100%" }}
+                  onError={() => setError("Image failed to load (check S3 ACL/URL).")}
+                />
+              </div>
+              <div className="col-lg-6">
+                <h1 className="display-6 text-uppercase mb-4">
+                  {hero.content || "Your hero headline..."}
+                </h1>
+                <div className="mt-3">
+                  <Form.Group>
+                    <Form.Label>Hero Headline</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      value={hero.content || ""}
+                      onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
+                      placeholder="Write a motivational welcome message..."
+                    />
+                  </Form.Group>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Editor */}
+      <Card className="p-4 shadow-sm">
+        <Row className="mb-3">
+          <Col md={8}>
+            <Form.Group>
+              <Form.Label>Headline (again)</Form.Label>
               <Form.Control
-                as="textarea"
-                rows={2}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write a motivational welcome message..."
+                value={hero.content || ""}
+                onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
               />
             </Form.Group>
-
-            <Form.Group className="mb-4">
-              <Form.Label>Current Image</Form.Label>
-              <div className="text-center mb-3">
-                {imageUrl ? (
-                  <RBImage
-                    src={imageUrl}
-                    alt="Hero"
-                    style={{
-                      width: "300px",
-                      height: "auto",
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                      border: "1px solid #ddd",
-                    }}
-                    onError={() => setError("Image failed to load (check S3 object ACL / URL).")}
-                  />
-                ) : (
-                  <p className="text-muted">No image uploaded yet</p>
-                )}
-              </div>
-
-              <Form.Control type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-              <Form.Text className="text-muted">Upload JPG/PNG. Recommended: 1920x1080px</Form.Text>
+          </Col>
+          <Col md={4}>
+            <Form.Group>
+              <Form.Label>Image (upload)</Form.Label>
+              <Form.Control type="file" onChange={handleUploadImage} />
+              {uploading && <small className="text-muted">Uploading…</small>}
             </Form.Group>
+          </Col>
+        </Row>
 
-            <Button variant="success" onClick={handleSave} disabled={uploading}>
-              {uploading ? "Uploading…" : "💾 Save Changes"}
-            </Button>
-          </Form>
-        )}
+        <div className="d-flex justify-content-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "💾 Save"}
+          </Button>
+        </div>
       </Card>
     </Container>
   );
 }
 
-HeroEditorPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
+HeroEditorPage.getLayout = (page) => (
+  <EditorDashboardLayout>{page}</EditorDashboardLayout>
+);
+
 export default HeroEditorPage;
