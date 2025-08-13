@@ -183,174 +183,92 @@ import {
   Row,
   Col,
   Card,
-  Form,
   Button,
-  Image as RBImage,
+  Form,
   Alert,
 } from "react-bootstrap";
-import EditorDashboardLayout from "../../layouts/EditorDashboardLayout";
+import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
 import { backendBaseUrl, userId, templateId } from "../../lib/config";
-
-// Helpers — mirror About behavior
-const API = backendBaseUrl || ""; // keep '' so '/api/...' hits rewrite
-
-const isAbsolute = (u = "") => /^https?:\/\//i.test(u);
-const joinUrl = (base, path) => {
-  if (!path) return "";
-  if (isAbsolute(path)) return path;
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${p}`;
-};
-
-// Build S3 URL when backend returns { bucket, key, region }
-const s3Url = ({ bucket, key, region }) => {
-  if (!bucket || !key) return "";
-  const r = region || process.env.NEXT_PUBLIC_AWS_REGION || "ap-south-1"; // sensible default
-  return `https://${bucket}.s3.${r}.amazonaws.com/${key}`;
-};
 
 function HeroEditorPage() {
   const [hero, setHero] = useState({
     content: "",
-    imageUrl: "", // may be absolute or relative
+    imageUrl: "",
   });
   const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // Load current hero (like About)
   useEffect(() => {
     (async () => {
-      setError("");
-      setLoading(true);
       try {
-        const res = await fetch(`${API}/api/hero/${userId}/${templateId}`);
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+        const res = await fetch(`${backendBaseUrl}/api/hero/${userId}/${templateId}`);
         const data = await res.json();
-
-        // Accept absolute URL, backend-relative, or S3 fields
-        let img = "";
-        if (data?.imageUrl) {
-          img = data.imageUrl;
-        } else if (data?.bucket && data?.key) {
-          img = s3Url({ bucket: data.bucket, key: data.key, region: data.region });
+        if (data) {
+          setHero((p) => ({
+            ...p,
+            content: data.content || "",
+            imageUrl: data.imageUrl || "",
+          }));
         }
-
-        setHero({
-          content: data?.content || "",
-          imageUrl: img || "",
-        });
-      } catch (e) {
-        console.error("❌ Failed to load Hero", e);
-        setError("Could not load current hero data.");
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error("❌ Failed to load Hero section", err);
       }
     })();
   }, []);
 
-  // Upload image (same idea as About)
-  const handleUploadImage = async (e) => {
-    if (!e.target.files?.length) return;
-    setUploading(true);
-    setSuccess("");
-    setError("");
-
-    try {
-      const form = new FormData();
-      form.append("image", e.target.files[0]); // field name must match backend
-
-      // Prefer the About-style endpoint for consistency:
-      // POST /api/hero/:userId/:templateId/image
-      let res = await fetch(`${API}/api/hero/${userId}/${templateId}/image`, {
-        method: "POST",
-        body: form,
-      });
-
-      // If your backend only has /api/hero/upload-image, fall back:
-      if (!res.ok && res.status !== 200) {
-        res = await fetch(`${API}/api/hero/upload-image`, {
-          method: "POST",
-          body: form,
-        });
-      }
-
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
-      if (!res.ok) throw new Error(data?.message || text || "Upload failed");
-
-      // Accept either { result: { imageUrl } } like About, or { imageUrl } or { bucket, key }
-      let newUrl = "";
-      const imgFromResult = data?.result?.imageUrl;
-      if (imgFromResult) {
-        newUrl = imgFromResult;
-      } else if (data?.imageUrl) {
-        newUrl = data.imageUrl;
-      } else if (data?.bucket && data?.key) {
-        newUrl = s3Url({ bucket: data.bucket, key: data.key, region: data.region });
-      } else {
-        throw new Error("Server did not return imageUrl or {bucket,key}");
-      }
-
-      // update state
-      setHero((p) => ({ ...p, imageUrl: newUrl }));
-      setSuccess("✅ Image uploaded!");
-    } catch (e) {
-      console.error("❌ Upload failed", e);
-      setError("Image upload failed. Please try again.");
-    } finally {
-      setUploading(false);
-    }
+  const handleChange = (key, value) => {
+    setHero((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Save (About uses PUT /api/about/:userId/:templateId)
   const handleSave = async () => {
     setSaving(true);
     setSuccess("");
-    setError("");
     try {
-      const payload = {
-        content: hero.content,
-        imageUrl: hero.imageUrl, // store absolute or backend-relative—backend should accept it
-      };
-
-      const res = await fetch(`${API}/api/hero/${userId}/${templateId}`, {
+      const res = await fetch(`${backendBaseUrl}/api/hero/${userId}/${templateId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(hero),
       });
-
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
-
-      if (!res.ok) throw new Error(data?.message || text || "Save failed");
-      setSuccess("✅ Saved!");
-    } catch (e) {
-      console.error("❌ Save failed", e);
-      setError("Could not save hero section.");
+      const data = await res.json();
+      if (data?.message) setSuccess("✅ Saved!");
+    } catch (err) {
+      console.error("❌ Save failed", err);
     } finally {
       setSaving(false);
     }
   };
 
-  // Final preview URL (match About’s `${backendBaseUrl}${about.imageUrl || "/img/about.jpg"}`)
-  const previewUrl = hero.imageUrl
-    ? isAbsolute(hero.imageUrl)
-      ? hero.imageUrl
-      : joinUrl(backendBaseUrl, hero.imageUrl)
-    : joinUrl(backendBaseUrl, "/img/about.jpg"); // fallback image
+  const handleUploadImage = async (e) => {
+    if (!e.target.files?.length) return;
+    setUploading(true);
+    setSuccess("");
+    try {
+      const form = new FormData();
+      form.append("image", e.target.files[0]);
+
+      // Mirror About: POST /api/hero/:userId/:templateId/image
+      const res = await fetch(
+        `${backendBaseUrl}/api/hero/${userId}/${templateId}/image`,
+        { method: "POST", body: form }
+      );
+
+      const data = await res.json();
+
+      // Mirror About: expect data.result.imageUrl
+      if (data?.result?.imageUrl) {
+        setHero((p) => ({ ...p, imageUrl: data.result.imageUrl }));
+        setSuccess("✅ Image uploaded!");
+      }
+    } catch (e2) {
+      console.error("❌ Upload failed", e2);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Match About preview rule: `${backendBaseUrl}${about.imageUrl || "/img/about.jpg"}`
+  const previewSrc = `${backendBaseUrl}${hero.imageUrl || "/img/about.jpg"}`;
 
   return (
     <Container fluid className="py-4">
@@ -361,53 +279,41 @@ function HeroEditorPage() {
       </Row>
 
       {success && <Alert variant="success">{success}</Alert>}
-      {error && <Alert variant="danger">{error}</Alert>}
 
-      {/* Preview */}
+      {/* Preview (mirrors About layout) */}
       <Row className="mb-4">
         <Col>
           <Card className="p-4">
             <div className="row g-5">
               <div className="col-lg-6">
                 <img
-                  src={previewUrl}
+                  src={previewSrc}
                   alt="Hero"
                   className="img-fluid"
                   style={{ maxHeight: "350px", objectFit: "cover", width: "100%" }}
-                  onError={() => setError("Image failed to load (check S3 ACL/URL).")}
                 />
               </div>
               <div className="col-lg-6">
                 <h1 className="display-6 text-uppercase mb-4">
                   {hero.content || "Your hero headline..."}
                 </h1>
-                <div className="mt-3">
-                  <Form.Group>
-                    <Form.Label>Hero Headline</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      value={hero.content || ""}
-                      onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
-                      placeholder="Write a motivational welcome message..."
-                    />
-                  </Form.Group>
-                </div>
               </div>
             </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Editor */}
+      {/* Editor (mirrors About editor style) */}
       <Card className="p-4 shadow-sm">
         <Row className="mb-3">
           <Col md={8}>
             <Form.Group>
-              <Form.Label>Headline (again)</Form.Label>
+              <Form.Label>Hero Headline</Form.Label>
               <Form.Control
+                as="textarea"
+                rows={3}
                 value={hero.content || ""}
-                onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
+                onChange={(e) => handleChange("content", e.target.value)}
               />
             </Form.Group>
           </Col>
