@@ -17,19 +17,30 @@ import Image from "next/image";
 const USER_ID = "demo-user";
 const TEMPLATE_ID = "gym-template-1";
 
+// function useApiBase() {
+//   return useMemo(() => {
+// const PROD = "http://3.109.207.179";
+
+//     const env =
+//       (typeof window !== "undefined" && window.__API_BASE__) ||
+//       process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+//     if (env && env.trim()) return env.trim();
+//     if (typeof window !== "undefined") {
+//       return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
+//     }
+//     return PROD;
+//   }, []);
+// }
+
+
 function useApiBase() {
-  return useMemo(() => {
-    const PROD = "https://project1backend-2xvq.onrender.com";
-    const env =
-      (typeof window !== "undefined" && window.__API_BASE__) ||
-      process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-    if (env && env.trim()) return env.trim();
-    if (typeof window !== "undefined") {
-      return window.location.hostname === "localhost" ? "http://localhost:5000" : PROD;
-    }
-    return PROD;
-  }, []);
+  return (
+    (typeof window !== "undefined" && window.__API_BASE__) ||
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+    "http://3.109.207.179"
+  );
 }
+
 
 export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
@@ -40,18 +51,34 @@ export default function DashboardHome() {
   const API_BASE = useApiBase();
   const pageBg = "#F1F1F1";
 
-  useEffect(() => {
-    const id = axios.interceptors.request.use((cfg) => {
-      const base = API_BASE;
-      if (cfg.url?.startsWith("http://localhost:5000")) {
-        cfg.url = cfg.url.replace("http://localhost:5000", base);
-      }
-      return cfg;
-    });
-    return () => axios.interceptors.request.eject(id);
-  }, [API_BASE]);
+  // useEffect(() => {
+  //   const id = axios.interceptors.request.use((cfg) => {
+  //     const base = API_BASE;
+  //     if (cfg.url?.startsWith("http://localhost:5000")) {
+  //       cfg.url = cfg.url.replace("http://localhost:5000", base);
+  //     }
+  //     return cfg;
+  //   });
+  //   return () => axios.interceptors.request.eject(id);
+  // }, [API_BASE]);
 
-  
+  useEffect(() => {
+  const id = axios.interceptors.request.use((cfg) => {
+    const base = API_BASE;
+    if (!cfg.url) return cfg;
+
+    // Rewrite any old Render host → EC2
+    cfg.url = cfg.url.replace("https://project1backend-2xvq.onrender.com", base);
+
+    // Prefix relative paths with base (e.g. "/api/sections")
+    if (!/^https?:\/\//i.test(cfg.url)) {
+      cfg.url = `${base}${cfg.url.startsWith("/") ? "" : "/"}${cfg.url}`;
+    }
+    return cfg;
+  });
+  return () => axios.interceptors.request.eject(id);
+}, [API_BASE]);
+
   useEffect(() => {
     const onResize = () => {
       const below = window.innerWidth < 992; 
