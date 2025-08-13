@@ -49,33 +49,34 @@ const ION7DashboardLayout = (props) => {
       <div
         id="page-content"
         style={{
-          marginLeft: 0,
-          transition: 'margin-left 0.3s ease-in-out',
-          paddingTop: isCompact ? NAVBAR_H : 0,   
-          backgroundColor: '#F1F1F1',
-          minHeight: '100vh',
+          paddingTop: isCompact ? NAVBAR_H : 0,
         }}
       >
-        <div className="header">
-          <NavbarTop
-            isMobile={isCompact}
-            toggleMenu={toggleMenu}
-            sidebarVisible={!isCompact}
+      <div className="header">
+        <NavbarTop
+          isMobile={isCompact}
+          toggleMenu={toggleMenu}
+          sidebarVisible={!isCompact}
 
-          />
-        </div>
+        />
+      </div>
 
-        {props.children}
+      {props.children}
 
         {isCompact && showMenu && (
           <div className="mobile-backdrop" onClick={() => setShowMenu(false)} />
         )}
 
-        <div className="px-6 border-top py-3 bg-white">
+        <div className="px-6 py-3 footer-custom">
           <Row>
             <Col sm={12} className="text-center">
               <p className="m-0">
-                © {new Date().getFullYear()} ION7 CMS. All rights reserved.
+                © {new Date().getFullYear()} ION7 CMS by 
+                <img
+            src="images/svg/mavsketch.png"
+            alt="Mavsketch"
+          />
+    . All rights reserved.
               </p>
             </Col>
           </Row>
