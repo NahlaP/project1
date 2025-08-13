@@ -179,25 +179,15 @@
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\heroS.js
 import React, { useEffect, useState } from "react";
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Form,
-  Button,
-  Image as RBImage,
-  Alert,
+  Container, Row, Col, Card, Form, Button, Image as RBImage, Alert,
 } from "react-bootstrap";
-import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
+import EditorDashboardLayout from "../../layouts/EditorDashboardLayout";
 import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
-// Use the same base as About: keep '' so '/api/...' hits Next.js rewrites
-const API = backendBaseUrl || "";
+const API = backendBaseUrl || ""; // '' → '/api/...'
 
-// Helpers
 const ABS = (u = "") => /^https?:\/\//i.test(u);
-const join = (base, p = "") =>
-  ABS(p) ? p : `${base}${p.startsWith("/") ? p : `/${p}`}`;
+const join = (base, p = "") => (ABS(p) ? p : `${base}${p.startsWith("/") ? p : `/${p}`}`);
 
 const s3Url = ({ bucket, key, region }) => {
   if (!bucket || !key) return "";
@@ -211,7 +201,6 @@ const normalizeImageFromResponse = (data) =>
   s3Url({ bucket: data?.bucket, key: data?.key, region: data?.region }) ||
   "";
 
-// Component
 function HeroEditorPage() {
   const [hero, setHero] = useState({ content: "", imageUrl: "" });
   const [success, setSuccess] = useState("");
@@ -245,7 +234,7 @@ function HeroEditorPage() {
     })();
   }, []);
 
-  // Upload (tries About-style first, falls back to your Postman route)
+  // Upload (About-style first, fallback to legacy)
   const handleUploadImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -256,15 +245,15 @@ function HeroEditorPage() {
 
     try {
       const form = new FormData();
-      form.append("image", file); // must match backend field
+      form.append("image", file);
 
-      // 1) Preferred (consistent with About)
-      let res = await fetch(
-        `${API}/api/hero/${userId}/${templateId}/image`,
-        { method: "POST", body: form }
-      );
+      // 1) matches About
+      let res = await fetch(`${API}/api/hero/${userId}/${templateId}/image`, {
+        method: "POST",
+        body: form,
+      });
 
-      // 2) Fallback to your existing route
+      // 2) fallback to your Postman route
       if (!res.ok) {
         res = await fetch(`${API}/api/hero/upload-image`, {
           method: "POST",
@@ -273,21 +262,13 @@ function HeroEditorPage() {
       }
 
       const raw = await res.text();
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        data = { raw };
-      }
+      let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
       if (!res.ok) throw new Error(data?.message || raw || "Upload failed");
 
       const newUrl = normalizeImageFromResponse(data);
       if (!newUrl) throw new Error("No image URL returned from server");
 
-      // Bust preview cache
-      const withBuster =
-        newUrl + (newUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
-
+      const withBuster = newUrl + (newUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
       setHero((p) => ({ ...p, imageUrl: withBuster }));
       setSuccess("✅ Image uploaded!");
     } catch (e) {
@@ -298,7 +279,7 @@ function HeroEditorPage() {
     }
   };
 
-  // Save (tries About-style first, falls back to your /hero/save)
+  // Save (About-style first, fallback to legacy)
   const handleSave = async () => {
     setSaving(true);
     setSuccess("");
@@ -310,14 +291,14 @@ function HeroEditorPage() {
         imageUrl: hero.imageUrl,
       };
 
-      // 1) Preferred (matches About)
+      // 1) matches About
       let res = await fetch(`${API}/api/hero/${userId}/${templateId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      // 2) Fallback to your existing route
+      // 2) fallback to your legacy route
       if (!res.ok) {
         res = await fetch(`${API}/api/hero/save`, {
           method: "POST",
@@ -327,12 +308,7 @@ function HeroEditorPage() {
       }
 
       const raw = await res.text();
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        data = { raw };
-      }
+      let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
       if (!res.ok) throw new Error(data?.message || raw || "Save failed");
 
       setSuccess("✅ Saved!");
@@ -344,20 +320,14 @@ function HeroEditorPage() {
     }
   };
 
-  // Preview (same logic as About)
+  // Preview (same style as About)
   const previewUrl = hero.imageUrl
-    ? ABS(hero.imageUrl)
-      ? hero.imageUrl
-      : join(backendBaseUrl, hero.imageUrl)
+    ? (ABS(hero.imageUrl) ? hero.imageUrl : join(backendBaseUrl, hero.imageUrl))
     : join(backendBaseUrl, "/img/about.jpg"); // harmless fallback
 
   return (
     <Container fluid className="py-4">
-      <Row>
-        <Col>
-          <h4 className="fw-bold">🖼️ Hero Section</h4>
-        </Col>
-      </Row>
+      <Row><Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col></Row>
 
       {success && <Alert variant="success">{success}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
@@ -375,9 +345,7 @@ function HeroEditorPage() {
                   alt="Hero"
                   className="img-fluid"
                   style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
-                  onError={() =>
-                    setError("Image failed to load (check S3 ACL/URL).")
-                  }
+                  onError={() => setError("Image failed to load (check S3 ACL/URL).")}
                 />
               </div>
               <div className="col-lg-6">
@@ -392,12 +360,9 @@ function HeroEditorPage() {
               <Form.Group className="mb-3">
                 <Form.Label>Hero Headline</Form.Label>
                 <Form.Control
-                  as="textarea"
-                  rows={3}
+                  as="textarea" rows={3}
                   value={hero.content || ""}
-                  onChange={(e) =>
-                    setHero((p) => ({ ...p, content: e.target.value }))
-                  }
+                  onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
                   placeholder="Write a motivational welcome message..."
                 />
               </Form.Group>
@@ -405,9 +370,7 @@ function HeroEditorPage() {
               <Form.Group className="mb-4">
                 <Form.Label>Image (upload)</Form.Label>
                 <Form.Control type="file" onChange={handleUploadImage} />
-                {uploading && (
-                  <small className="text-muted">Uploading…</small>
-                )}
+                {uploading && <small className="text-muted">Uploading…</small>}
               </Form.Group>
 
               <div className="d-flex justify-content-end">
@@ -423,8 +386,5 @@ function HeroEditorPage() {
   );
 }
 
-HeroEditorPage.getLayout = (page) => (
-  <EditorDashboardLayout>{page}</EditorDashboardLayout>
-);
-
+HeroEditorPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
 export default HeroEditorPage;
