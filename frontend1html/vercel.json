@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/page.html?slug=home-page"
+    }
+  ]
+}
