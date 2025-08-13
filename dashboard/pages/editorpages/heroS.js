@@ -175,7 +175,7 @@
 
 
 
-// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\heroS.js
+
 import React, { useEffect, useState } from "react";
 import {
   Container, Row, Col, Card, Form, Button, Image as RBImage, Alert,
@@ -183,46 +183,44 @@ import {
 import EditorDashboardLayout from "../../layouts/EditorDashboardLayout";
 import { userId, templateId } from "../../lib/config";
 
-// Always go through Next.js rewrites → browser calls /api/... (same-origin),
-// Next proxies to BACKEND_ORIGIN from next.config.js
+// Always go through Next.js rewrites (same-origin) → proxies to BACKEND_ORIGIN
 const API = "/api";
 
-// Build a public URL for display if server gave us bucket/key (no imageUrl)
+// Build a public URL if server returns { bucket, key } (no imageUrl)
 function s3PublicUrlFrom({ bucket, key, region }) {
   if (!bucket || !key) return "";
-  const r = region || process.env.NEXT_PUBLIC_AWS_REGION || ""; // optional
-  return r
-    ? `https://${bucket}.s3.${r}.amazonaws.com/${key}`
-    : `https://${bucket}.s3.amazonaws.com/${key}`;
+  // Default to Mumbai if region is not provided
+  const r = region || process.env.NEXT_PUBLIC_AWS_REGION || "ap-south-1";
+  return `https://${bucket}.s3.${r}.amazonaws.com/${key}`;
 }
 
-// If server returns a relative path (e.g. "/uploads/foo.jpg"), make it go via proxy
+// If server returns a relative path (e.g. "/uploads/foo.jpg"), ensure it goes via proxy
 function toDisplayUrl(raw) {
   if (!raw) return "";
   if (/^https?:\/\//i.test(raw)) return raw;
   const path = raw.startsWith("/") ? raw : `/${raw}`;
-  // Ensure it hits the rewrite by prefixing /api
   return `/api${path}`;
 }
 
 function HeroEditorPage() {
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");       // final public URL we’ll render & save
+  const [imageUrl, setImageUrl] = useState(""); // final public URL to preview & save
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Load current hero data
+  // Fetch current hero
   useEffect(() => {
     (async () => {
       setError("");
+      setLoading(true);
       try {
-        const res = await fetch(`${API}/hero/${userId}/${templateId}`, { method: "GET" });
+        const res = await fetch(`${API}/hero/${userId}/${templateId}`);
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
         setContent(data?.content || "");
 
-        // Accept absolute URL, backend-relative, or S3 fields
         if (data?.imageUrl) {
           setImageUrl(/^https?:\/\//i.test(data.imageUrl) ? data.imageUrl : toDisplayUrl(data.imageUrl));
         } else if (data?.bucket && data?.key) {
@@ -230,20 +228,22 @@ function HeroEditorPage() {
         } else {
           setImageUrl("");
         }
-      } catch (err) {
-        console.error("❌ Failed to fetch hero section", err);
+      } catch (e) {
+        console.error("❌ Failed to fetch hero section", e);
         setError("Could not load current hero data.");
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
-  // Upload image (accepts imageUrl OR bucket/key from server)
+  // Upload image
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const formData = new FormData();
-    formData.append("image", file); // match backend field name
+    formData.append("image", file); // must match backend multer field
 
     setUploading(true);
     setSuccess("");
@@ -251,8 +251,11 @@ function HeroEditorPage() {
 
     try {
       const res = await fetch(`${API}/hero/upload-image`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Upload failed");
+      const text = await res.text(); // read raw first for better error logs
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+      if (!res.ok) throw new Error(data?.message || text || "Upload failed");
 
       let publicUrl = "";
       if (data?.imageUrl) {
@@ -263,7 +266,8 @@ function HeroEditorPage() {
         throw new Error("Server did not return imageUrl or {bucket,key}");
       }
 
-      setImageUrl(publicUrl);
+      // cache-bust preview
+      setImageUrl(publicUrl + (publicUrl.includes("?") ? "&" : "?") + "t=" + Date.now());
       setSuccess("✅ Image uploaded successfully!");
     } catch (err) {
       console.error("❌ Upload error:", err);
@@ -279,16 +283,18 @@ function HeroEditorPage() {
     setError("");
     try {
       const payload = { content };
-      if (imageUrl) payload.imageUrl = imageUrl; // backend should persist this as-is
+      if (imageUrl) payload.imageUrl = imageUrl;
 
       const res = await fetch(`${API}/hero/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Save failed");
+      if (!res.ok) throw new Error(data?.message || text || "Save failed");
       setSuccess("✅ Hero section saved successfully!");
     } catch (err) {
       console.error("❌ Save error:", err);
@@ -309,47 +315,51 @@ function HeroEditorPage() {
         {success && <Alert variant="success">{success}</Alert>}
         {error && <Alert variant="danger">{error}</Alert>}
 
-        <Form>
-          <Form.Group className="mb-3">
-            <Form.Label>Hero Headline</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write a motivational welcome message..."
-            />
-          </Form.Group>
+        {loading ? (
+          <div className="text-muted">Loading…</div>
+        ) : (
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Hero Headline</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write a motivational welcome message..."
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-4">
-            <Form.Label>Current Image</Form.Label>
-            <div className="text-center mb-3">
-              {imageUrl ? (
-                <RBImage
-                  src={imageUrl}
-                  alt="Hero"
-                  style={{
-                    width: "300px",
-                    height: "auto",
-                    objectFit: "cover",
-                    borderRadius: "8px",
-                    border: "1px solid #ddd",
-                  }}
-                  onError={() => setError("Image failed to load (check S3 ACL/URL).")}
-                />
-              ) : (
-                <p className="text-muted">No image uploaded yet</p>
-              )}
-            </div>
+            <Form.Group className="mb-4">
+              <Form.Label>Current Image</Form.Label>
+              <div className="text-center mb-3">
+                {imageUrl ? (
+                  <RBImage
+                    src={imageUrl}
+                    alt="Hero"
+                    style={{
+                      width: "300px",
+                      height: "auto",
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                      border: "1px solid #ddd",
+                    }}
+                    onError={() => setError("Image failed to load (check S3 object ACL / URL).")}
+                  />
+                ) : (
+                  <p className="text-muted">No image uploaded yet</p>
+                )}
+              </div>
 
-            <Form.Control type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-            <Form.Text className="text-muted">Upload JPG/PNG. Recommended: 1920x1080px</Form.Text>
-          </Form.Group>
+              <Form.Control type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+              <Form.Text className="text-muted">Upload JPG/PNG. Recommended: 1920x1080px</Form.Text>
+            </Form.Group>
 
-          <Button variant="success" onClick={handleSave} disabled={uploading}>
-            {uploading ? "Uploading…" : "💾 Save Changes"}
-          </Button>
-        </Form>
+            <Button variant="success" onClick={handleSave} disabled={uploading}>
+              {uploading ? "Uploading…" : "💾 Save Changes"}
+            </Button>
+          </Form>
+        )}
       </Card>
     </Container>
   );
