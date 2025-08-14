@@ -39,7 +39,6 @@
     "react-icons": "^5.5.0",
     "react-responsive": "^9.0.2",
     "reactstrap": "^9.2.3",
-    "sass": "^1.89.2",
     "sass-loader": "^13.2.2",
     "simplebar": "^6.2.4",
     "simplebar-react": "^3.2.3",
@@ -47,6 +46,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@svgr/webpack": "^8.1.0"
+    "@svgr/webpack": "^8.1.0",
+    "sass": "^1.90.0"
   }
 }
