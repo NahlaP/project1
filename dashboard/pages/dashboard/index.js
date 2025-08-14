@@ -533,6 +533,7 @@ export default function DashboardHome() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: pageBg }}>
+
       <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
 
       <button
@@ -546,7 +547,7 @@ export default function DashboardHome() {
       </button>
 
       <main
-       className="main-wrapper"
+        className="main-wrapper"
         style={{
           flexGrow: 1,
           marginLeft: !isBelowLg && sidebarOpen ? 256 : 0,
@@ -566,7 +567,14 @@ export default function DashboardHome() {
             Here&apos;s your website overview and next steps to complete your setup.
           </p>
 
-         
+          {/* {fetchErr && (
+            <div className="mb-3 p-3 rounded" style={{ background: "#fff3cd", border: "1px solid #ffeeba", color: "#856404", maxWidth: 740 }}>
+              <strong>Heads up:</strong> {fetchErr} <br />
+              API Base: <code>{API_BASE}</code>
+            </div>
+          )} */}
+
+       
           <Row className="g-4 mt-2">
 
             <Col xs={12} md={6} lg={4}>
