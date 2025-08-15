@@ -304,12 +304,22 @@ const app = express();
 app.set("trust proxy", 1);
 
 /** CORS — BEFORE routes */
+// const allowList = [
+//   /\.vercel\.app$/,
+//   /^http:\/\/localhost:\d+$/,
+//   /^http:\/\/127\.0\.0\.1:\d+$/,
+//   /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+// ];
+
 const allowList = [
   /\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
   /^http:\/\/127\.0\.0\.1:\d+$/,
   /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+  /^http:\/\/3\.109\.207\.179(:\d+)?$/,   // <-- add this
+  /^https:\/\/3\.109\.207\.179(:\d+)?$/,  // <-- add if you later enable HTTPS
 ];
+
 
 app.use(
   cors({
