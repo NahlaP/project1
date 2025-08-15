@@ -1,8 +1,10 @@
+
+
+
 {
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/page.html?slug=home-page"
-    }
+    { "source": "/api/:path*", "destination": "http://3.109.207.179/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "http://3.109.207.179/uploads/:path*" },
+    { "source": "/", "destination": "/page.html?slug=home-page" }
   ]
 }

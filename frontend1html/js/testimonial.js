@@ -106,99 +106,139 @@
 // }
 
 
+
+
 document.addEventListener("DOMContentLoaded", initTestimonials);
 
 async function initTestimonials() {
-  const API = "https://project1backend-2xvq.onrender.com/api/testimonial";
-  const ASSET_BASE = "https://project1backend-2xvq.onrender.com";
   const userId = "demo-user";
   const templateId = "gym-template-1";
 
+  // Same-origin → Vercel rewrites to EC2
+  const API = `/api/testimonial/${userId}/${templateId}`;
+
   const carousel = document.querySelector(".testimonial-carousel");
   const imageList = document.getElementById("testimonial-image-list");
-
   if (!carousel) {
     console.warn("No .testimonial-carousel found in DOM");
     return;
   }
 
   try {
-    const res = await fetch(`${API}/${userId}/${templateId}`);
+    const res = await fetch(API, { cache: "no-store", headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const list = await res.json();
 
-    console.log("✅ Testimonials loaded:", list);
+    const raw = await res.json();
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+    // console.log("✅ Testimonials loaded:", list);
 
     carousel.innerHTML = "";
     if (imageList) imageList.innerHTML = "";
 
-    list.forEach((t) => {
-      const stars = '<i class="far fa-star text-primary"></i>'.repeat(t.rating || 5);
-      const imgSrc = makeAbsoluteUrl(t.imageUrl, ASSET_BASE);
+    list.forEach((t, i) => {
+      const imgRel = normalizeImageUrl(t?.imageUrl || "");
+      const imgSrc = withCacheBuster(
+        imgRel || "/img/testimonial-placeholder.jpg",
+        t?.updatedAt ? new Date(t.updatedAt).getTime() : Date.now()
+      );
 
-      if (imgSrc) {
-        const probe = new Image();
-        probe.onload = () => console.log("✅ Loaded image:", imgSrc);
-        probe.onerror = () => console.error("❌ Failed image:", imgSrc);
-        probe.src = imgSrc;
-      }
+      const stars = '<i class="far fa-star text-primary"></i>'.repeat(t?.rating || 5);
 
-      // Right Side (Carousel)
+      // Right side (Carousel)
       const item = document.createElement("div");
       item.className = "testimonial-item wow fadeInUp";
       item.setAttribute("data-wow-delay", "0.2s");
-
       item.innerHTML = `
         <div class="d-flex align-items-center mb-4">
-          ${imgSrc ? `<img class="img-fluid rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;" src="${imgSrc}" alt="${t.name}" onerror="this.style.display='none';">` : ""}
+          <img class="img-fluid rounded-circle me-3"
+               style="width:80px;height:80px;object-fit:cover;"
+               src="${imgSrc}"
+               alt="${escapeHtml(t?.name || "Client")}"
+               onerror="this.style.display='none';">
           <div class="ms-3">
             <div class="mb-2">${stars}</div>
-            <h5 class="text-uppercase mb-1">${t.name || ""}</h5>
-            <span class="text-muted">${t.profession || ""}</span>
+            <h5 class="text-uppercase mb-1">${escapeHtml(t?.name || "")}</h5>
+            <span class="text-muted">${escapeHtml(t?.profession || "")}</span>
           </div>
         </div>
-        <p class="fs-5">${t.message || ""}</p>
+        <p class="fs-5">${escapeHtml(t?.message || "")}</p>
       `;
-
       carousel.appendChild(item);
 
-      // Left Side (Flip Images)
+      // Left side (Animated images)
       if (imageList && imgSrc) {
         const imgWrap = document.createElement("div");
-        imgWrap.className = "animated flip infinite mb-3";
+        imgWrap.className = "wow fadeInUp mb-3";
+        imgWrap.setAttribute("data-wow-delay", `${0.2 + i * 0.2}s`);
         imgWrap.innerHTML = `
-          <img src="${imgSrc}" class="img-fluid rounded" alt="${t.name}" style="width: 100%; object-fit: cover;" onerror="this.style.display='none';" />
+          <img src="${imgSrc}"
+               class="img-fluid rounded"
+               alt="${escapeHtml(t?.name || "Client")}"
+               style="width:100%;object-fit:cover;"
+               onerror="this.style.display='none';" />
         `;
         imageList.appendChild(imgWrap);
       }
     });
 
-    // Re-init animations
+    // Re-init WOW animations
     if (typeof WOW !== "undefined") {
       new WOW().init();
     }
 
-    // Re-init carousel
-    if (window.$ && typeof window.$.fn.owlCarousel === 'function') {
-      $(".testimonial-carousel").owlCarousel("destroy");
-      $(".testimonial-carousel").owlCarousel({
-        autoplay: true,
-        smartSpeed: 1000,
-        dots: true,
-        loop: true,
-        items: 1,
-        margin: 25,
-      });
+    // Re-init OwlCarousel
+    if (window.$ && typeof window.$.fn?.owlCarousel === "function") {
+      const $carousel = $(".testimonial-carousel");
+      if ($carousel.length) {
+        try {
+          $carousel.trigger("destroy.owl.carousel").removeClass("owl-loaded");
+          $carousel.find(".owl-stage-outer").children().unwrap();
+        } catch {}
+        $carousel.owlCarousel({
+          autoplay: true,
+          smartSpeed: 1000,
+          dots: true,
+          loop: true,
+          items: 1,
+          margin: 25
+        });
+      }
     } else {
       console.warn("⚠️ OwlCarousel not available");
     }
-
   } catch (err) {
     console.error("❌ Failed to load testimonials:", err);
   }
 }
 
-function makeAbsoluteUrl(url, base) {
-  if (!url) return null;
-  return url.startsWith("http") ? url : `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+/* ---------------- helpers ---------------- */
+
+function normalizeImageUrl(url) {
+  if (!url) return "";
+  // If absolute and points to /uploads/*, convert to relative so it passes Vercel proxy
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const u = new URL(url);
+      if (u.pathname.startsWith("/uploads/")) {
+        return `${u.pathname}${u.search || ""}`; // -> "/uploads/..."
+      }
+      return url; // External HTTPS (e.g., S3) is fine
+    } catch {
+      return url;
+    }
+  }
+  // Already relative (e.g., "/uploads/...") — perfect
+  return url;
+}
+
+function withCacheBuster(url, version) {
+  if (!url) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}v=${encodeURIComponent(version)}`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (m) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]
+  ));
 }
