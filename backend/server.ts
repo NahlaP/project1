@@ -198,10 +198,7 @@
 
 
 
-
-
-
-
+// src/server.ts
 import "dotenv/config";
 
 import express from "express";
@@ -227,34 +224,41 @@ import pageRoutes from "./routes/page.routes";
 
 const app = express();
 
-// IMPORTANT: bind to IPv4 loopback so Nginx (127.0.0.1) can reach us
+// Bind to IPv4 loopback so Nginx (127.0.0.1) can reach us
 const PORT = Number(process.env.PORT || 5000);
 const HOST = process.env.HOST || "127.0.0.1";
 
 // Trust the proxy so req.ip / secure cookies work
 app.set("trust proxy", 1);
 
-/** CORS — run BEFORE routes */
+/** Body parsers */
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+/** CORS — MUST run before any routes */
 const allowList = [
+  /^http:\/\/3\.109\.207\.179(?::\d+)?$/, // your public site/IP
   /\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
   /^http:\/\/127\.0\.0\.1:\d+$/,
   /^http:\/\/192\.168\.\d+\.\d+(?::\d+)?$/,
 ];
+
 app.use(
   cors({
     origin(origin, cb) {
-      if (!origin) return cb(null, true);
+      if (!origin) return cb(null, true); // curl/Postman/no Origin
       const ok = allowList.some((re) => re.test(origin));
-      return ok ? cb(null, true) : cb(new Error(`Not allowed by CORS: ${origin}`));
+      return cb(null, ok);                 // don't throw on disallowed origins
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    optionsSuccessStatus: 204,
   })
 );
-
-app.use(express.json({ limit: "10mb" }));
+// Preflight for all routes
+app.options("*", cors());
 
 /** Health checks */
 app.get("/", (_req, res) => res.send("✅ Backend is live!"));
@@ -301,3 +305,5 @@ mongoose
       console.log(`🚀 Server (no DB) at http://${HOST}:${PORT}`);
     });
   });
+
+export default app;
