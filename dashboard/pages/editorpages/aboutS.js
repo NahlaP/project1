@@ -405,7 +405,8 @@ function AboutEditorPage() {
       if (data?.message || data?.ok) {
         setSuccess("✅ Saved!");
         const fresh = await fetch(`${API}/api/about/${userId}/${templateId}`);
-        setAbout((p) => ({ ...p, ...(await fresh.json()) }));
+        const freshData = await fresh.json();
+        setAbout((p) => ({ ...p, ...freshData }));
       }
     } catch (err) {
       console.error("❌ Save failed", err);
