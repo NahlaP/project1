@@ -264,7 +264,7 @@
 
 
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\aboutS.js
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Container,
   Row,
@@ -280,18 +280,17 @@ import {
   backendBaseUrl,
   userId,
   templateId,
-  // Optional (add these in lib/config.js for best results):
+  // Add these in lib/config.js:
   // export const s3Bucket = 'project1-uploads-12345';
   // export const s3Region = 'ap-south-1';
   s3Bucket,
   s3Region,
 } from "../../lib/config";
 
-const API = backendBaseUrl || ""; // keep '' so /api/... uses Next rewrite
+const API = backendBaseUrl || "";                    // keep '' so /api uses Next rewrite
 const isAbs = (u) => typeof u === "string" && /^https?:\/\//i.test(u);
 const fileName = (p = "") => p.split("/").pop() || "";
-const buildS3Url = (bucket, region, keyOrFolder, nameMaybe) => {
-  // keyOrFolder can be "users/demo-user/.../about" or "sections/about/..."
+const buildS3 = (bucket, region, keyOrFolder, nameMaybe) => {
   const prefix = String(keyOrFolder || "").replace(/^\/*/, "");
   const path = nameMaybe ? `${prefix}/${nameMaybe}` : prefix;
   return `https://${bucket}.s3.${region}.amazonaws.com/${path}`;
@@ -323,6 +322,52 @@ function AboutEditorPage() {
     })();
   }, []);
 
+  // --- GLOBAL SAFETY NET ---
+  // Rewrite ANY <img src="sections/..."> on this page to S3 absolute URL.
+  useEffect(() => {
+    const rewrite = () => {
+      const allImgs = document.querySelectorAll("img");
+      allImgs.forEach((img) => {
+        const src = img.getAttribute("src") || "";
+        // If src starts with "sections/" (not absolute, not root-relative)
+        if (!isAbs(src) && !src.startsWith("/") && /^sections\//i.test(src)) {
+          const name = fileName(src);
+          // Build absolute S3 URL using the same relative key under your bucket
+          const full = buildS3(s3Bucket, s3Region, src, ""); // src already has folder/filename
+          // Fallback: if you prefer to only rewrite about images, ensure it contains 'about'
+          // if (!/sections\/about\//i.test(src)) return;
+          img.src = full;
+          img.setAttribute("data-rewritten", "true");
+          // console.log("🔧 Rewrote relative image:", src, "->", full);
+        }
+      });
+    };
+
+    rewrite();
+    // Watch for late renders changing src
+    const mo = new MutationObserver((muts) => {
+      let needs = false;
+      muts.forEach((m) => {
+        if (
+          m.type === "attributes" &&
+          m.attributeName === "src" &&
+          m.target.tagName === "IMG"
+        ) {
+          needs = true;
+        }
+        if (m.type === "childList") needs = true;
+      });
+      if (needs) rewrite();
+    });
+    mo.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["src"],
+    });
+    return () => mo.disconnect();
+  }, []);
+
   const handleChange = (key, value) => {
     setAbout((prev) => ({ ...prev, [key]: value }));
   };
@@ -351,16 +396,14 @@ function AboutEditorPage() {
     setSaving(true);
     setSuccess("");
     try {
-      // Persist the absolute imageUrl + text fields (no backend change required)
       const res = await fetch(`${API}/api/about/${userId}/${templateId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(about),
+        body: JSON.stringify(about), // includes absolute imageUrl
       });
       const data = await res.json();
       if (data?.message || data?.ok) {
         setSuccess("✅ Saved!");
-        // Re-fetch to normalize the doc (if backend massages fields)
         const fresh = await fetch(`${API}/api/about/${userId}/${templateId}`);
         setAbout((p) => ({ ...p, ...(await fresh.json()) }));
       }
@@ -380,14 +423,13 @@ function AboutEditorPage() {
       const form = new FormData();
       form.append("image", file);
 
-      // Your existing upload route
       const res = await fetch(`${API}/api/about/${userId}/${templateId}/image`, {
         method: "POST",
         body: form,
       });
       const data = await res.json();
 
-      // Try the backend-provided absolute URL first (best case)
+      // Try absolute URL from backend first
       let absUrl =
         data?.result?.imageUrl ||
         data?.imageUrl ||
@@ -395,15 +437,17 @@ function AboutEditorPage() {
         data?.Location ||
         "";
 
-      // If the backend didn’t return an absolute URL, build one from bucket/folder/key
       if (!isAbs(absUrl)) {
+        // Build absolute S3 URL using bucket/folder/key response
         const bucket = data?.bucket || s3Bucket;
-        const folder = String(data?.folder || "").replace(/^\/*/, "");
-        const key = String(data?.key || "").replace(/^\/*/, "");
-        const name = fileName(key) || file.name;
-
-        if (bucket && (folder || key) && s3Region) {
-          absUrl = buildS3Url(bucket, s3Region, folder || key, name);
+        const folderOrKey = (data?.folder || data?.key || "").replace(/^\/*/, "");
+        const name = fileName(folderOrKey) || file.name;
+        if (bucket && folderOrKey && s3Region) {
+          // If folderOrKey already includes filename, pass as single key
+          absUrl =
+            folderOrKey.includes(name)
+              ? buildS3(bucket, s3Region, folderOrKey, "")
+              : buildS3(bucket, s3Region, folderOrKey, name);
         }
       }
 
@@ -418,19 +462,16 @@ function AboutEditorPage() {
       console.error("❌ Upload failed", e2);
     } finally {
       setUploading(false);
-      // reset file input so the same file can be reselected if needed
       e.target.value = "";
     }
   };
 
-  // Ensure the preview never becomes a relative /editorpages/... path
+  // Our own preview: never let it become relative
   const safePreviewSrc = useMemo(() => {
     const u = about?.imageUrl;
-    if (isAbs(u)) return u;               // good: absolute S3/presigned URL
-    if (typeof u === "string" && u.startsWith("/")) return u; // root-relative
-    // Anything else (like "sections/about/...") would 404 from /editorpages,
-    // so show a stable placeholder from /public/img/.
-    return "/img/about.jpg";
+    if (isAbs(u)) return u;
+    if (typeof u === "string" && u.startsWith("/")) return u; // root-relative from /public
+    return "/img/about.jpg"; // stable placeholder from /public/img
   }, [about?.imageUrl]);
 
   return (
