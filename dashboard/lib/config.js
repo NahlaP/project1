@@ -34,7 +34,7 @@
 
 
 
-// og
+// // og
 // // dashboard/lib/config.js
 // export const backendBaseUrl = ''; // keep empty so fetch('/api/...') works
 // export const userId = 'demo-user';
@@ -42,19 +42,11 @@
 
 
 
+// dashboard/lib/config.js
+export const backendBaseUrl = ''; // keep empty so fetch('/api/...') hits Next.js rewrites
+export const userId = 'demo-user';
+export const templateId = 'gym-template-1';
 
-// dashboard/next.config.js
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://3.109.207.179";
-
-/** @type {import('next').NextConfig} */
-module.exports = {
-  reactStrictMode: true,
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${BACKEND_ORIGIN}/api/:path*` }];
-  },
-  images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "project1-uploads-12345.s3.ap-south-1.amazonaws.com" },
-    ],
-  },
-};
+// add these (safe to expose):
+export const s3Bucket = 'project1-uploads-12345';
+export const s3Region = 'ap-south-1';
