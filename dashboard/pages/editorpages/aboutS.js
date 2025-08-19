@@ -262,7 +262,6 @@
 
 
 
-
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\aboutS.js
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -280,20 +279,25 @@ import {
   backendBaseUrl,
   userId,
   templateId,
-  // Add these in lib/config.js:
+  // Make sure these exist in dashboard/lib/config.js:
   // export const s3Bucket = 'project1-uploads-12345';
   // export const s3Region = 'ap-south-1';
   s3Bucket,
   s3Region,
 } from "../../lib/config";
 
-const API = backendBaseUrl || "";                    // keep '' so /api uses Next rewrite
+const API = backendBaseUrl || ""; // keep '' so /api uses Next rewrite
 const isAbs = (u) => typeof u === "string" && /^https?:\/\//i.test(u);
-const fileName = (p = "") => p.split("/").pop() || "";
-const buildS3 = (bucket, region, keyOrFolder, nameMaybe) => {
-  const prefix = String(keyOrFolder || "").replace(/^\/*/, "");
-  const path = nameMaybe ? `${prefix}/${nameMaybe}` : prefix;
-  return `https://${bucket}.s3.${region}.amazonaws.com/${path}`;
+
+// Convert a RELATIVE key like "sections/about/xyz.jpg" into ABSOLUTE S3 URL
+const toAbs = (u) => {
+  if (!u) return "";
+  if (isAbs(u)) return u;       // already absolute
+  if (u.startsWith("/")) return u; // root-relative (from /public) is fine
+  if (s3Bucket && s3Region) {
+    return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${u.replace(/^\/+/, "")}`;
+  }
+  return u; // last resort
 };
 
 function AboutEditorPage() {
@@ -322,55 +326,35 @@ function AboutEditorPage() {
     })();
   }, []);
 
-  // --- GLOBAL SAFETY NET ---
-  // Rewrite ANY <img src="sections/..."> on this page to S3 absolute URL.
+  // SAFETY NET: rewrite any stray <img src="sections/..."> added by other components
   useEffect(() => {
     const rewrite = () => {
-      const allImgs = document.querySelectorAll("img");
-      allImgs.forEach((img) => {
-        const src = img.getAttribute("src") || "";
-        // If src starts with "sections/" (not absolute, not root-relative)
-        if (!isAbs(src) && !src.startsWith("/") && /^sections\//i.test(src)) {
-          const name = fileName(src);
-          // Build absolute S3 URL using the same relative key under your bucket
-          const full = buildS3(s3Bucket, s3Region, src, ""); // src already has folder/filename
-          // Fallback: if you prefer to only rewrite about images, ensure it contains 'about'
-          // if (!/sections\/about\//i.test(src)) return;
-          img.src = full;
-          img.setAttribute("data-rewritten", "true");
-          // console.log("🔧 Rewrote relative image:", src, "->", full);
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        const raw = img.getAttribute("src") || "";
+        if (!isAbs(raw) && !raw.startsWith("/") && /^sections\//i.test(raw)) {
+          const fixed = toAbs(raw);
+          if (fixed && fixed !== raw) {
+            img.src = fixed;
+            img.setAttribute("data-rewritten", "true");
+          }
         }
       });
     };
-
     rewrite();
-    // Watch for late renders changing src
     const mo = new MutationObserver((muts) => {
       let needs = false;
-      muts.forEach((m) => {
-        if (
-          m.type === "attributes" &&
-          m.attributeName === "src" &&
-          m.target.tagName === "IMG"
-        ) {
-          needs = true;
-        }
+      for (const m of muts) {
+        if (m.type === "attributes" && m.attributeName === "src" && m.target.tagName === "IMG") needs = true;
         if (m.type === "childList") needs = true;
-      });
+      }
       if (needs) rewrite();
     });
-    mo.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["src"],
-    });
+    mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"] });
     return () => mo.disconnect();
   }, []);
 
-  const handleChange = (key, value) => {
-    setAbout((prev) => ({ ...prev, [key]: value }));
-  };
+  const handleChange = (key, value) => setAbout((prev) => ({ ...prev, [key]: value }));
 
   const handleBulletChange = (idx, value) => {
     const updated = Array.isArray(about.bullets) ? [...about.bullets] : [];
@@ -379,12 +363,11 @@ function AboutEditorPage() {
     setAbout((p) => ({ ...p, bullets: updated }));
   };
 
-  const addBullet = () => {
+  const addBullet = () =>
     setAbout((p) => ({
       ...p,
       bullets: [...(Array.isArray(p.bullets) ? p.bullets : []), { text: "" }],
     }));
-  };
 
   const removeBullet = (idx) => {
     const updated = Array.isArray(about.bullets) ? [...about.bullets] : [];
@@ -399,11 +382,12 @@ function AboutEditorPage() {
       const res = await fetch(`${API}/api/about/${userId}/${templateId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(about), // includes absolute imageUrl
+        body: JSON.stringify(about), // we persist whatever backend expects; imageUrl may be relative there
       });
       const data = await res.json();
       if (data?.message || data?.ok) {
         setSuccess("✅ Saved!");
+        // re-fetch to normalize
         const fresh = await fetch(`${API}/api/about/${userId}/${templateId}`);
         const freshData = await fresh.json();
         setAbout((p) => ({ ...p, ...freshData }));
@@ -424,56 +408,32 @@ function AboutEditorPage() {
       const form = new FormData();
       form.append("image", file);
 
+      // Your existing upload endpoint
       const res = await fetch(`${API}/api/about/${userId}/${templateId}/image`, {
         method: "POST",
         body: form,
       });
       const data = await res.json();
 
-      // Try absolute URL from backend first
-      let absUrl =
-        data?.result?.imageUrl ||
-        data?.imageUrl ||
-        data?.url ||
-        data?.Location ||
-        "";
-
-      if (!isAbs(absUrl)) {
-        // Build absolute S3 URL using bucket/folder/key response
-        const bucket = data?.bucket || s3Bucket;
-        const folderOrKey = (data?.folder || data?.key || "").replace(/^\/*/, "");
-        const name = fileName(folderOrKey) || file.name;
-        if (bucket && folderOrKey && s3Region) {
-          // If folderOrKey already includes filename, pass as single key
-          absUrl =
-            folderOrKey.includes(name)
-              ? buildS3(bucket, s3Region, folderOrKey, "")
-              : buildS3(bucket, s3Region, folderOrKey, name);
-        }
-      }
-
-      if (isAbs(absUrl)) {
-        setAbout((p) => ({ ...p, imageUrl: absUrl }));
+      // Your API returns updated About doc in data.result with RELATIVE imageUrl
+      const rel = data?.result?.imageUrl || data?.imageUrl || "";
+      if (rel) {
+        // store relative; preview uses toAbs(rel) so it displays as S3 immediately
+        setAbout((p) => ({ ...p, imageUrl: rel }));
         setSuccess("✅ Image uploaded!");
       } else {
-        console.warn("Upload returned no absolute URL; keeping previous imageUrl");
-        setSuccess("⚠️ Uploaded, but preview URL missing.");
+        setSuccess("⚠️ Uploaded, but no image URL returned.");
       }
-    } catch (e2) {
-      console.error("❌ Upload failed", e2);
+    } catch (err) {
+      console.error("❌ Upload failed", err);
     } finally {
       setUploading(false);
       e.target.value = "";
     }
   };
 
-  // Our own preview: never let it become relative
-  const safePreviewSrc = useMemo(() => {
-    const u = about?.imageUrl;
-    if (isAbs(u)) return u;
-    if (typeof u === "string" && u.startsWith("/")) return u; // root-relative from /public
-    return "/img/about.jpg"; // stable placeholder from /public/img
-  }, [about?.imageUrl]);
+  // Always render an absolute preview URL (S3) or a stable local placeholder
+  const safePreviewSrc = useMemo(() => toAbs(about?.imageUrl) || "/img/about.jpg", [about?.imageUrl]);
 
   return (
     <Container fluid className="py-4">
