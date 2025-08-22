@@ -669,8 +669,8 @@ function HeroEditorPage() {
   const [loading, setLoading] = useState(true);
 
   const HERO_GET = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-  const HERO_UPLOAD = `/api/hero/upload-image`;  // nginx alias -> param route
-  const HERO_SAVE = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+  const HERO_UPLOAD = `/api/hero/upload-image`;              // legacy upload route
+  const HERO_SAVE = `/api/hero/save`;                        // ✅ use legacy SAVE (POST)
 
   const refreshHero = async () => {
     try {
@@ -728,7 +728,7 @@ function HeroEditorPage() {
 
         setHero(p => ({ ...p, imageKey: newKey, displayUrl: bust(url || p.displayUrl) }));
 
-        // Persist the new key + current text via the param route
+        // Persist the new key + current text (uses legacy POST /api/hero/save)
         await fetch(HERO_SAVE, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -764,6 +764,7 @@ function HeroEditorPage() {
 
     try {
       if (!silent) { setSaving(true); setSuccess(""); setError(""); }
+      // ✅ save to POST /api/hero/save
       const res = await fetch(HERO_SAVE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
