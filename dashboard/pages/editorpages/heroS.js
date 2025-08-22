@@ -669,8 +669,8 @@ function HeroEditorPage() {
   const [loading, setLoading] = useState(true);
 
   const HERO_GET = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-  const HERO_UPLOAD = `/api/hero/upload-image`;      // nginx alias -> param route
-  const HERO_SAVE = `/api/hero/save`;                // optional legacy save (button only)
+  const HERO_UPLOAD = `/api/hero/upload-image`;  // nginx alias -> param route
+  const HERO_SAVE = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
 
   const refreshHero = async () => {
     try {
@@ -683,9 +683,13 @@ function HeroEditorPage() {
       if (!res.ok) throw new Error(await readErr(res));
       const data = await res.json();
 
-      let url = data?.imageUrl || "";
-      if (!url && data?.imageKey) { try { url = await presign(data.imageKey); } catch {} }
-      if (!url && data?.imageKey) { url = publicUrlFromKey(data.imageKey); }
+      // Prefer fresh URL derived from imageKey; fallback to imageUrl
+      let url = "";
+      if (data?.imageKey) {
+        try { url = await presign(data.imageKey); } catch {}
+        if (!url) url = publicUrlFromKey(data.imageKey);
+      }
+      if (!url) url = data?.imageUrl || "";
 
       setHero({
         content: data?.content || data?.title || "",
@@ -713,22 +717,33 @@ function HeroEditorPage() {
 
       const res = await fetch(HERO_UPLOAD, { method: "POST", body: form });
       if (!res.ok) throw new Error(await readErr(res));
+      const up = await res.json().catch(() => ({}));
 
-      // Pull fresh key + URL and immediately update preview
-      const g = await fetch(`${HERO_GET}?t=${Date.now()}`, { headers: { Accept: "application/json" }, cache: "no-store" });
-      const data = await g.json();
+      // Try to get the key from upload response
+      const newKey = up?.imageKey || up?.key || up?.s3Key || "";
+      if (newKey) {
+        let url = "";
+        try { url = await presign(newKey); } catch {}
+        if (!url) url = publicUrlFromKey(newKey);
 
-      let url = data?.imageUrl || "";
-      if (!url && data?.imageKey) { try { url = await presign(data.imageKey); } catch {} }
-      if (!url && data?.imageKey) { url = publicUrlFromKey(data.imageKey); }
+        setHero(p => ({ ...p, imageKey: newKey, displayUrl: bust(url || p.displayUrl) }));
 
-      setHero(p => ({
-        ...p,
-        imageKey: data?.imageKey || p.imageKey,
-        displayUrl: bust(url || p.displayUrl),
-      }));
+        // Persist the new key + current text via the param route
+        await fetch(HERO_SAVE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId, templateId,
+            content: (hero.content || ""),
+            title: (hero.content || ""),
+            imageKey: newKey,
+          }),
+        }).catch(() => {});
+      } else {
+        // Fallback: pull whatever the server now has
+        await refreshHero();
+      }
 
-      // do NOT call /api/hero/save here (that route 404s); keep Save button for text
       setSuccess("✅ Image uploaded!");
     } catch (e2) {
       setError(String(e2.message || e2));
@@ -739,7 +754,6 @@ function HeroEditorPage() {
   };
 
   const handleSave = async (silent = false) => {
-    // Only used when clicking the Save button (for text/etc.)
     const payload = {
       userId,
       templateId,
@@ -795,8 +809,8 @@ function HeroEditorPage() {
               <div className="col-lg-6">
                 {hero.displayUrl ? (
                   <RBImage
-                    key={hero.displayUrl}          // force React to replace <img>
-                    src={hero.displayUrl}          // already cache-busted
+                    key={hero.displayUrl}      // force React to replace <img>
+                    src={hero.displayUrl}      // cache-busted
                     alt="Hero"
                     className="img-fluid"
                     style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
