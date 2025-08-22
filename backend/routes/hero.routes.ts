@@ -85,29 +85,29 @@
 
 
 import express from "express";
-import * as hero from "../controllers/hero.controller";   // <= import everything
+import * as hero from "../controllers/hero.controller";
 import { upload } from "../middleware/upload";
 
 const router = express.Router();
 
-// uploader
+/** attach folder for hero uploads; your upload middleware reads req.params.folder */
 const heroUpload = (req: any, res: any, next: any) => {
   req.params = { ...(req.params || {}), folder: "sections/hero" };
   return upload.single("image")(req, res, next);
 };
 
-// pick a valid handler (any of these will exist after the alias in controller)
+// pick a valid handler (handles any naming drift)
 const upsertHandler =
   (hero as any).upsertHero || (hero as any).updateHero || (hero as any).saveHero;
 
-// REST routes
+/** --- REST-style routes --- */
 router.get("/:userId/:templateId", hero.getHero);
 router.put("/:userId/:templateId", upsertHandler);
 router.post("/:userId/:templateId/image", heroUpload, hero.uploadHeroImage);
 router.post("/:userId/:templateId/generate", hero.generateHero);
 router.post("/:userId/:templateId/clear-image", hero.clearHeroImage);
 
-// legacy routes
+/** --- Legacy compatibility for your current UI --- */
 const setDefaults = (req: any, _res: any, next: any) => {
   req.params = req.params || {};
   if (!req.params.userId) req.params.userId = "demo-user";
