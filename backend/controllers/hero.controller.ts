@@ -320,6 +320,179 @@
 
 
 
+// // controllers/hero.controller.ts
+// import { Request, Response } from "express";
+// import dotenv from "dotenv";
+// import OpenAI from "openai";
+// import HeroSection from "../models/HeroSection";
+// import { s3 } from "../lib/s3";
+// import { GetObjectCommand } from "@aws-sdk/client-s3";
+// import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+// dotenv.config();
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+// /** helper: get ids from params */
+// const ids = (req: Request) => ({
+//   userId: req.params.userId || "demo-user",
+//   templateId: req.params.templateId || "gym-template-1",
+// });
+
+// /** Generate Hero text only */
+// export const generateHero = async (req: Request, res: Response) => {
+//   try {
+//     const { userId, templateId } = ids(req);
+//     const textPrompt =
+//       "Write gym coach website hero section in 1-2 lines. Include name, role, and motivation. Return plain text only.";
+
+//     const completion = await openai.chat.completions.create({
+//       model: "gpt-4",
+//       messages: [{ role: "user", content: textPrompt }],
+//     });
+
+//     const content = completion.choices[0].message?.content?.trim() || "";
+
+//     const updated = await HeroSection.findOneAndUpdate(
+//       { userId, templateId },
+//       { content },
+//       { upsert: true, new: true }
+//     );
+
+//     return res.json({
+//       content: updated.content,
+//       imageKey: updated.imageUrl || "",
+//     });
+//   } catch (err) {
+//     console.error("Hero text generation failed:", err);
+//     return res.status(500).json({ error: "Failed to generate hero text" });
+//   }
+// };
+
+// /** PUT: save text and/or imageKey (S3 key) */
+// export const upsertHero = async (req: Request, res: Response) => {
+//   try {
+//     const { userId, templateId } = ids(req);
+//     console.log("HERO PUT body:", req.body);
+
+//     const body = (req.body || {}) as any;
+//     const rawContent = body.content ?? body.data?.content ?? "";
+//     const content = String(rawContent ?? "");
+
+//     const keyCandidate = String(body.imageKey ?? body.imageUrl ?? "");
+//     const key =
+//       keyCandidate && !/^https?:\/\//i.test(keyCandidate) ? keyCandidate : "";
+
+//     const update: Record<string, any> = {};
+//     if (content.trim()) update.content = content;
+//     if (key) update.imageUrl = key; // store S3 key in imageUrl field
+
+//     if (!Object.keys(update).length) {
+//       return res.status(400).json({ error: "Nothing to update" });
+//     }
+
+//     const doc = await HeroSection.findOneAndUpdate(
+//       { userId, templateId },
+//       { $set: update },
+//       { upsert: true, new: true, runValidators: true }
+//     );
+
+//     return res.json({
+//       message: "✅ Saved",
+//       content: doc.content,
+//       imageKey: doc.imageUrl || "",
+//     });
+//   } catch (err: any) {
+//     if (err?.name === "ValidationError") {
+//       return res.status(400).json({ error: err.message });
+//     }
+//     console.error("Save Hero error:", err);
+//     return res.status(500).json({ error: "Failed to save Hero section" });
+//   }
+// };
+
+// /** GET: content + presigned URL (if key exists) */
+// export const getHero = async (req: Request, res: Response) => {
+//   try {
+//     const { userId, templateId } = ids(req);
+//     const hero = await HeroSection.findOne({ userId, templateId });
+//     if (!hero) return res.json({ content: "", imageUrl: "", imageKey: "" });
+
+//     let signedUrl = "";
+//     if (hero.imageUrl) {
+//       try {
+//         signedUrl = await getSignedUrl(
+//           s3,
+//           new GetObjectCommand({
+//             Bucket: process.env.S3_BUCKET!,
+//             Key: hero.imageUrl as string,
+//           }),
+//           { expiresIn: 300 }
+//         );
+//       } catch (e) {
+//         console.warn("Presign failed for key:", hero.imageUrl, e);
+//       }
+//     }
+
+//     return res.json({
+//       content: hero.content,
+//       imageUrl: signedUrl,
+//       imageKey: hero.imageUrl || "",
+//     });
+//   } catch (err) {
+//     console.error("Get Hero error:", err);
+//     return res.status(500).json({ error: "Failed to fetch Hero section" });
+//   }
+// };
+
+// /** POST /image: upload via multer-s3 and store S3 key */
+// export const uploadHeroImage = async (req: Request, res: Response) => {
+//   const { userId, templateId } = ids(req);
+//   const file = (req as any).file;
+//   if (!file) return res.status(400).json({ error: "No image uploaded" });
+
+//   const key: string = file.key;       // "sections/hero/<timestamp>-<name>.jpg"
+//   const bucket: string = file.bucket;
+
+//   try {
+//     const doc = await HeroSection.findOneAndUpdate(
+//       { userId, templateId },
+//       { $set: { imageUrl: key } },     // store S3 key
+//       { new: true, upsert: true }
+//     );
+
+//     const imageUrl = await getSignedUrl(
+//       s3, new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: key }), { expiresIn: 300 }
+//     );
+
+//     return res.json({ message: "✅ Hero image uploaded", bucket, key, imageUrl, imageKey: doc.imageUrl || "" });
+//   } catch (err) {
+//     console.error("Upload Hero Image error:", err);
+//     return res.status(500).json({ error: "Failed to upload hero image" });
+//   }
+// };
+
+// /** optional */
+// export const clearHeroImage = async (req: Request, res: Response) => {
+//   const { userId, templateId } = ids(req);
+//   try {
+//     const doc = await HeroSection.findOneAndUpdate(
+//       { userId, templateId },
+//       { $set: { imageUrl: "" } },
+//       { new: true }
+//     );
+//     return res.json({ message: "Image cleared", imageKey: doc?.imageUrl || "" });
+//   } catch (err) {
+//     console.error("Clear image failed:", err);
+//     return res.status(500).json({ error: "Failed to clear image" });
+//   }
+// };
+
+
+
+
+
+
+
 // controllers/hero.controller.ts
 import { Request, Response } from "express";
 import dotenv from "dotenv";
@@ -332,13 +505,13 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 dotenv.config();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-/** helper: get ids from params */
+/** helper: get ids from params with safe defaults */
 const ids = (req: Request) => ({
-  userId: req.params.userId || "demo-user",
-  templateId: req.params.templateId || "gym-template-1",
+  userId: (req.params as any).userId || "demo-user",
+  templateId: (req.params as any).templateId || "gym-template-1",
 });
 
-/** Generate Hero text only */
+/** POST: generate hero text (optional feature) */
 export const generateHero = async (req: Request, res: Response) => {
   try {
     const { userId, templateId } = ids(req);
@@ -368,23 +541,32 @@ export const generateHero = async (req: Request, res: Response) => {
   }
 };
 
-/** PUT: save text and/or imageKey (S3 key) */
+/** PUT/POST: save text and/or imageKey (S3 key stored in imageUrl field) */
 export const upsertHero = async (req: Request, res: Response) => {
   try {
     const { userId, templateId } = ids(req);
-    console.log("HERO PUT body:", req.body);
-
     const body = (req.body || {}) as any;
+
     const rawContent = body.content ?? body.data?.content ?? "";
     const content = String(rawContent ?? "");
 
+    // accept either imageKey or imageUrl from client; store S3 key in imageUrl
     const keyCandidate = String(body.imageKey ?? body.imageUrl ?? "");
-    const key =
-      keyCandidate && !/^https?:\/\//i.test(keyCandidate) ? keyCandidate : "";
+    let imageKey = keyCandidate;
+
+    // strip any accidental local filesystem prefix
+    if (imageKey) {
+      imageKey = imageKey.replace(
+        /^\/home\/ec2-user\/apps\/backend\/uploads\//,
+        ""
+      );
+      // ignore if someone sent a full http(s) URL instead of a key
+      if (/^https?:\/\//i.test(imageKey)) imageKey = "";
+    }
 
     const update: Record<string, any> = {};
     if (content.trim()) update.content = content;
-    if (key) update.imageUrl = key; // store S3 key in imageUrl field
+    if (imageKey) update.imageUrl = imageKey;
 
     if (!Object.keys(update).length) {
       return res.status(400).json({ error: "Nothing to update" });
@@ -450,28 +632,36 @@ export const uploadHeroImage = async (req: Request, res: Response) => {
   const file = (req as any).file;
   if (!file) return res.status(400).json({ error: "No image uploaded" });
 
-  const key: string = file.key;       // "sections/hero/<timestamp>-<name>.jpg"
+  const key: string = file.key;       // e.g. "sections/hero/<timestamp>-<name>.jpg"
   const bucket: string = file.bucket;
 
   try {
     const doc = await HeroSection.findOneAndUpdate(
       { userId, templateId },
-      { $set: { imageUrl: key } },     // store S3 key
+      { $set: { imageUrl: key } },     // store S3 key in imageUrl
       { new: true, upsert: true }
     );
 
     const imageUrl = await getSignedUrl(
-      s3, new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: key }), { expiresIn: 300 }
+      s3,
+      new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: key }),
+      { expiresIn: 300 }
     );
 
-    return res.json({ message: "✅ Hero image uploaded", bucket, key, imageUrl, imageKey: doc.imageUrl || "" });
+    return res.json({
+      message: "✅ Hero image uploaded",
+      bucket,
+      key,
+      imageUrl,
+      imageKey: doc.imageUrl || ""
+    });
   } catch (err) {
     console.error("Upload Hero Image error:", err);
     return res.status(500).json({ error: "Failed to upload hero image" });
   }
 };
 
-/** optional */
+/** optional: clear only the image key */
 export const clearHeroImage = async (req: Request, res: Response) => {
   const { userId, templateId } = ids(req);
   try {
