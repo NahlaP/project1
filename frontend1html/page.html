@@ -159,6 +159,12 @@
   <script defer src="js/navbar.js"></script>
   <script defer src="js/footer.js"></script>
   <!-- Page loader builds sections dynamically via /api/* -->
-  <script defer src="js/page-loader.js"></script>
+  <!-- <script defer src="js/page-loader.js"></script> -->
+   <script>
+  window.APP_S3_BUCKET = 'project1-uploads-12345';
+  window.APP_S3_REGION = 'ap-south-1';
+</script>
+<script src="/js/page-loader.js"></script>
+
 </body>
 </html>
