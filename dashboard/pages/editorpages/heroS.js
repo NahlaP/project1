@@ -217,230 +217,230 @@
 
 
 
-// // pages/editorpages/heroS.js
-// import React, { useEffect, useState } from "react";
-// import {
-//   Container, Row, Col, Card, Form, Button, Image as RBImage, Alert
-// } from "react-bootstrap";
-// import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-// import { userId, templateId, s3Bucket, s3Region } from "../../lib/config";
+// pages/editorpages/heroS.js
+import React, { useEffect, useState } from "react";
+import {
+  Container, Row, Col, Card, Form, Button, Image as RBImage, Alert
+} from "react-bootstrap";
+import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
+import { userId, templateId, s3Bucket, s3Region } from "../../lib/config";
 
-// /** Helpers */
-// async function readErr(res) {
-//   const txt = await res.text().catch(() => "");
-//   try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
-//   catch { return txt || `HTTP ${res.status}`; }
-// }
-// async function presign(key) {
-//   if (!key) return "";
-//   const url = `/api/upload/file-url?key=${encodeURIComponent(key)}`;
-//   const res = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
-//   if (!res.ok) throw new Error(await readErr(res));
-//   const j = await res.json();
-//   return j?.url || j?.signedUrl || "";
-// }
-// const publicUrlFromKey = (key) => (key ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${key}` : "");
-// const bust = (url) => (url ? `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}` : "");
+/** Helpers */
+async function readErr(res) {
+  const txt = await res.text().catch(() => "");
+  try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
+  catch { return txt || `HTTP ${res.status}`; }
+}
+async function presign(key) {
+  if (!key) return "";
+  const url = `/api/upload/file-url?key=${encodeURIComponent(key)}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+  if (!res.ok) throw new Error(await readErr(res));
+  const j = await res.json();
+  return j?.url || j?.signedUrl || "";
+}
+const publicUrlFromKey = (key) => (key ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${key}` : "");
+const bust = (url) => (url ? `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}` : "");
 
-// function HeroEditorPage() {
-//   const [hero, setHero] = useState({ content: "", imageKey: "", displayUrl: "" });
-//   const [success, setSuccess] = useState("");
-//   const [error, setError] = useState("");
-//   const [saving, setSaving] = useState(false);
-//   const [uploading, setUploading] = useState(false);
-//   const [loading, setLoading] = useState(true);
+function HeroEditorPage() {
+  const [hero, setHero] = useState({ content: "", imageKey: "", displayUrl: "" });
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-//   const HERO_GET = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-//   const HERO_UPLOAD = `/api/hero/upload-image`;              // legacy upload route
-//   const HERO_SAVE = `/api/hero/save`;                        // ✅ use legacy SAVE (POST)
+  const HERO_GET = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+  const HERO_UPLOAD = `/api/hero/upload-image`;              // legacy upload route
+  const HERO_SAVE = `/api/hero/save`;                        // ✅ use legacy SAVE (POST)
 
-//   const refreshHero = async () => {
-//     try {
-//       setLoading(true);
-//       setError("");
-//       const res = await fetch(`${HERO_GET}?t=${Date.now()}`, {
-//         headers: { Accept: "application/json" },
-//         cache: "no-store",
-//       });
-//       if (!res.ok) throw new Error(await readErr(res));
-//       const data = await res.json();
+  const refreshHero = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`${HERO_GET}?t=${Date.now()}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(await readErr(res));
+      const data = await res.json();
 
-//       // Prefer fresh URL derived from imageKey; fallback to imageUrl
-//       let url = "";
-//       if (data?.imageKey) {
-//         try { url = await presign(data.imageKey); } catch {}
-//         if (!url) url = publicUrlFromKey(data.imageKey);
-//       }
-//       if (!url) url = data?.imageUrl || "";
+      // Prefer fresh URL derived from imageKey; fallback to imageUrl
+      let url = "";
+      if (data?.imageKey) {
+        try { url = await presign(data.imageKey); } catch {}
+        if (!url) url = publicUrlFromKey(data.imageKey);
+      }
+      if (!url) url = data?.imageUrl || "";
 
-//       setHero({
-//         content: data?.content || data?.title || "",
-//         imageKey: data?.imageKey || "",
-//         displayUrl: bust(url || ""),
-//       });
-//     } catch (e) {
-//       setError(String(e.message || e));
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+      setHero({
+        content: data?.content || data?.title || "",
+        imageKey: data?.imageKey || "",
+        displayUrl: bust(url || ""),
+      });
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-//   useEffect(() => { refreshHero(); }, []);
+  useEffect(() => { refreshHero(); }, []);
 
-//   const handleUploadImage = async (e) => {
-//     const file = e.target.files?.[0];
-//     if (!file) return;
-//     if (file.size > 10 * 1024 * 1024) { setError("Image > 10MB"); return; }
+  const handleUploadImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setError("Image > 10MB"); return; }
 
-//     setUploading(true); setSuccess(""); setError("");
-//     try {
-//       const form = new FormData();
-//       form.append("image", file); // multer expects "image"
+    setUploading(true); setSuccess(""); setError("");
+    try {
+      const form = new FormData();
+      form.append("image", file); // multer expects "image"
 
-//       const res = await fetch(HERO_UPLOAD, { method: "POST", body: form });
-//       if (!res.ok) throw new Error(await readErr(res));
-//       const up = await res.json().catch(() => ({}));
+      const res = await fetch(HERO_UPLOAD, { method: "POST", body: form });
+      if (!res.ok) throw new Error(await readErr(res));
+      const up = await res.json().catch(() => ({}));
 
-//       // Try to get the key from upload response
-//       const newKey = up?.imageKey || up?.key || up?.s3Key || "";
-//       if (newKey) {
-//         let url = "";
-//         try { url = await presign(newKey); } catch {}
-//         if (!url) url = publicUrlFromKey(newKey);
+      // Try to get the key from upload response
+      const newKey = up?.imageKey || up?.key || up?.s3Key || "";
+      if (newKey) {
+        let url = "";
+        try { url = await presign(newKey); } catch {}
+        if (!url) url = publicUrlFromKey(newKey);
 
-//         setHero(p => ({ ...p, imageKey: newKey, displayUrl: bust(url || p.displayUrl) }));
+        setHero(p => ({ ...p, imageKey: newKey, displayUrl: bust(url || p.displayUrl) }));
 
-//         // Persist the new key + current text (uses legacy POST /api/hero/save)
-//         await fetch(HERO_SAVE, {
-//           method: "POST",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify({
-//             userId, templateId,
-//             content: (hero.content || ""),
-//             title: (hero.content || ""),
-//             imageKey: newKey,
-//           }),
-//         }).catch(() => {});
-//       } else {
-//         // Fallback: pull whatever the server now has
-//         await refreshHero();
-//       }
+        // Persist the new key + current text (uses legacy POST /api/hero/save)
+        await fetch(HERO_SAVE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId, templateId,
+            content: (hero.content || ""),
+            title: (hero.content || ""),
+            imageKey: newKey,
+          }),
+        }).catch(() => {});
+      } else {
+        // Fallback: pull whatever the server now has
+        await refreshHero();
+      }
 
-//       setSuccess("✅ Image uploaded!");
-//     } catch (e2) {
-//       setError(String(e2.message || e2));
-//     } finally {
-//       setUploading(false);
-//       try { e.target.value = ""; } catch {}
-//     }
-//   };
+      setSuccess("✅ Image uploaded!");
+    } catch (e2) {
+      setError(String(e2.message || e2));
+    } finally {
+      setUploading(false);
+      try { e.target.value = ""; } catch {}
+    }
+  };
 
-//   const handleSave = async (silent = false) => {
-//     const payload = {
-//       userId,
-//       templateId,
-//       content: hero.content || "",
-//       title: hero.content || "",
-//       ...(hero.imageKey ? { imageKey: hero.imageKey } : {}),
-//     };
+  const handleSave = async (silent = false) => {
+    const payload = {
+      userId,
+      templateId,
+      content: hero.content || "",
+      title: hero.content || "",
+      ...(hero.imageKey ? { imageKey: hero.imageKey } : {}),
+    };
 
-//     try {
-//       if (!silent) { setSaving(true); setSuccess(""); setError(""); }
-//       // ✅ save to POST /api/hero/save
-//       const res = await fetch(HERO_SAVE, {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(payload),
-//       });
-//       if (!res.ok) throw new Error(await readErr(res));
-//       await refreshHero();
-//       if (!silent) setSuccess("✅ Saved!");
-//     } catch (e2) {
-//       if (!silent) setError(String(e2.message || e2));
-//       else console.warn("Silent save failed:", e2);
-//     } finally {
-//       if (!silent) setSaving(false);
-//     }
-//   };
+    try {
+      if (!silent) { setSaving(true); setSuccess(""); setError(""); }
+      // ✅ save to POST /api/hero/save
+      const res = await fetch(HERO_SAVE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(await readErr(res));
+      await refreshHero();
+      if (!silent) setSuccess("✅ Saved!");
+    } catch (e2) {
+      if (!silent) setError(String(e2.message || e2));
+      else console.warn("Silent save failed:", e2);
+    } finally {
+      if (!silent) setSaving(false);
+    }
+  };
 
-//   const handleRefreshPreview = async () => {
-//     try {
-//       setError("");
-//       if (hero.imageKey) {
-//         let url = "";
-//         try { url = await presign(hero.imageKey); } catch {}
-//         if (!url) url = publicUrlFromKey(hero.imageKey);
-//         setHero(p => ({ ...p, displayUrl: bust(url || p.displayUrl) }));
-//       } else {
-//         await refreshHero();
-//       }
-//     } catch (e) {
-//       setError(String(e.message || e));
-//     }
-//   };
+  const handleRefreshPreview = async () => {
+    try {
+      setError("");
+      if (hero.imageKey) {
+        let url = "";
+        try { url = await presign(hero.imageKey); } catch {}
+        if (!url) url = publicUrlFromKey(hero.imageKey);
+        setHero(p => ({ ...p, displayUrl: bust(url || p.displayUrl) }));
+      } else {
+        await refreshHero();
+      }
+    } catch (e) {
+      setError(String(e.message || e));
+    }
+  };
 
-//   return (
-//     <Container fluid className="py-4">
-//       <Row><Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col></Row>
-//       {success && <Alert variant="success">{success}</Alert>}
-//       {error && <Alert variant="danger" style={{ whiteSpace: "pre-wrap" }}>{error}</Alert>}
+  return (
+    <Container fluid className="py-4">
+      <Row><Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col></Row>
+      {success && <Alert variant="success">{success}</Alert>}
+      {error && <Alert variant="danger" style={{ whiteSpace: "pre-wrap" }}>{error}</Alert>}
 
-//       <Card className="p-4 shadow-sm">
-//         {loading ? <div className="text-muted">Loading…</div> : (
-//           <>
-//             <div className="row g-5 mb-4">
-//               <div className="col-lg-6">
-//                 {hero.displayUrl ? (
-//                   <RBImage
-//                     key={hero.displayUrl}      // force React to replace <img>
-//                     src={hero.displayUrl}      // cache-busted
-//                     alt="Hero"
-//                     className="img-fluid"
-//                     style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
-//                     onError={() => setError("Preview failed (URL may have expired). Click 'Refresh preview'.")}
-//                   />
-//                 ) : <div className="text-muted">No image uploaded yet</div>}
+      <Card className="p-4 shadow-sm">
+        {loading ? <div className="text-muted">Loading…</div> : (
+          <>
+            <div className="row g-5 mb-4">
+              <div className="col-lg-6">
+                {hero.displayUrl ? (
+                  <RBImage
+                    key={hero.displayUrl}      // force React to replace <img>
+                    src={hero.displayUrl}      // cache-busted
+                    alt="Hero"
+                    className="img-fluid"
+                    style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
+                    onError={() => setError("Preview failed (URL may have expired). Click 'Refresh preview'.")}
+                  />
+                ) : <div className="text-muted">No image uploaded yet</div>}
 
-//                 <div className="d-flex gap-2 mt-2">
-//                   <Form.Control type="file" accept="image/*" onChange={handleUploadImage} disabled={uploading} />
-//                   <Button variant="outline-secondary" onClick={handleRefreshPreview}>Refresh preview</Button>
-//                 </div>
-//                 {uploading && <small className="text-muted">Uploading…</small>}
-//               </div>
+                <div className="d-flex gap-2 mt-2">
+                  <Form.Control type="file" accept="image/*" onChange={handleUploadImage} disabled={uploading} />
+                  <Button variant="outline-secondary" onClick={handleRefreshPreview}>Refresh preview</Button>
+                </div>
+                {uploading && <small className="text-muted">Uploading…</small>}
+              </div>
 
-//               <div className="col-lg-6">
-//                 <Form.Group className="mb-3">
-//                   <Form.Label>Hero Headline</Form.Label>
-//                   <Form.Control
-//                     as="textarea"
-//                     rows={3}
-//                     value={hero.content || ""}
-//                     onChange={(e) => setHero(p => ({ ...p, content: e.target.value }))}
-//                     placeholder="Write a motivational welcome message..."
-//                   />
-//                 </Form.Group>
+              <div className="col-lg-6">
+                <Form.Group className="mb-3">
+                  <Form.Label>Hero Headline</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={hero.content || ""}
+                    onChange={(e) => setHero(p => ({ ...p, content: e.target.value }))}
+                    placeholder="Write a motivational welcome message..."
+                  />
+                </Form.Group>
 
-//                 <div className="small text-muted">
-//                   <div><strong>Stored key:</strong> {hero.imageKey || "(none)"} </div>
-//                   <div><strong>Preview URL:</strong> {hero.displayUrl ? "active (cache-busted)" : "(none)"} </div>
-//                 </div>
-//               </div>
-//             </div>
+                <div className="small text-muted">
+                  <div><strong>Stored key:</strong> {hero.imageKey || "(none)"} </div>
+                  <div><strong>Preview URL:</strong> {hero.displayUrl ? "active (cache-busted)" : "(none)"} </div>
+                </div>
+              </div>
+            </div>
 
-//             <div className="d-flex justify-content-end">
-//               <Button onClick={() => handleSave(false)} disabled={saving}>
-//                 {saving ? "Saving…" : "💾 Save"}
-//               </Button>
-//             </div>
-//           </>
-//         )}
-//       </Card>
-//     </Container>
-//   );
-// }
+            <div className="d-flex justify-content-end">
+              <Button onClick={() => handleSave(false)} disabled={saving}>
+                {saving ? "Saving…" : "💾 Save"}
+              </Button>
+            </div>
+          </>
+        )}
+      </Card>
+    </Container>
+  );
+}
 
-// HeroEditorPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
-// export default HeroEditorPage;
+HeroEditorPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
+export default HeroEditorPage;
 
 
 
@@ -708,224 +708,3 @@
 
 
 
-// pages/editorpages/heroS.js
-"use client";
-
-import React, { useEffect, useState } from "react";
-import {
-  Container, Row, Col, Card, Form, Button, Image as RBImage, Alert
-} from "react-bootstrap";
-import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-import { backendBaseUrl, userId, templateId, s3Bucket, s3Region } from "../../lib/config";
-
-/* ---------- helpers ---------- */
-const API = backendBaseUrl || ""; // '' -> Next proxy (/api), otherwise absolute backend URL
-
-async function readErr(res) {
-  const txt = await res.text().catch(() => "");
-  try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
-  catch { return txt || `HTTP ${res.status}`; }
-}
-async function presign(key) {
-  if (!key) return "";
-  const res = await fetch(`${API}/api/upload/file-url?key=${encodeURIComponent(key)}`, {
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(await readErr(res));
-  const j = await res.json();
-  return j?.url || j?.signedUrl || "";
-}
-const publicUrlFromKey = (key) =>
-  key ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${key}` : "";
-const isPresigned = (url) =>
-  /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(url);
-const bust = (url) => (!url ? "" : isPresigned(url) ? url : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`);
-
-/* ---------- component ---------- */
-function HeroEditorPage() {
-  const [hero, setHero] = useState({ content: "", imageKey: "", displayUrl: "" });
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const HERO_GET = `${API}/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`; // GET & PUT
-
-  const refreshHero = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await fetch(`${HERO_GET}?t=${Date.now()}`, {
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(await readErr(res));
-      const data = await res.json();
-
-      let url = "";
-      if (data?.imageKey) {
-        try { url = await presign(data.imageKey); } catch {}
-        if (!url) url = publicUrlFromKey(data.imageKey);
-      }
-      if (!url) url = data?.imageUrl || "";
-
-      setHero({
-        content: data?.content ?? data?.title ?? "",
-        imageKey: data?.imageKey || "",
-        displayUrl: bust(url || ""),
-      });
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { refreshHero(); }, []);
-
-  const saveViaPut = async (payload) => {
-    const res = await fetch(HERO_GET, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(await readErr(res));
-    return res.json();
-  };
-
-  const handleUploadImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setError("Image > 10MB"); return; }
-
-    setUploading(true); setSuccess(""); setError("");
-    try {
-      // keep your legacy upload endpoint; Next proxy will forward to backend
-      const form = new FormData();
-      form.append("image", file);
-      const upRes = await fetch(`${API}/api/hero/upload-image`, { method: "POST", body: form });
-      if (!upRes.ok) throw new Error(await readErr(upRes));
-      const up = await upRes.json().catch(() => ({}));
-
-      const newKey = up?.imageKey || up?.key || up?.s3Key || "";
-      if (newKey) {
-        // persist (PUT) so the record stores the new key + current text
-        await saveViaPut({
-          content: hero.content ?? "",
-          imageKey: newKey,
-        });
-
-        let url = "";
-        try { url = await presign(newKey); } catch {}
-        if (!url) url = publicUrlFromKey(newKey);
-
-        setHero((p) => ({ ...p, imageKey: newKey, displayUrl: bust(url || p.displayUrl) }));
-        setSuccess("✅ Image uploaded!");
-      } else {
-        await refreshHero();
-        setSuccess("✅ Image uploaded.");
-      }
-    } catch (e2) {
-      setError(String(e2.message || e2));
-    } finally {
-      setUploading(false);
-      try { e.target.value = ""; } catch {}
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true); setSuccess(""); setError("");
-      await saveViaPut({
-        content: hero.content ?? "",
-        ...(hero.imageKey ? { imageKey: hero.imageKey } : {}),
-      });
-      await refreshHero();
-      setSuccess("✅ Saved!");
-    } catch (e2) {
-      setError(String(e2.message || e2));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRefreshPreview = async () => {
-    try {
-      setError("");
-      if (hero.imageKey) {
-        let url = "";
-        try { url = await presign(hero.imageKey); } catch {}
-        if (!url) url = publicUrlFromKey(hero.imageKey);
-        setHero((p) => ({ ...p, displayUrl: bust(url || p.displayUrl) }));
-      } else {
-        await refreshHero();
-      }
-    } catch (e) {
-      setError(String(e.message || e));
-    }
-  };
-
-  return (
-    <Container fluid className="py-4">
-      <Row><Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col></Row>
-      {success && <Alert variant="success">{success}</Alert>}
-      {error && <Alert variant="danger" style={{ whiteSpace: "pre-wrap" }}>{error}</Alert>}
-
-      <Card className="p-4 shadow-sm">
-        {loading ? <div className="text-muted">Loading…</div> : (
-          <>
-            <div className="row g-5 mb-4">
-              <div className="col-lg-6">
-                {hero.displayUrl ? (
-                  <RBImage
-                    key={hero.displayUrl}
-                    src={hero.displayUrl}
-                    alt="Hero"
-                    className="img-fluid"
-                    style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
-                    onError={() => setError("Preview failed (URL may have expired). Click 'Refresh preview'.")}
-                  />
-                ) : <div className="text-muted">No image uploaded yet</div>}
-
-                <div className="d-flex gap-2 mt-2">
-                  <Form.Control type="file" accept="image/*" onChange={handleUploadImage} disabled={uploading} />
-                  <Button variant="outline-secondary" onClick={handleRefreshPreview}>Refresh preview</Button>
-                </div>
-                {uploading && <small className="text-muted">Uploading…</small>}
-              </div>
-
-              <div className="col-lg-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>Hero Headline</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    value={hero.content || ""}
-                    onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
-                    placeholder="Write a motivational welcome message..."
-                  />
-                </Form.Group>
-
-                <div className="small text-muted">
-                  <div><strong>Stored key:</strong> {hero.imageKey || "(none)"} </div>
-                  <div><strong>Preview URL:</strong> {hero.displayUrl ? "active" : "(none)"} </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="d-flex justify-content-end">
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving…" : "💾 Save"}
-              </Button>
-            </div>
-          </>
-        )}
-      </Card>
-    </Container>
-  );
-}
-
-HeroEditorPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
-export default HeroEditorPage;
