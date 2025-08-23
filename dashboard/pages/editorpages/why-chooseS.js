@@ -332,25 +332,32 @@
 
 
 
+// pages/editorpages/why-chooseS.js
 "use client";
 
 import React, { useEffect, useState } from "react";
 import {
-  Container, Row, Col, Card, Button, Form, Alert, Table
+  Container, Row, Col, Card, Button, Form, Alert, Table,
 } from "react-bootstrap";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
 import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
-/* ---------- helpers ---------- */
+/* ---------------- helpers ---------------- */
 async function readErr(res) {
   const txt = await res.text().catch(() => "");
-  try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
-  catch { return txt || `HTTP ${res.status}`; }
+  try {
+    const j = JSON.parse(txt);
+    return j?.error || j?.message || txt || `HTTP ${res.status}`;
+  } catch {
+    return txt || `HTTP ${res.status}`;
+  }
 }
 async function presign(key) {
   if (!key) return "";
-  const url = `${backendBaseUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+  const res = await fetch(
+    `${backendBaseUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`,
+    { headers: { Accept: "application/json" }, cache: "no-store" }
+  );
   if (!res.ok) throw new Error(await readErr(res));
   const j = await res.json();
   return j?.url || "";
@@ -358,15 +365,16 @@ async function presign(key) {
 const isPresigned = (url) =>
   /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(url);
 
+/* --------------- page ------------------- */
 function WhyChooseEditorPage() {
   const [data, setData] = useState({
     description: "",
     stats: [],
     progressBars: [],
-    bgImageUrl: "",      // <-- S3 KEY lives here
+    bgImageUrl: "",          // S3 key saved in DB
     bgOverlay: 0.5,
   });
-  const [bgDisplayUrl, setBgDisplayUrl] = useState(""); // <-- presigned URL for preview
+  const [bgDisplayUrl, setBgDisplayUrl] = useState(""); // presigned URL for preview
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -384,7 +392,8 @@ function WhyChooseEditorPage() {
       const res = await fetch(GET_URL, { cache: "no-store", headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error(await readErr(res));
       const json = await res.json();
-      setData(p => ({ ...p, ...(json || {}) }));
+
+      setData((p) => ({ ...p, ...(json || {}) }));
 
       const key = json?.bgImageUrl || "";
       if (key) {
@@ -402,20 +411,22 @@ function WhyChooseEditorPage() {
 
   useEffect(() => { refresh(); }, []);
 
-  const handleChange = (key, value) => setData(prev => ({ ...prev, [key]: value }));
+  const handleChange = (key, value) => setData((prev) => ({ ...prev, [key]: value }));
 
   const updateArray = (field, idx, key, value) => {
     const updated = [...(data[field] || [])];
     if (!updated[idx]) updated[idx] = {};
     updated[idx][key] = key === "value" || key === "percent" ? Number(value) : value;
-    setData(p => ({ ...p, [field]: updated }));
+    setData((p) => ({ ...p, [field]: updated }));
   };
 
-  const addItem = (field, def) => setData(p => ({ ...p, [field]: [...(p[field] || []), def] }));
+  const addItem = (field, def) =>
+    setData((p) => ({ ...p, [field]: [...(p[field] || []), def] }));
+
   const removeItem = (field, idx) => {
     const updated = [...(data[field] || [])];
     updated.splice(idx, 1);
-    setData(p => ({ ...p, [field]: updated }));
+    setData((p) => ({ ...p, [field]: updated }));
   };
 
   const handleSave = async () => {
@@ -427,9 +438,9 @@ function WhyChooseEditorPage() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(await readErr(res));
-      const json = await res.json();
-      setSuccess(json?.message || "✅ Saved!");
-      // re-presign in case key changed on server side
+      await res.json().catch(() => ({}));
+      setSuccess("✅ Saved!");
+      // Re-presign in case server applied changes
       if (data.bgImageUrl) {
         try { setBgDisplayUrl(await presign(data.bgImageUrl)); } catch {}
       }
@@ -446,25 +457,31 @@ function WhyChooseEditorPage() {
     try {
       const form = new FormData();
       form.append("image", e.target.files[0]);
+
       const res = await fetch(UPLOAD_BG_URL, { method: "POST", body: form });
       if (!res.ok) throw new Error(await readErr(res));
       const json = await res.json();
 
-      // server might return { key }, { imageKey }, or { result: { bgImageUrl } }
+      // Try multiple common response shapes to find the S3 key:
       const newKey =
         json?.key ||
         json?.imageKey ||
-        json?.result?.bgImageUrl ||
         json?.bgImageUrl ||
+        json?.result?.bgImageUrl ||
+        json?.result?.imageKey ||
         "";
 
-      if (!newKey) throw new Error("Upload succeeded but no S3 key returned");
-
-      setData(p => ({ ...p, bgImageUrl: newKey }));
-      try { setBgDisplayUrl(await presign(newKey)); } catch {}
-      setSuccess("✅ Background image uploaded!");
-    } catch (e) {
-      setError(String(e.message || e));
+      if (newKey) {
+        setData((p) => ({ ...p, bgImageUrl: newKey }));
+        try { setBgDisplayUrl(await presign(newKey)); } catch {}
+        setSuccess("✅ Background image uploaded!");
+      } else {
+        // Fallback: pull latest record from server
+        await refresh();
+        setSuccess("✅ Background image uploaded!");
+      }
+    } catch (err) {
+      setError(String(err?.message || err));
     } finally {
       setUploading(false);
       try { e.target.value = ""; } catch {}
@@ -477,7 +494,7 @@ function WhyChooseEditorPage() {
       const res = await fetch(DELETE_BG_URL, { method: "DELETE" });
       if (!res.ok) throw new Error(await readErr(res));
       await res.json().catch(() => ({}));
-      setData(p => ({ ...p, bgImageUrl: "" }));
+      setData((p) => ({ ...p, bgImageUrl: "" }));
       setBgDisplayUrl("");
       setSuccess("🗑️ Background removed");
     } catch (e) {
@@ -515,7 +532,8 @@ function WhyChooseEditorPage() {
           >
             <div
               style={{
-                position: "absolute", inset: 0,
+                position: "absolute",
+                inset: 0,
                 background: `rgba(0,0,0,${data.bgOverlay || 0})`,
               }}
             />
@@ -560,11 +578,12 @@ function WhyChooseEditorPage() {
               </div>
             </div>
           </Card>
-          <div className="mt-2">
+
+          <div className="mt-2 d-flex gap-2">
             <Button size="sm" variant="outline-secondary" onClick={handleRefreshPreview}>
               Refresh preview
             </Button>
-            {loading && <span className="ms-2 text-muted">Loading…</span>}
+            {loading && <span className="text-muted small align-self-center">Loading…</span>}
           </div>
         </Col>
       </Row>
@@ -596,6 +615,7 @@ function WhyChooseEditorPage() {
               </div>
             </Form.Group>
           </Col>
+
           <Col md={6}>
             <Form.Group>
               <Form.Label>Overlay (0 - 1)</Form.Label>
