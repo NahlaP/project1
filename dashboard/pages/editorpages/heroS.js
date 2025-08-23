@@ -699,141 +699,135 @@
 
 
 
-// pages/editorpages/heroS.js
+// dashboard/pages/editorpages/heroS.js
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Card, Button, Form, Alert } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Container, Row, Col, Card, Form, Button, Image as RBImage, Alert } from "react-bootstrap";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
 import { backendBaseUrl, userId, templateId, s3Bucket, s3Region } from "../../lib/config";
 
-const API = backendBaseUrl || ""; // '' = Next rewrite to backend
+const API = backendBaseUrl || "";                 // keep '' so Next rewrite proxies /api → backend
+const absFromKey = (key) =>
+  key ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${String(key).replace(/^\/+/, "")}` : "";
 
-const isAbs = (u) => typeof u === "string" && /^https?:\/\//i.test(u);
-const toAbs = (u) => {
-  if (!u) return "";
-  if (isAbs(u)) return u;            // already absolute (incl. presigned)
-  if (u.startsWith("/")) return u;   // public/… path
-  return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${u.replace(/^\/+/, "")}`;
-};
-
-async function readErr(res) {
+const readErr = async (res) => {
   const txt = await res.text().catch(() => "");
   try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
   catch { return txt || `HTTP ${res.status}`; }
-}
+};
 
 function HeroEditorPage() {
-  const [hero, setHero] = useState({ content: "", imageKey: "", imageUrl: "" });
-  const [success, setSuccess] = useState("");
+  const [state, setState] = useState({
+    content: "",
+    imageKey: "",
+    displayUrl: "",
+  });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  const base = `${API}/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+  const GET_URL = `${API}/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+  const PUT_URL = GET_URL;
+  const UPLOAD_URL = `${GET_URL}/image`;
 
-  const load = async () => {
+  const loadHero = async () => {
     setError("");
-    const r = await fetch(base, { cache: "no-store" });
-    if (!r.ok) { setError(await readErr(r)); return; }
-    const j = await r.json();
-    setHero({
-      content: j?.content ?? j?.title ?? "",
-      imageKey: j?.imageKey || j?.imageUrl || "",
-      imageUrl: j?.imageUrl || "", // presigned if backend sent it
+    const res = await fetch(`${GET_URL}?t=${Date.now()}`, { headers: { Accept: "application/json" }, cache: "no-store" });
+    if (!res.ok) throw new Error(await readErr(res));
+    const data = await res.json();
+    setState({
+      content: data?.content || "",
+      imageKey: data?.imageKey || "",
+      displayUrl: data?.imageUrl || absFromKey(data?.imageKey || ""),
     });
   };
-  useEffect(() => { load(); }, []);
 
-  const previewSrc = useMemo(
-    () => (hero.imageUrl ? hero.imageUrl : toAbs(hero.imageKey)),
-    [hero.imageUrl, hero.imageKey]
-  );
+  useEffect(() => { loadHero().catch((e) => setError(String(e.message || e))); }, []);
 
-  const handleSave = async () => {
-    setSaving(true); setSuccess(""); setError("");
-    try {
-      const payload = { content: hero.content || "" };
-      if (hero.imageKey) payload.imageKey = hero.imageKey;
-      const r = await fetch(base, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!r.ok) throw new Error(await readErr(r));
-      await load();
-      setSuccess("✅ Saved!");
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally { setSaving(false); }
-  };
-
-  const handleUpload = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > 10 * 1024 * 1024) { setError("Image > 10MB"); return; }
+  const onUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setError("Image must be ≤ 10 MB"); e.target.value = ""; return; }
 
     setUploading(true); setSuccess(""); setError("");
     try {
       const form = new FormData();
-      form.append("image", f); // multer field name
-      const r = await fetch(`${base}/image`, { method: "POST", body: form });
-      if (!r.ok) throw new Error(await readErr(r));
-      const j = await r.json();
+      form.append("image", file); // multer expects "image"
+      const res = await fetch(UPLOAD_URL, { method: "POST", body: form });
+      if (!res.ok) throw new Error(await readErr(res));
+      const j = await res.json();
 
-      const key = j?.imageKey || j?.key || j?.result?.imageUrl || "";
-      const signed = j?.imageUrl || "";
-
-      setHero((p) => ({
+      // backend already persisted the key; we just refresh UI
+      setState((p) => ({
         ...p,
-        imageKey: key || p.imageKey,
-        imageUrl: signed || toAbs(key) || p.imageUrl,
+        imageKey: j?.imageKey || j?.key || p.imageKey,
+        displayUrl: j?.imageUrl || absFromKey(j?.imageKey || j?.key || ""),
       }));
-
-      // persist new key so future GET includes it
-      if (key) {
-        await fetch(base, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageKey: key, content: hero.content || "" }),
-        }).catch(() => {});
-      }
-
-      setSuccess("✅ Hero image uploaded");
-    } catch (e) {
-      setError(String(e.message || e));
+      setSuccess("✅ Image uploaded!");
+    } catch (err) {
+      setError(String(err.message || err));
     } finally {
       setUploading(false);
-      e.target.value = "";
+      try { e.target.value = ""; } catch {}
     }
+  };
+
+  const onSave = async () => {
+    setSaving(true); setSuccess(""); setError("");
+    try {
+      const res = await fetch(PUT_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: state.content || "",
+          imageKey: state.imageKey || "",   // controller accepts imageKey or imageUrl
+        }),
+      });
+      if (!res.ok) throw new Error(await readErr(res));
+      await loadHero();
+      setSuccess("✅ Saved!");
+    } catch (err) {
+      setError(String(err.message || err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const refreshPreview = async () => {
+    try { await loadHero(); } catch (e) { setError(String(e.message || e)); }
   };
 
   return (
     <Container fluid className="py-4">
       <Row><Col><h4 className="fw-bold">🖼️ Hero Section</h4></Col></Row>
+
       {success && <Alert variant="success">{success}</Alert>}
       {error && <Alert variant="danger" style={{ whiteSpace: "pre-wrap" }}>{error}</Alert>}
 
       <Card className="p-4 shadow-sm">
         <div className="row g-5">
           <div className="col-lg-6">
-            {previewSrc ? (
-              <img
-                src={previewSrc}
+            {state.displayUrl ? (
+              <RBImage
+                src={state.displayUrl}
                 alt="Hero"
                 className="img-fluid"
                 style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
-                onError={() => setError("Preview failed (URL may be expired).")}
+                onError={() => setError("Preview failed (URL may be expired). Click “Refresh preview”.")}
               />
-            ) : <div className="text-muted">No image</div>}
-
-            <div className="mt-2">
-              <Form.Control type="file" accept="image/*" onChange={handleUpload} disabled={uploading} />
-              {uploading && <small className="text-muted">Uploading…</small>}
+            ) : (
+              <div className="text-muted">No image uploaded yet</div>
+            )}
+            <div className="d-flex gap-2 mt-2">
+              <Form.Control type="file" accept="image/*" onChange={onUpload} disabled={uploading} />
+              <Button variant="outline-secondary" onClick={refreshPreview}>Refresh preview</Button>
             </div>
-
+            {uploading && <small className="text-muted">Uploading…</small>}
             <div className="small text-muted mt-2">
-              <strong>imageKey:</strong> {hero.imageKey || "(none)"}
+              <div><strong>Stored key:</strong> {state.imageKey || "(none)"} </div>
+              <div><strong>Preview URL:</strong> {state.displayUrl ? "active" : "(none)"} </div>
             </div>
           </div>
 
@@ -843,13 +837,14 @@ function HeroEditorPage() {
               <Form.Control
                 as="textarea"
                 rows={3}
-                value={hero.content || ""}
-                onChange={(e) => setHero((p) => ({ ...p, content: e.target.value }))}
+                value={state.content || ""}
+                onChange={(e) => setState((p) => ({ ...p, content: e.target.value }))}
+                placeholder="Write a motivational welcome message..."
               />
             </Form.Group>
 
             <div className="d-flex justify-content-end">
-              <Button onClick={handleSave} disabled={saving}>
+              <Button onClick={onSave} disabled={saving}>
                 {saving ? "Saving…" : "💾 Save"}
               </Button>
             </div>
