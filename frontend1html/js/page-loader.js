@@ -544,11 +544,11 @@
 const userId = "demo-user";
 const templateId = "gym-template-1";
 
-// ---- S3 location (override via window.APP_S3_* in page.html) ----
-const S3_BUCKET = window.APP_S3_BUCKET || "project1-uploads-12345";
-const S3_REGION = window.APP_S3_REGION || "ap-south-1";
+// ---- optional S3 fallback (if bucket is public). You can define these in page.html before this script:
+const S3_BUCKET = (window.APP_S3_BUCKET || "project1-uploads-12345");
+const S3_REGION = (window.APP_S3_REGION || "ap-south-1");
 
-// ---- API map (Vercel rewrites /api/* to your EC2 backend) ----
+// ---- API map (Vercel rewrites /api/* to your backend) ----
 const sectionApiMap = {
   hero: "/api/hero",
   about: "/api/about",
@@ -569,64 +569,58 @@ async function getJson(url) {
   return res.json();
 }
 
-// ---------- image URL helpers ----------
+// ---------- image helpers ----------
+const isHttp = (u) => /^https?:\/\//i.test(u || "");
+const isKey  = (u) => /^(sections|uploads)\//i.test(u || "");
 const isPresigned = (u) => /\bX-Amz-(Signature|Credential|Algorithm|Date|Expires|SignedHeaders)=/i.test(u || "");
-const looksLikeKey = (u = "") =>
-  !/^https?:\/\//i.test(u) && (/^\/?(sections|uploads)\//i.test(u) || /^[^/?]+\//.test(u));
+const keyToS3Url = (key) => `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${String(key || "").replace(/^\/+/, "")}`;
+const withCacheBusterSafe = (url, version) => (url && !isPresigned(url))
+  ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version || Date.now())}`
+  : url;
 
-function keyToS3Url(key) {
-  if (!key) return "";
-  return `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${String(key).replace(/^\/+/, "")}`;
-}
-
-/** NEVER add cache-busters to presigned URLs */
-function withCacheBusterSafe(url, version) {
-  if (!url || isPresigned(url)) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}v=${encodeURIComponent(version || Date.now())}`;
-}
-
-/** Ask backend to presign an S3 key. Falls back to public S3 URL. */
-async function presign(key) {
-  if (!key) return "";
-  try {
-    const res = await fetch(`/api/upload/file-url?key=${encodeURIComponent(String(key).replace(/^\/+/, ""))}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
-    const j = await res.json().catch(() => ({}));
-    if (j?.url) return j.url;             // presigned
-  } catch {}
-  return keyToS3Url(key);                  // last resort (403 if private)
-}
-
-/** Resolve any incoming value (presigned | absolute | S3 key) to a final safe URL */
-async function resolveImageUrl(raw, version) {
+/** Get a final URL for any of: presigned URL, S3 key, local /uploads path, or absolute http(s).
+ *  Prefers calling backend to presign keys (works with private buckets). */
+async function resolveImageUrl(raw) {
   if (!raw) return "";
-  if (isPresigned(raw)) return raw;
-  if (/^https?:\/\//i.test(raw)) return withCacheBusterSafe(raw, version);
-  // S3 key or "/sections/..." -> presign
-  const key = String(raw).replace(/^\/+/, "");
-  const signed = await presign(key);
-  return withCacheBusterSafe(signed, version); // will no-op if presigned
+
+  // already presigned or external http(s)
+  if (isHttp(raw)) return raw;
+
+  // pure key like "sections/hero/123.jpg" -> ask backend to presign
+  if (isKey(raw)) {
+    try {
+      const r = await fetch(`/api/upload/file-url?key=${encodeURIComponent(raw)}`, { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        if (j?.url || j?.signedUrl) return j.url || j.signedUrl;
+      }
+    } catch { /* ignore */ }
+    // fallback (only works if bucket objects are public-read)
+    return keyToS3Url(raw);
+  }
+
+  // anything else -> ensure leading slash (for rare /uploads paths via rewrite)
+  return raw.startsWith("/") ? raw : `/${raw}`;
 }
 
-// Retry helper (supports async getSrc)
+// Retry helper for (possibly) presigned images
 async function setImgWithAutoRefresh(imgEl, getSrcAsync, refreshSectionOnce) {
   let tried = false;
+
   const apply = async () => {
     const src = await getSrcAsync();
     if (src) imgEl.src = src;
   };
+
   imgEl.onerror = async () => {
     if (tried) return;
     tried = true;
     try { await refreshSectionOnce(); await apply(); } catch (e) { console.warn("Image refresh failed:", e); }
   };
+
   await apply();
 }
 
-// ---------- main renderer ----------
 async function renderPage() {
   const container = document.getElementById("dynamic-page-content");
   if (!container) return;
@@ -634,10 +628,11 @@ async function renderPage() {
   const urlParams = new URLSearchParams(window.location.search);
   let slug = urlParams.get("slug");
 
-  // Load sections (also decide default page)
+  // Load all sections (also used for default page)
   let allSections = [];
   try {
-    allSections = await getJson(`/api/sections?userId=${encodeURIComponent(userId)}&templateId=${encodeURIComponent(templateId)}`);
+    const sectionsUrl = `/api/sections?userId=${encodeURIComponent(userId)}&templateId=${encodeURIComponent(templateId)}`;
+    allSections = await getJson(sectionsUrl);
   } catch (e) {
     console.error("❌ Error loading sections:", e);
     container.innerHTML = "<h3 class='text-danger'>❌ Error loading page.</h3>";
@@ -678,17 +673,16 @@ async function renderPage() {
       const data = await fetchSection();
       let html = "";
 
-      // ---------- HERO ----------
+      // -------- HERO --------
       if (section.type === "hero") {
         const getHeroSrc = async () => {
           const d = cacheByType.hero || {};
-          const raw = d.imageUrl ?? d.image?.url ?? d.imageKey ?? "";
-          const ver = d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now();
-          // If backend gave a key, presign it here
-          const final = looksLikeKey(raw) ? await resolveImageUrl(raw, ver) : await resolveImageUrl(raw, ver);
-          return final;
+          const raw = d.imageUrl ?? d.image?.url ?? ""; // may already be presigned
+          const final = await resolveImageUrl(raw);
+          return withCacheBusterSafe(final, d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now());
         };
         const title = (data.title ?? data.content ?? "Welcome to our site");
+
         html += `
           <div class="container-fluid p-0 mb-6 wow fadeIn" data-wow-delay="0.1s">
             <div id="header-carousel" class="carousel slide" data-bs-ride="carousel">
@@ -703,11 +697,12 @@ async function renderPage() {
             </div>
           </div>`;
         container.insertAdjacentHTML("beforeend", html);
+
         const heroImg = document.getElementById("hero-image");
         await setImgWithAutoRefresh(heroImg, getHeroSrc, fetchSection);
       }
 
-      // ---------- ABOUT ----------
+      // -------- ABOUT --------
       else if (section.type === "about") {
         html += `
         <div class="container-fluid pt-6 pb-6" id="about-section">
@@ -715,7 +710,7 @@ async function renderPage() {
             <div class="row g-5">
               <div class="col-lg-6 wow fadeIn" data-wow-delay="0.1s">
                 <div class="about-img">
-                  <img id="about-img" class="img-fluid w-100" src="" alt="${data.imageAlt || "About Image"}" style="max-height: 350px; object-fit: cover" />
+                  <img id="about-img" class="img-fluid w-100" alt="${data.imageAlt || "About Image"}" style="max-height: 350px; object-fit: cover" />
                 </div>
               </div>
               <div class="col-lg-6 wow fadeIn" data-wow-delay="0.5s">
@@ -738,19 +733,19 @@ async function renderPage() {
           </div>
         </div>`;
         container.insertAdjacentHTML("beforeend", html);
+
         const aboutImg = document.getElementById("about-img");
         await setImgWithAutoRefresh(
           aboutImg,
-          async () => await resolveImageUrl((cacheByType.about || {}).imageUrl || data.imageUrl || "", Date.now()),
+          async () => withCacheBusterSafe(await resolveImageUrl((cacheByType.about || data).imageUrl || ""), Date.now()),
           fetchSection
         );
       }
 
-      // ---------- WHY CHOOSE US ----------
+      // -------- WHY CHOOSE US --------
       else if (section.type === "whychooseus") {
-        const ver = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-        const bgFinal = await resolveImageUrl(data.bgImageUrl || "", ver);
         const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
+        const bgFinal = withCacheBusterSafe(await resolveImageUrl(data.bgImageUrl || ""), data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now());
 
         html += `
         <div class="container-fluid feature mt-6 mb-6 wow fadeIn" data-wow-delay="0.1s" id="whychoose-wrapper"
@@ -760,11 +755,13 @@ async function renderPage() {
             <div class="row g-0 justify-content-end">
               <div class="col-lg-6 pt-5">
                 <div class="mt-5">
-                  <h1 class="display-6 text-white text-uppercase mb-4">${data.title || "Why You Should Choose Our Fitness Services"}</h1>
-                  <p class="text-light mb-4">${data.description || ""}</p>
-                  <div class="row g-4 pt-2 mb-4">
-                    ${(data.stats || []).map((stat, i) => `
-                      <div class="col-sm-6 wow fadeIn" data-wow-delay="0.${i + 5}s">
+                  <h1 id="whychoose-title" class="display-6 text-white text-uppercase mb-4 wow fadeIn" data-wow-delay="0.3s">
+                    ${data.title || "Why You Should Choose Our Fitness Services"}
+                  </h1>
+                  <p id="whychoose-desc" class="text-light mb-4 wow fadeIn" data-wow-delay="0.4s">${data.description || ""}</p>
+                  <div id="whychoose-stats" class="row g-4 pt-2 mb-4">
+                    ${(data.stats || []).map((stat, index) => `
+                      <div class="col-sm-6 wow fadeIn" data-wow-delay="0.${index + 5}s">
                         <div class="flex-column text-center border border-5 border-primary p-5">
                           <h1 class="text-white">${stat.value}</h1>
                           <p class="text-white text-uppercase mb-0">${stat.label}</p>
@@ -772,17 +769,19 @@ async function renderPage() {
                       </div>`).join("")}
                   </div>
                   <div class="border border-5 border-primary border-bottom-0 p-5">
-                    ${(data.progressBars || []).map((bar, i) => `
-                      <div class="experience mb-4 wow fadeIn" data-wow-delay="0.${i + 7}s">
-                        <div class="d-flex justify-content-between mb-2">
-                          <span class="text-white text-uppercase">${bar.label}</span>
-                          <span class="text-white">${bar.percent}%</span>
-                        </div>
-                        <div class="progress">
-                          <div class="progress-bar bg-primary" role="progressbar" style="width: ${bar.percent}%"
-                               aria-valuenow="${bar.percent}" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                      </div>`).join("")}
+                    <div id="whychoose-progress">
+                      ${(data.progressBars || []).map((bar, index) => `
+                        <div class="experience mb-4 wow fadeIn" data-wow-delay="0.${index + 7}s">
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="text-white text-uppercase">${bar.label}</span>
+                            <span class="text-white">${bar.percent}%</span>
+                          </div>
+                          <div class="progress">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: ${bar.percent}%"
+                                 aria-valuenow="${bar.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                          </div>
+                        </div>`).join("")}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -792,7 +791,7 @@ async function renderPage() {
         container.insertAdjacentHTML("beforeend", html);
       }
 
-      // ---------- SERVICES ----------
+      // -------- SERVICES --------
       else if (section.type === "services") {
         html += `
         <section class="container-xxl service py-5">
@@ -806,10 +805,11 @@ async function renderPage() {
         container.insertAdjacentHTML("beforeend", html);
 
         const grid = $("#services-grid");
-        (data.services || []).forEach(async (item, index) => {
+        for (const [index, item] of (data.services || []).entries()) {
+          const delay = item.delay || `0.${index + 1}s`;
           const node = document.createElement("div");
           node.className = "col-lg-3 col-md-6 wow fadeInUp";
-          node.setAttribute("data-wow-delay", item.delay || `0.${index + 1}s`);
+          node.setAttribute("data-wow-delay", delay);
           node.innerHTML = `
             <div class="service-item">
               <div class="service-inner pb-5">
@@ -828,15 +828,19 @@ async function renderPage() {
           const imgEl = node.querySelector(".svc-img");
           await setImgWithAutoRefresh(
             imgEl,
-            async () => await resolveImageUrl(item.imageUrl || "", item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
+            async () => withCacheBusterSafe(await resolveImageUrl(item.imageUrl || "") || "/img/service-placeholder.jpg",
+              item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
             fetchSection
           );
-        });
+        }
       }
 
-      // ---------- APPOINTMENT ----------
+      // -------- APPOINTMENT --------
       else if (section.type === "appointment") {
-        const bgFinal = await resolveImageUrl(data.backgroundImage || "", data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now());
+        const bgFinal = withCacheBusterSafe(
+          await resolveImageUrl(data.backgroundImage || ""),
+          data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()
+        );
         html += `
         <section class="container-fluid appoinment mt-6 mb-6 py-5 wow fadeIn" id="appointment-section"
           style="background-image: url('${bgFinal}'); background-size: cover; background-position: center;">
@@ -876,7 +880,7 @@ async function renderPage() {
         container.insertAdjacentHTML("beforeend", html);
       }
 
-      // ---------- TEAM ----------
+      // -------- TEAM --------
       else if (section.type === "team") {
         html += `
         <section class="container-xxl py-5">
@@ -890,7 +894,8 @@ async function renderPage() {
         container.insertAdjacentHTML("beforeend", html);
 
         const grid = $("#team-grid");
-        (Array.isArray(data) ? data : []).forEach(async (member, index) => {
+        const list = Array.isArray(data) ? data : [];
+        for (const [index, member] of list.entries()) {
           const node = document.createElement("div");
           node.className = "col-lg-3 col-md-6 wow fadeInUp";
           node.setAttribute("data-wow-delay", `0.${index + 1}s`);
@@ -909,13 +914,14 @@ async function renderPage() {
           const imgEl = node.querySelector(".team-img");
           await setImgWithAutoRefresh(
             imgEl,
-            async () => await resolveImageUrl(member.imageUrl || "", member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now()),
+            async () => withCacheBusterSafe(await resolveImageUrl(member.imageUrl || "") || "/img/team-placeholder.jpg",
+              member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now()),
             fetchSection
           );
-        });
+        }
       }
 
-      // ---------- TESTIMONIALS ----------
+      // -------- TESTIMONIALS --------
       else if (section.type === "testimonials") {
         const list = Array.isArray(data) ? data : [];
         const makeCard = (item) => {
@@ -960,25 +966,30 @@ async function renderPage() {
         container.insertAdjacentHTML("beforeend", html);
 
         const bigImgs = Array.from(document.querySelectorAll(".testi-big"));
-        bigImgs.forEach(async (el, i) => {
+        for (let i = 0; i < bigImgs.length; i++) {
+          const el = bigImgs[i];
           const item = list[i];
           await setImgWithAutoRefresh(
             el,
-            async () => await resolveImageUrl(item?.imageUrl || "", item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
+            async () => withCacheBusterSafe(await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
+              item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
             fetchSection
           );
-        });
+        }
 
         const smallImgs = Array.from(document.querySelectorAll(".testi-img"));
-        smallImgs.forEach(async (el, i) => {
+        for (let i = 0; i < smallImgs.length; i++) {
+          const el = smallImgs[i];
           const item = list[i];
           await setImgWithAutoRefresh(
             el,
-            async () => await resolveImageUrl(item?.imageUrl || "", item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
+            async () => withCacheBusterSafe(await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
+              item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
             fetchSection
           );
-        });
+        }
 
+        // Re-init OwlCarousel after DOM is ready
         setTimeout(() => {
           if (window.$ && typeof window.$.fn?.owlCarousel === "function") {
             const $carousel = $(".testimonial-carousel");
@@ -993,7 +1004,7 @@ async function renderPage() {
         }, 200);
       }
 
-      // ---------- CONTACT ----------
+      // -------- CONTACT --------
       else if (section.type === "contact") {
         html += `
         <section class="container-fluid bg-dark text-white-50 footer pt-5 mt-5">
@@ -1025,6 +1036,7 @@ async function renderPage() {
         </section>`;
         container.insertAdjacentHTML("beforeend", html);
       }
+
     } catch (err) {
       console.error(`❌ Failed to load section: ${section.type}`, err);
       container.insertAdjacentHTML("beforeend", `<p class="text-danger">❌ Error loading ${section.type}</p>`);
