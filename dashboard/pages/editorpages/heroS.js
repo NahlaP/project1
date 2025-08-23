@@ -716,9 +716,11 @@ import {
   Container, Row, Col, Card, Form, Button, Image as RBImage, Alert
 } from "react-bootstrap";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-import { userId, templateId, s3Bucket, s3Region } from "../../lib/config";
+import { backendBaseUrl, userId, templateId, s3Bucket, s3Region } from "../../lib/config";
 
 /* ---------- helpers ---------- */
+const API = backendBaseUrl || ""; // '' -> Next proxy (/api), otherwise absolute backend URL
+
 async function readErr(res) {
   const txt = await res.text().catch(() => "");
   try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
@@ -726,7 +728,7 @@ async function readErr(res) {
 }
 async function presign(key) {
   if (!key) return "";
-  const res = await fetch(`/api/upload/file-url?key=${encodeURIComponent(key)}`, {
+  const res = await fetch(`${API}/api/upload/file-url?key=${encodeURIComponent(key)}`, {
     headers: { Accept: "application/json" },
     cache: "no-store",
   });
@@ -736,8 +738,6 @@ async function presign(key) {
 }
 const publicUrlFromKey = (key) =>
   key ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${key}` : "";
-
-// do NOT cache-bust pre-signed URLs
 const isPresigned = (url) =>
   /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(url);
 const bust = (url) => (!url ? "" : isPresigned(url) ? url : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`);
@@ -751,9 +751,7 @@ function HeroEditorPage() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const HERO_GET = `/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-  const HERO_SAVE_PUT = HERO_GET;                   // PUT with params
-  const HERO_UPLOAD = `/api/hero/upload-image`;     // legacy upload (kept)
+  const HERO_GET = `${API}/api/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`; // GET & PUT
 
   const refreshHero = async () => {
     try {
@@ -788,7 +786,7 @@ function HeroEditorPage() {
   useEffect(() => { refreshHero(); }, []);
 
   const saveViaPut = async (payload) => {
-    const res = await fetch(HERO_SAVE_PUT, {
+    const res = await fetch(HERO_GET, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -804,22 +802,21 @@ function HeroEditorPage() {
 
     setUploading(true); setSuccess(""); setError("");
     try {
+      // keep your legacy upload endpoint; Next proxy will forward to backend
       const form = new FormData();
-      form.append("image", file); // multer expects "image"
-
-      const res = await fetch(HERO_UPLOAD, { method: "POST", body: form });
-      if (!res.ok) throw new Error(await readErr(res));
-      const up = await res.json().catch(() => ({}));
+      form.append("image", file);
+      const upRes = await fetch(`${API}/api/hero/upload-image`, { method: "POST", body: form });
+      if (!upRes.ok) throw new Error(await readErr(upRes));
+      const up = await upRes.json().catch(() => ({}));
 
       const newKey = up?.imageKey || up?.key || up?.s3Key || "";
       if (newKey) {
-        // persist imageKey and current content using the REST route
+        // persist (PUT) so the record stores the new key + current text
         await saveViaPut({
           content: hero.content ?? "",
           imageKey: newKey,
         });
 
-        // rebuild preview URL
         let url = "";
         try { url = await presign(newKey); } catch {}
         if (!url) url = publicUrlFromKey(newKey);
