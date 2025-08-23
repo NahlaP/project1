@@ -1,5 +1,17 @@
 
 
+
+
+
+
+
+
+
+
+
+
+// // Dynamic Page Renderer (Vercel proxy friendly + presigned image auto-refresh)
+
 // // ---- identifiers ----
 // const userId = "demo-user";
 // const templateId = "gym-template-1";
@@ -20,8 +32,14 @@
 //   contact: "/api/contact-info",
 // };
 
-// function $(sel) { return document.querySelector(sel); }
-// function urlWithTs(url) { const sep = url.includes("?") ? "&" : "?"; return `${url}${sep}v=${Date.now()}`; }
+// // ---- helpers ----
+// // Use a non-conflicting selector helper so jQuery's $ remains available
+// const qs = (sel) => document.querySelector(sel);
+
+// function urlWithTs(url) {
+//   const sep = url.includes("?") ? "&" : "?";
+//   return `${url}${sep}v=${Date.now()}`;
+// }
 
 // async function getJson(url) {
 //   const res = await fetch(urlWithTs(url), { cache: "no-store", headers: { Accept: "application/json" } });
@@ -34,9 +52,10 @@
 // const isKey  = (u) => /^(sections|uploads)\//i.test(u || "");
 // const isPresigned = (u) => /\bX-Amz-(Signature|Credential|Algorithm|Date|Expires|SignedHeaders)=/i.test(u || "");
 // const keyToS3Url = (key) => `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${String(key || "").replace(/^\/+/, "")}`;
-// const withCacheBusterSafe = (url, version) => (url && !isPresigned(url))
-//   ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version || Date.now())}`
-//   : url;
+// const withCacheBusterSafe = (url, version) =>
+//   (url && !isPresigned(url))
+//     ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version || Date.now())}`
+//     : url;
 
 // /** Get a final URL for any of: presigned URL, S3 key, local /uploads path, or absolute http(s).
 //  *  Prefers calling backend to presign keys (works with private buckets). */
@@ -49,7 +68,10 @@
 //   // pure key like "sections/hero/123.jpg" -> ask backend to presign
 //   if (isKey(raw)) {
 //     try {
-//       const r = await fetch(`/api/upload/file-url?key=${encodeURIComponent(raw)}`, { headers: { Accept: "application/json" }, cache: "no-store" });
+//       const r = await fetch(`/api/upload/file-url?key=${encodeURIComponent(raw)}`, {
+//         headers: { Accept: "application/json" },
+//         cache: "no-store"
+//       });
 //       if (r.ok) {
 //         const j = await r.json();
 //         if (j?.url || j?.signedUrl) return j.url || j.signedUrl;
@@ -205,7 +227,10 @@
 //       // -------- WHY CHOOSE US --------
 //       else if (section.type === "whychooseus") {
 //         const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
-//         const bgFinal = withCacheBusterSafe(await resolveImageUrl(data.bgImageUrl || ""), data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now());
+//         const bgFinal = withCacheBusterSafe(
+//           await resolveImageUrl(data.bgImageUrl || ""),
+//           data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()
+//         );
 
 //         html += `
 //         <div class="container-fluid feature mt-6 mb-6 wow fadeIn" data-wow-delay="0.1s" id="whychoose-wrapper"
@@ -264,7 +289,7 @@
 //         </section>`;
 //         container.insertAdjacentHTML("beforeend", html);
 
-//         const grid = $("#services-grid");
+//         const grid = qs("#services-grid");
 //         for (const [index, item] of (data.services || []).entries()) {
 //           const delay = item.delay || `0.${index + 1}s`;
 //           const node = document.createElement("div");
@@ -288,8 +313,10 @@
 //           const imgEl = node.querySelector(".svc-img");
 //           await setImgWithAutoRefresh(
 //             imgEl,
-//             async () => withCacheBusterSafe(await resolveImageUrl(item.imageUrl || "") || "/img/service-placeholder.jpg",
-//               item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
+//             async () => withCacheBusterSafe(
+//               await resolveImageUrl(item.imageUrl || "") || "/img/service-placeholder.jpg",
+//               item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
+//             ),
 //             fetchSection
 //           );
 //         }
@@ -302,7 +329,7 @@
 //           data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()
 //         );
 //         html += `
-//         <section class="container-fluid appoinment mt-6 mb-6 py-5 wow fadeIn" id="appointment-section"
+//         <section class="container-fluid appoinment mt-6 mb-6 py-5 wow FadeIn" id="appointment-section"
 //           style="background-image: url('${bgFinal}'); background-size: cover; background-position: center;">
 //           <div class="container pt-5">
 //             <div class="row gy-5 gx-0">
@@ -353,11 +380,11 @@
 //         </section>`;
 //         container.insertAdjacentHTML("beforeend", html);
 
-//         const grid = $("#team-grid");
+//         const grid = qs("#team-grid");
 //         const list = Array.isArray(data) ? data : [];
 //         for (const [index, member] of list.entries()) {
 //           const node = document.createElement("div");
-//           node.className = "col-lg-3 col-md-6 wow fadeInUp";
+//           node.className = "col-lg-3 col-md-6 wow FadeInUp";
 //           node.setAttribute("data-wow-delay", `0.${index + 1}s`);
 //           node.innerHTML = `
 //             <div class="team-item bg-light">
@@ -374,8 +401,10 @@
 //           const imgEl = node.querySelector(".team-img");
 //           await setImgWithAutoRefresh(
 //             imgEl,
-//             async () => withCacheBusterSafe(await resolveImageUrl(member.imageUrl || "") || "/img/team-placeholder.jpg",
-//               member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now()),
+//             async () => withCacheBusterSafe(
+//               await resolveImageUrl(member.imageUrl || "") || "/img/team-placeholder.jpg",
+//               member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now()
+//             ),
 //             fetchSection
 //           );
 //         }
@@ -401,21 +430,21 @@
 //         };
 
 //         const animatedImagesHtml = list.slice(0, 4).map((item, i) => `
-//           <div class="wow fadeInUp" data-wow-delay="${0.2 + i * 0.2}s">
+//           <div class="wow FadeInUp" data-wow-delay="${0.2 + i * 0.2}s">
 //             <img class="img-fluid rounded-circle w-100 h-100 testi-big" alt="${item.name || "Client"}" style="object-fit:cover;">
 //           </div>`).join("");
 
 //         html += `
 //         <section class="container-fluid pt-6 pb-6">
 //           <div class="container">
-//             <div class="text-center mx-auto wow fadeInUp" data-wow-delay="0.1s" style="max-width: 600px;">
+//             <div class="text-center mx-auto wow FadeInUp" data-wow-delay="0.1s" style="max-width: 600px;">
 //               <h1 class="display-6 text-uppercase mb-5">${section.title || "What They’re Talking About Our Training Work"}</h1>
 //             </div>
 //             <div class="row g-5 align-items-center">
-//               <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.3s">
+//               <div class="col-lg-5 wow FadeInUp" data-wow-delay="0.3s">
 //                 <div class="testimonial-img" id="testimonial-image-list">${animatedImagesHtml}</div>
 //               </div>
-//               <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.5s">
+//               <div class="col-lg-7 wow FadeInUp" data-wow-delay="0.5s">
 //                 <div class="owl-carousel testimonial-carousel" id="testimonial-carousel">
 //                   ${list.map(makeCard).join("")}
 //                 </div>
@@ -431,8 +460,10 @@
 //           const item = list[i];
 //           await setImgWithAutoRefresh(
 //             el,
-//             async () => withCacheBusterSafe(await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
-//               item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
+//             async () => withCacheBusterSafe(
+//               await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
+//               item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
+//             ),
 //             fetchSection
 //           );
 //         }
@@ -443,13 +474,15 @@
 //           const item = list[i];
 //           await setImgWithAutoRefresh(
 //             el,
-//             async () => withCacheBusterSafe(await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
-//               item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()),
+//             async () => withCacheBusterSafe(
+//               await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
+//               item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
+//             ),
 //             fetchSection
 //           );
 //         }
 
-//         // Re-init OwlCarousel after DOM is ready
+//         // Re-init OwlCarousel (uses jQuery's $ — keep it)
 //         setTimeout(() => {
 //           if (window.$ && typeof window.$.fn?.owlCarousel === "function") {
 //             const $carousel = $(".testimonial-carousel");
@@ -458,7 +491,14 @@
 //                 $carousel.trigger("destroy.owl.carousel").removeClass("owl-loaded");
 //                 $carousel.find(".owl-stage-outer").children().unwrap();
 //               } catch {}
-//               $carousel.owlCarousel({ autoplay: true, smartSpeed: 1000, dots: true, loop: true, items: 1, margin: 25 });
+//               $carousel.owlCarousel({
+//                 autoplay: true,
+//                 smartSpeed: 1000,
+//                 dots: true,
+//                 loop: true,
+//                 items: 1,
+//                 margin: 25
+//               });
 //             }
 //           }
 //         }, 200);
@@ -505,10 +545,6 @@
 // }
 
 // renderPage();
-
-
-
-
 
 
 
@@ -1013,32 +1049,74 @@ async function renderPage() {
         }, 200);
       }
 
-      // -------- CONTACT --------
+      // -------- CONTACT (updated only) --------
       else if (section.type === "contact") {
+        const hours = data.businessHours || {};
+        const socials = data.socialLinks || {};
+        const normalize = (u) => {
+          try { return /^https?:\/\//i.test(u) ? u : `https://${u}`; } catch { return u; }
+        };
+        const socialsHtml = ["facebook", "twitter", "youtube", "linkedin"].map((k) => {
+          const href = socials[k];
+          if (!href) return "";
+          const icon = k === "facebook" ? "fab fa-facebook-f"
+                    : k === "twitter"  ? "fab fa-twitter"
+                    : k === "youtube"  ? "fab fa-youtube"
+                    : "fab fa-linkedin-in";
+          return `<a class="btn btn-square btn-light me-2" href="${normalize(href)}" target="_blank" rel="noopener"><i class="${icon}"></i></a>`;
+        }).join("");
+
         html += `
-        <section class="container-fluid bg-dark text-white-50 footer pt-5 mt-5">
-          <div class="container py-5">
+        <section class="container-xxl py-6" id="contact-section">
+          <div class="container">
             <div class="row g-5">
-              <div class="col-lg-4 col-md-6">
-                <h5 class="text-white mb-4">Our Office</h5>
-                <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>${data.office || data.address || "No office info"}</p>
-                <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>${data.phone || ""}</p>
-                <p class="mb-2"><i class="fa fa-envelope me-3"></i>${data.email || ""}</p>
+              <div class="col-lg-5">
+                <h2 class="display-6 text-uppercase mb-4">${data.title || "Contact Us"}</h2>
+
+                <p class="mb-3">
+                  <i class="fa fa-map-marker-alt text-primary me-3"></i>
+                  ${data.address || data.office || "-"}
+                </p>
+
+                <p class="mb-3">
+                  <i class="fa fa-phone-alt text-primary me-3"></i>
+                  ${data.phone ? `<a href="tel:${String(data.phone).replace(/\s+/g, "")}">${data.phone}</a>` : "-"}
+                </p>
+
+                <p class="mb-3">
+                  <i class="fa fa-envelope text-primary me-3"></i>
+                  ${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : "-"}
+                </p>
+
+                <div class="d-flex pt-2">${socialsHtml}</div>
               </div>
-              <div class="col-lg-4 col-md-6">
-                <h5 class="text-white mb-4">Business Hours</h5>
-                <p class="mb-1">Monday - Friday: ${data.weekday || data?.businessHours?.mondayToFriday || "-"}</p>
-                <p class="mb-1">Saturday: ${data.saturday || data?.businessHours?.saturday || "-"}</p>
-                <p class="mb-1">Sunday: ${data.sunday || data?.businessHours?.sunday || "-"}</p>
+
+              <div class="col-lg-7">
+                <h5 class="text-uppercase mb-4">Business Hours</h5>
+                <div class="row">
+                  <div class="col-sm-6 mb-3">
+                    <p class="text-uppercase mb-0">Monday - Friday</p>
+                    <p class="mb-0">${hours.mondayToFriday || hours.weekday || "-"}</p>
+                  </div>
+                  <div class="col-sm-6 mb-3">
+                    <p class="text-uppercase mb-0">Saturday</p>
+                    <p class="mb-0">${hours.saturday || "-"}</p>
+                  </div>
+                  <div class="col-sm-6">
+                    <p class="text-uppercase mb-0">Sunday</p>
+                    <p class="mb-0">${hours.sunday || "-"}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </section>
+
+        <section class="container-fluid text-body copyright py-4">
           <div class="container">
-            <div class="copyright">
-              <div class="row">
-                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                  &copy; ${new Date().getFullYear()} ${data.copyright || "gym"}, All Rights Reserved.
-                </div>
+            <div class="row">
+              <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                &copy; ${new Date().getFullYear()} ${data.copyright || "gym"}, All Rights Reserved.
               </div>
             </div>
           </div>
