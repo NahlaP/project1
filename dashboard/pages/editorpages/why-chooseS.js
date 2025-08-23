@@ -354,16 +354,15 @@ async function readErr(res) {
 }
 async function presign(key) {
   if (!key) return "";
+  // IMPORTANT: relative path (works behind nginx); do NOT cache-bust presigned URLs
   const res = await fetch(
-    `${backendBaseUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`,
+    `/api/upload/file-url?key=${encodeURIComponent(key)}`,
     { headers: { Accept: "application/json" }, cache: "no-store" }
   );
   if (!res.ok) throw new Error(await readErr(res));
   const j = await res.json();
   return j?.url || "";
 }
-const isPresigned = (url) =>
-  /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(url);
 
 /* --------------- page ------------------- */
 function WhyChooseEditorPage() {
@@ -371,7 +370,7 @@ function WhyChooseEditorPage() {
     description: "",
     stats: [],
     progressBars: [],
-    bgImageUrl: "",          // S3 key saved in DB
+    bgImageUrl: "",          // S3 KEY saved in DB
     bgOverlay: 0.5,
   });
   const [bgDisplayUrl, setBgDisplayUrl] = useState(""); // presigned URL for preview
@@ -440,7 +439,7 @@ function WhyChooseEditorPage() {
       if (!res.ok) throw new Error(await readErr(res));
       await res.json().catch(() => ({}));
       setSuccess("✅ Saved!");
-      // Re-presign in case server applied changes
+      // Re-presign in case server updated the key
       if (data.bgImageUrl) {
         try { setBgDisplayUrl(await presign(data.bgImageUrl)); } catch {}
       }
@@ -462,7 +461,7 @@ function WhyChooseEditorPage() {
       if (!res.ok) throw new Error(await readErr(res));
       const json = await res.json();
 
-      // Try multiple common response shapes to find the S3 key:
+      // Extract S3 key from common response shapes
       const newKey =
         json?.key ||
         json?.imageKey ||
@@ -476,8 +475,7 @@ function WhyChooseEditorPage() {
         try { setBgDisplayUrl(await presign(newKey)); } catch {}
         setSuccess("✅ Background image uploaded!");
       } else {
-        // Fallback: pull latest record from server
-        await refresh();
+        await refresh(); // fallback
         setSuccess("✅ Background image uploaded!");
       }
     } catch (err) {
@@ -611,7 +609,10 @@ function WhyChooseEditorPage() {
               )}
               <div className="small text-muted mt-2">
                 <div><strong>Stored key:</strong> {data.bgImageUrl || "(none)"} </div>
-                <div><strong>Preview URL:</strong> {bgDisplayUrl ? "active" : "(none)"} </div>
+                <div>
+                  <strong>Preview URL:</strong>{" "}
+                  {bgDisplayUrl ? <a href={bgDisplayUrl} target="_blank" rel="noreferrer">open</a> : "(none)"}
+                </div>
               </div>
             </Form.Group>
           </Col>
