@@ -707,17 +707,14 @@ import { Container, Row, Col, Card, Button, Form, Alert } from "react-bootstrap"
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
 import { backendBaseUrl, userId, templateId, s3Bucket, s3Region } from "../../lib/config";
 
-const API = backendBaseUrl || ""; // '' => Next rewrite to your backend
+const API = backendBaseUrl || ""; // '' = Next rewrite to backend
 
 const isAbs = (u) => typeof u === "string" && /^https?:\/\//i.test(u);
 const toAbs = (u) => {
   if (!u) return "";
   if (isAbs(u)) return u;            // already absolute (incl. presigned)
-  if (u.startsWith("/")) return u;   // public/… style path
-  if (s3Bucket && s3Region) {
-    return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${u.replace(/^\/+/, "")}`;
-  }
-  return u;
+  if (u.startsWith("/")) return u;   // public/… path
+  return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${u.replace(/^\/+/, "")}`;
 };
 
 async function readErr(res) {
@@ -737,20 +734,15 @@ function HeroEditorPage() {
 
   const load = async () => {
     setError("");
-    try {
-      const r = await fetch(base, { cache: "no-store" });
-      if (!r.ok) throw new Error(await readErr(r));
-      const j = await r.json();
-      setHero({
-        content: j?.content ?? j?.title ?? "",
-        imageKey: j?.imageKey || j?.imageUrl || "",
-        imageUrl: j?.imageUrl || "", // presigned from backend if present
-      });
-    } catch (e) {
-      setError(String(e.message || e));
-    }
+    const r = await fetch(base, { cache: "no-store" });
+    if (!r.ok) { setError(await readErr(r)); return; }
+    const j = await r.json();
+    setHero({
+      content: j?.content ?? j?.title ?? "",
+      imageKey: j?.imageKey || j?.imageUrl || "",
+      imageUrl: j?.imageUrl || "", // presigned if backend sent it
+    });
   };
-
   useEffect(() => { load(); }, []);
 
   const previewSrc = useMemo(
@@ -759,9 +751,7 @@ function HeroEditorPage() {
   );
 
   const handleSave = async () => {
-    setSaving(true);
-    setSuccess("");
-    setError("");
+    setSaving(true); setSuccess(""); setError("");
     try {
       const payload = { content: hero.content || "" };
       if (hero.imageKey) payload.imageKey = hero.imageKey;
@@ -775,9 +765,7 @@ function HeroEditorPage() {
       setSuccess("✅ Saved!");
     } catch (e) {
       setError(String(e.message || e));
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleUpload = async (e) => {
@@ -785,18 +773,14 @@ function HeroEditorPage() {
     if (!f) return;
     if (f.size > 10 * 1024 * 1024) { setError("Image > 10MB"); return; }
 
-    setUploading(true);
-    setError("");
-    setSuccess("");
+    setUploading(true); setSuccess(""); setError("");
     try {
       const form = new FormData();
-      form.append("image", f); // your multer field name
-
+      form.append("image", f); // multer field name
       const r = await fetch(`${base}/image`, { method: "POST", body: form });
       if (!r.ok) throw new Error(await readErr(r));
       const j = await r.json();
 
-      // controller returns: { message, bucket, key, imageUrl (presigned), imageKey }
       const key = j?.imageKey || j?.key || j?.result?.imageUrl || "";
       const signed = j?.imageUrl || "";
 
@@ -806,7 +790,7 @@ function HeroEditorPage() {
         imageUrl: signed || toAbs(key) || p.imageUrl,
       }));
 
-      // persist the key (so future GET includes it)
+      // persist new key so future GET includes it
       if (key) {
         await fetch(base, {
           method: "PUT",
@@ -839,6 +823,7 @@ function HeroEditorPage() {
                 alt="Hero"
                 className="img-fluid"
                 style={{ maxHeight: 350, objectFit: "cover", width: "100%" }}
+                onError={() => setError("Preview failed (URL may be expired).")}
               />
             ) : <div className="text-muted">No image</div>}
 
