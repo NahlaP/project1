@@ -42,7 +42,7 @@
   <div class="container-fluid bg-primary text-white d-none d-lg-flex wow fadeIn" data-wow-delay="0.1s">
     <div class="container py-3">
       <div class="d-flex align-items-center">
-        <a href="page.html?slug=home-page" class="d-flex align-items-center gap-2">
+        <a href="page.html" class="d-flex align-items-center gap-2">
           <!-- Text logo (default) -->
           <h2 id="logo-text" class="text-white fw-bold m-0">WELDORK</h2>
           <!-- Image logo (shown by JS if configured) -->
@@ -73,7 +73,7 @@
   <div class="container-fluid bg-white sticky-top wow fadeIn" data-wow-delay="0.1s">
     <div class="container">
       <nav class="navbar navbar-expand-lg bg-white navbar-light p-lg-0">
-        <a href="page.html?slug=home-page" class="navbar-brand d-lg-none">
+        <a href="page.html" class="navbar-brand d-lg-none">
           <h1 class="fw-bold m-0">WELDORK</h1>
         </a>
         <button type="button" class="navbar-toggler me-0" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -158,16 +158,12 @@
   <script defer src="js/topbar.js"></script>
   <script defer src="js/navbar.js"></script>
   <script defer src="js/footer.js"></script>
-  <!-- Page loader builds sections dynamically via /api/* -->
-  <!-- <script defer src="js/page-loader.js"></script> -->
-<script>
-  window.APP_S3_BUCKET = 'project1-uploads-12345';   <!-- must match your real bucket name exactly -->
-  window.APP_S3_REGION = 'ap-south-1';
-</script>
-<!-- <script src="/js/page-loader.js?v=7"></script> -->
- <script src="/js/page-loader.js?v=8"></script>
 
-
-
+  <!-- Dynamic sections via /api/* -->
+  <script>
+    window.APP_S3_BUCKET = 'project1-uploads-12345'; // must match your real bucket name exactly
+    window.APP_S3_REGION = 'ap-south-1';
+  </script>
+  <script src="/js/page-loader.js?v=8"></script>
 </body>
 </html>
