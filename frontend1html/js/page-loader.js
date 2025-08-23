@@ -544,11 +544,11 @@
 const userId = "demo-user";
 const templateId = "gym-template-1";
 
-// ---- S3 location (override by defining window.APP_S3_* before this script) ----
+// ---- optional S3 info (used only for legacy absolute URLs you might already have) ----
 const S3_BUCKET = (window.APP_S3_BUCKET || "project1-uploads-12345");
 const S3_REGION = (window.APP_S3_REGION || "ap-south-1");
 
-// ---- API map (Vercel should rewrite /api/* to your backend) ----
+// ---- API map (Vercel must rewrite /api/* to your backend) ----
 const sectionApiMap = {
   hero: "/api/hero",
   about: "/api/about",
@@ -573,41 +573,84 @@ async function getJson(url) {
 function isPresigned(url) {
   return /\bX-Amz-(Signature|Credential|Algorithm|Date|Expires|SignedHeaders)=/i.test(url || "");
 }
+
+// turn an S3 key into a public S3 URL (only works if bucket/object is public)
 function keyToS3Url(key) {
   if (!key) return "";
   return `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${String(key).replace(/^\/+/, "")}`;
 }
 
 /**
- * normalizeImageUrl:
+ * Normalize any value the backend might return for an image:
  * - absolute http(s) => keep as-is (S3 or any CDN)
- * - bare S3 keys like "sections/...jpg" => turn into S3 https URL
- * - anything else => ensure leading slash (rarely used now)
+ * - bare keys like "sections/...jpg" => treat as S3 key
+ * - "/uploads/..." => keep relative (Vercel rewrites to backend)
+ * - anything else => ensure leading slash
  */
-function normalizeImageUrl(url) {
+function normalizeHint(url) {
   if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return url;              // already absolute (S3/presigned/CDN)
-  if (/^(sections|uploads)\//i.test(url)) return keyToS3Url(url); // S3 key -> absolute S3 URL
-  if (!url.startsWith("/")) return `/${url}`;
-  return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("/uploads/")) return url;               // will hit backend via vercel.json rewrite
+  if (/^(sections|uploads)\//i.test(url)) return url;        // S3 key (we'll presign)
+  return url.startsWith("/") ? url : `/${url}`;
 }
 
-/** Never add cache-busters to presigned URLs (that would 403) */
+/** Never add cache-busters to presigned URLs (would 403) */
 function withCacheBusterSafe(url, version) {
   if (!url || isPresigned(url)) return url;
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}v=${encodeURIComponent(version || Date.now())}`;
 }
 
-// Retry helper for presigned images
-async function setImgWithAutoRefresh(imgEl, getSrc, refreshSectionOnce) {
+/**
+ * If given a key like "sections/hero/....jpg", call backend to get a presigned URL.
+ * If it's already absolute http(s) or "/uploads/...", return as-is.
+ * If backend can't presign, fall back to a public S3 URL (works only for public buckets).
+ */
+async function presignIfKey(raw) {
+  if (!raw) return "";
+  const hint = normalizeHint(raw);
+
+  // absolute URL or backend uploads path -> return as-is
+  if (/^https?:\/\//i.test(hint) || hint.startsWith("/uploads/")) return hint;
+
+  // looks like an S3 key -> ask backend to presign
+  if (/^(sections|uploads)\//i.test(hint)) {
+    try {
+      const res = await fetch(`/api/upload/file-url?key=${encodeURIComponent(hint)}`, {
+        headers: { Accept: "application/json" },
+      });
+      const j = await res.json().catch(() => ({}));
+      if (j?.url || j?.signedUrl) return j.url || j.signedUrl;
+    } catch (_) {}
+    // fallback (public bucket only)
+    return keyToS3Url(hint);
+  }
+
+  // other relative path -> return as-is (might be /img local asset)
+  return hint;
+}
+
+// Retry helper for images/presigned URLs (awaits getSrc)
+async function setImgWithAutoRefresh(imgEl, getSrcAsync, refreshSectionOnce) {
   let tried = false;
-  const apply = async () => { const src = getSrc(); if (src) imgEl.src = src; };
+
+  const apply = async () => {
+    const src = await getSrcAsync();
+    if (src) imgEl.src = src;
+  };
+
   imgEl.onerror = async () => {
     if (tried) return;
     tried = true;
-    try { await refreshSectionOnce(); await apply(); } catch (e) { console.warn("Image refresh failed:", e); }
+    try {
+      await refreshSectionOnce();
+      await apply();
+    } catch (e) {
+      console.warn("Image refresh failed:", e);
+    }
   };
+
   await apply();
 }
 
@@ -665,11 +708,11 @@ async function renderPage() {
 
       /* -------- HERO -------- */
       if (section.type === "hero") {
-        const getHeroSrc = () => {
+        const getHeroSrc = async () => {
           const d = cacheByType.hero || {};
-          const raw = d.imageUrl ?? d.image?.url ?? "";                 // presigned or key
-          const norm = normalizeImageUrl(raw);                          // key -> S3 URL if needed
-          return withCacheBusterSafe(norm, d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now());
+          const raw = d.imageUrl ?? d.imageKey ?? d.image?.url ?? ""; // presigned or key
+          const final = await presignIfKey(raw);
+          return withCacheBusterSafe(final, d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now());
         };
         const title = (data.title ?? data.content ?? "Welcome to our site");
         html += `
@@ -692,10 +735,10 @@ async function renderPage() {
 
       /* -------- ABOUT -------- */
       else if (section.type === "about") {
-        const getAboutSrc = () => {
+        const getAboutSrc = async () => {
           const d = cacheByType.about || data || {};
-          const norm = normalizeImageUrl(d.imageUrl || "");
-          return withCacheBusterSafe(norm, d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now());
+          const final = await presignIfKey(d.imageUrl || "");
+          return withCacheBusterSafe(final, d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now());
         };
         html += `
         <div class="container-fluid pt-6 pb-6" id="about-section">
@@ -732,12 +775,12 @@ async function renderPage() {
 
       /* -------- WHY CHOOSE US -------- */
       else if (section.type === "whychooseus") {
-        const rawBg = (data.bgImageUrl || "");
-        const bgFinal = withCacheBusterSafe(normalizeImageUrl(rawBg), data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now());
+        const bgSrc = await presignIfKey(data.bgImageUrl || "");
+        const bgFinal = withCacheBusterSafe(bgSrc, data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now());
         const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
         html += `
         <div class="container-fluid feature mt-6 mb-6 wow fadeIn" data-wow-delay="0.1s" id="whychoose-wrapper"
-             style="position: relative; background-image: url('${bgFinal}'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #000; z-index: 0;">
+             style="position: relative; background-image: url('${bgFinal}'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color: #000; z-index: 0;">
           <div id="whychoose-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,${overlay}); z-index: 1;"></div>
           <div class="container position-relative" style="z-index: 2;">
             <div class="row g-0 justify-content-end">
@@ -814,22 +857,20 @@ async function renderPage() {
           grid.appendChild(node);
 
           const imgEl = node.querySelector(".svc-img");
-          const getSrc = () => withCacheBusterSafe(
-            normalizeImageUrl(item.imageUrl || "") || "/img/service-placeholder.jpg",
-            item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
-          );
+          const getSrc = async () => {
+            const final = await presignIfKey(item.imageUrl || "");
+            return withCacheBusterSafe(final || "/img/service-placeholder.jpg", item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now());
+          };
           setImgWithAutoRefresh(imgEl, getSrc, fetchSection);
         });
       }
 
       /* -------- APPOINTMENT -------- */
       else if (section.type === "appointment") {
-        const bgFinal = withCacheBusterSafe(
-          normalizeImageUrl(data.backgroundImage || ""),
-          data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()
-        );
+        const bgSrc = await presignIfKey(data.backgroundImage || "");
+        const bgFinal = withCacheBusterSafe(bgSrc, data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now());
         html += `
-        <section class="container-fluid appoinment mt-6 mb-6 py-5 wow fadeIn" id="appointment-section"
+        <section class="container-fluid appoinment mt-6 mb-6 py-5 wow FadeIn" id="appointment-section"
           style="background-image: url('${bgFinal}'); background-size: cover; background-position: center;">
           <div class="container pt-5">
             <div class="row gy-5 gx-0">
@@ -898,10 +939,10 @@ async function renderPage() {
           grid.appendChild(node);
 
           const imgEl = node.querySelector(".team-img");
-          const getSrc = () => withCacheBusterSafe(
-            normalizeImageUrl(member.imageUrl || "") || "/img/team-placeholder.jpg",
-            member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now()
-          );
+          const getSrc = async () => {
+            const final = await presignIfKey(member.imageUrl || "");
+            return withCacheBusterSafe(final || "/img/team-placeholder.jpg", member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now());
+          };
           setImgWithAutoRefresh(imgEl, getSrc, fetchSection);
         });
       }
@@ -941,7 +982,7 @@ async function renderPage() {
               <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.3s">
                 <div class="testimonial-img" id="testimonial-image-list">${animatedImagesHtml}</div>
               </div>
-              <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.5s">
+              <div class="col-lg-7 wow FadeInUp" data-wow-delay="0.5s">
                 <div class="owl-carousel testimonial-carousel" id="testimonial-carousel">
                   ${list.map(makeCard).join("")}
                 </div>
@@ -954,20 +995,20 @@ async function renderPage() {
         const bigImgs = Array.from(document.querySelectorAll(".testi-big"));
         bigImgs.forEach((el, i) => {
           const item = list[i];
-          const getSrc = () => withCacheBusterSafe(
-            normalizeImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
-            item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
-          );
+          const getSrc = async () => {
+            const final = await presignIfKey(item?.imageUrl || "");
+            return withCacheBusterSafe(final || "/img/testimonial-placeholder.jpg", item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now());
+          };
           setImgWithAutoRefresh(el, getSrc, fetchSection);
         });
 
         const smallImgs = Array.from(document.querySelectorAll(".testi-img"));
         smallImgs.forEach((el, i) => {
           const item = list[i];
-          const getSrc = () => withCacheBusterSafe(
-            normalizeImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
-            item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
-          );
+          const getSrc = async () => {
+            const final = await presignIfKey(item?.imageUrl || "");
+            return withCacheBusterSafe(final || "/img/testimonial-placeholder.jpg", item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now());
+          };
           setImgWithAutoRefresh(el, getSrc, fetchSection);
         });
 
