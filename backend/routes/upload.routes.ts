@@ -95,20 +95,7 @@ router.get("/file-url", async (req, res) => {
   }
 });
 
-/**
- * ✅ Single upload endpoint for ANY nested section path.
- *
- * Examples:
- *   POST /api/upload/demo-user/gym-template-1/hero
- *   POST /api/upload/demo-user/gym-template-1/hero/banner
- *   POST /api/upload/demo-user/gym-template-1/services/icon1
- *
- * Body: multipart/form-data  ->  image: <file>
- *
- * NOTE: We must use a *named* splat for the trailing path segment(s).
- * Old:  "/:userId/:templateId/*"              ❌  (now throws “Missing parameter name”)
- * New:  "/:userId/:templateId/:rest*"         ✅  (or use ":rest(.*)")
- */
+
 router.post("/:userId/:templateId/:rest*", (req, res) => {
   const { userId, templateId } = req.params as { userId: string; templateId: string };
 
