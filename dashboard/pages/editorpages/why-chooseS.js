@@ -1,20 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // dashboard/pages/editorpages/why-chooseS.js
 "use client";
 
