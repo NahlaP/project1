@@ -20,7 +20,7 @@ import {
 } from 'react-bootstrap';
 import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
 import { backendBaseUrl as backendUrl, userId, templateId } from '../../lib/config';
-
+import BackBar from "../components/BackBar";
 function TestimonialEditor() {
   const [items, setItems] = useState([]);
   const [success, setSuccess] = useState('');
@@ -160,7 +160,7 @@ function TestimonialEditor() {
 return (
     <Container fluid className="py-4">
       <Row>
-        <Col><h4 className="fw-bold">⭐ Testimonial Section Editor</h4></Col>
+        <Col><h4 className="fw-bold">⭐ Testimonial Section Editor</h4>  <BackBar /></Col>
       </Row>
 
       {/* Preview Section */}
