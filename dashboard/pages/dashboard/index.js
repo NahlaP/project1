@@ -17,7 +17,7 @@ import Image from "next/image";
 const USER_ID = "demo-user";
 const TEMPLATE_ID = "gym-template-1";
 
-// Same-origin axios instance → requests go to host and Next rewrites to backend.
+
 const http = axios.create({ baseURL: "" });
 
 export default function DashboardHome() {
@@ -27,7 +27,7 @@ export default function DashboardHome() {
   const [isBelowLg, setIsBelowLg] = useState(false); // < 992px
   const router = useRouter();
 
-  // Glass card helper so the bg shows through
+  
   const cardGlass = {
     background: "rgba(255,255,255,0.28)",
     backdropFilter: "blur(50px)",
