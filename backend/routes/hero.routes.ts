@@ -51,7 +51,7 @@ const router = express.Router();
 /** --- REST-style routes (NO S3, NO multer) --- */
 router.get("/:userId/:templateId", hero.getHero);
 router.put("/:userId/:templateId", hero.upsertHero);
-router.post("/:userId/:templateId/generate", hero.generateHero);
+// router.post("/:userId/:templateId/generate", hero.generateHero);
 router.post("/:userId/:templateId/clear-image", hero.clearHeroImage);
 router.post("/:userId/:templateId/upload-token", hero.getHeroUploadToken);
 
