@@ -1,55 +1,8 @@
-// import express from "express";
-// import { generateHero, saveHero, getHero, uploadHeroImage ,clearHeroImage} from "../controllers/hero.controller";
-// import { upload } from "../middleware/upload";
-// const router = express.Router();
-
-// router.get("/:userId/:templateId", getHero); 
-// router.post("/save", saveHero);
-// router.post("/generate", generateHero);
-//  router.post("/upload-image", upload.single("image"), uploadHeroImage); // ✅ NEW ROUTE 
-// router.post("/clear-image", clearHeroImage);
-
-// export default router;
-
-
-
-
-
 
 // // og
-// // // routes/hero.routes.ts
-// import express from "express";
-// import { generateHero, upsertHero, getHero, uploadHeroImage, clearHeroImage } from "../controllers/hero.controller";
-// import { upload } from "../middleware/upload";
-
-// const router = express.Router();
-
-// const heroUpload = (req: any, res: any, next: any) => {
-//   req.params = { ...(req.params || {}), folder: "sections/hero" };
-//   return upload.single("image")(req, res, next);
-// };
-
-// router.get("/:userId/:templateId", getHero);
-// router.put("/:userId/:templateId", upsertHero);
-// router.post("/:userId/:templateId/image", heroUpload, uploadHeroImage);
-// router.post("/:userId/:templateId/generate", generateHero);
-// router.post("/:userId/:templateId/clear-image", clearHeroImage);
-
-// export default router;
-
-
-
-
-
 
 // import express from "express";
-// import {
-//   generateHero,
-//   upsertHero,
-//   getHero,
-//   uploadHeroImage,
-//   clearHeroImage,
-// } from "../controllers/hero.controller";
+// import * as hero from "../controllers/hero.controller";
 // import { upload } from "../middleware/upload";
 
 // const router = express.Router();
@@ -60,61 +13,55 @@
 //   return upload.single("image")(req, res, next);
 // };
 
-// /** --- New REST-style routes (recommended) --- */
-// router.get("/:userId/:templateId", getHero);
-// router.put("/:userId/:templateId", upsertHero);
-// router.post("/:userId/:templateId/image", heroUpload, uploadHeroImage);
-// router.post("/:userId/:templateId/generate", generateHero);
-// router.post("/:userId/:templateId/clear-image", clearHeroImage);
+// // pick a valid handler (handles any naming drift)
+// const upsertHandler =
+//   (hero as any).upsertHero || (hero as any).updateHero || (hero as any).saveHero;
 
-// /** --- Legacy compatibility so your current frontend keeps working --- */
+// /** --- REST-style routes --- */
+// router.get("/:userId/:templateId", hero.getHero);
+// router.put("/:userId/:templateId", upsertHandler);
+// router.post("/:userId/:templateId/image", heroUpload, hero.uploadHeroImage);
+// router.post("/:userId/:templateId/generate", hero.generateHero);
+// router.post("/:userId/:templateId/clear-image", hero.clearHeroImage);
+
+// /** --- Legacy compatibility for your current UI --- */
 // const setDefaults = (req: any, _res: any, next: any) => {
 //   req.params = req.params || {};
 //   if (!req.params.userId) req.params.userId = "demo-user";
 //   if (!req.params.templateId) req.params.templateId = "gym-template-1";
 //   next();
 // };
-
-// // old upload route used by your UI: POST /api/hero/upload-image
-// router.post("/upload-image", setDefaults, heroUpload, uploadHeroImage);
-
-// // old save route used by your UI: POST /api/hero/save
-// router.post("/save", setDefaults, upsertHero);
+// router.post("/upload-image", setDefaults, heroUpload, hero.uploadHeroImage);
+// router.post("/save", setDefaults, upsertHandler);
 
 // export default router;
 
 
+
+
+
+
+
+// routes/hero.routes.ts
 import express from "express";
 import * as hero from "../controllers/hero.controller";
-import { upload } from "../middleware/upload";
 
 const router = express.Router();
 
-/** attach folder for hero uploads; your upload middleware reads req.params.folder */
-const heroUpload = (req: any, res: any, next: any) => {
-  req.params = { ...(req.params || {}), folder: "sections/hero" };
-  return upload.single("image")(req, res, next);
-};
-
-// pick a valid handler (handles any naming drift)
-const upsertHandler =
-  (hero as any).upsertHero || (hero as any).updateHero || (hero as any).saveHero;
-
-/** --- REST-style routes --- */
+/** --- REST-style routes (NO S3, NO multer) --- */
 router.get("/:userId/:templateId", hero.getHero);
-router.put("/:userId/:templateId", upsertHandler);
-router.post("/:userId/:templateId/image", heroUpload, hero.uploadHeroImage);
+router.put("/:userId/:templateId", hero.upsertHero);
 router.post("/:userId/:templateId/generate", hero.generateHero);
 router.post("/:userId/:templateId/clear-image", hero.clearHeroImage);
+router.post("/:userId/:templateId/upload-token", hero.getHeroUploadToken);
 
-/** --- Legacy compatibility for your current UI --- */
+/** --- Legacy compatibility for your current UI (optional defaults) --- */
 const setDefaults = (req: any, _res: any, next: any) => {
   req.params = req.params || {};
   if (!req.params.userId) req.params.userId = "demo-user";
   if (!req.params.templateId) req.params.templateId = "gym-template-1";
   next();
 };
-router.post("/upload-image", setDefaults, heroUpload, hero.uploadHeroImage);
-router.post("/save", setDefaults, upsertHandler);
+router.post("/save", setDefaults, hero.upsertHero);
 
 export default router;
