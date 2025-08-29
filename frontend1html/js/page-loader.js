@@ -605,9 +605,6 @@
 
 
 
-
-
-
 // page-loader.js — scoped to avoid global name clashes (e.g., with footer.js)
 (() => {
   'use strict';
@@ -618,7 +615,7 @@
   const userId = "demo-user";
   const templateId = "gym-template-1";
 
-  // ---- optional S3 fallback (if bucket is public). You can define these in page.html before this script:
+  // ---- optional S3 fallback (still used for non-image stuff if needed)
   const S3_BUCKET = (window.APP_S3_BUCKET || "project1-uploads-12345");
   const S3_REGION = (window.APP_S3_REGION || "ap-south-1");
 
@@ -635,7 +632,6 @@
   };
 
   // ---- helpers ----
-  // Use a non-conflicting selector helper so jQuery's $ remains available
   const qs = (sel) => document.querySelector(sel);
 
   function urlWithTs(url) {
@@ -659,15 +655,9 @@
       ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version || Date.now())}`
       : url;
 
-  /** Get a final URL for any of: presigned URL, S3 key, local /uploads path, or absolute http(s).
-   *  Prefers calling backend to presign keys (works with private buckets). */
   async function resolveImageUrl(raw) {
     if (!raw) return "";
-
-    // already presigned or external http(s)
     if (isHttp(raw)) return raw;
-
-    // pure key like "sections/hero/123.jpg" -> ask backend to presign
     if (isKey(raw)) {
       try {
         const r = await fetch(`/api/upload/file-url?key=${encodeURIComponent(raw)}`, {
@@ -679,61 +669,45 @@
           if (j?.url || j?.signedUrl) return j.url || j.signedUrl;
         }
       } catch { /* ignore */ }
-      // fallback (only works if bucket objects are public-read)
       return keyToS3Url(raw);
     }
-
-    // anything else -> ensure leading slash (for rare /uploads paths via rewrite)
     return raw.startsWith("/") ? raw : `/${raw}`;
   }
 
-  // ---------- cPanel asset helpers (HERO ONLY) ----------
+  // ---------- cPanel asset helpers ----------
   function toAbsoluteCpanel(dec) {
-    // If it's already absolute (https://host/assets/img/...), return as-is.
     if (/^https?:\/\//i.test(dec)) return dec;
-    // If it's "/assets/img/..." or "assets/img/...", prefix with your domain.
     return `https://sogimchurch.com/${dec.replace(/^\/?/, "")}`;
   }
 
-  /** Extract the real cPanel asset URL from any string:
-   *  - If it's an S3 presigned URL that *contains* an encoded https://.../assets/img/..., decode it.
-   *  - If it's already a plain https://.../assets/img/... or /assets/img/..., normalize it.
-   *  - Otherwise, return "" (hero will skip setting src).
-   */
+  /** Extract ONLY the cPanel asset URL (like Hero). If none, return "" (no fallback). */
   function getCpanelAssetUrlOnly(raw) {
     if (!raw) return "";
     const s = String(raw);
     try {
-      // Case 1: presigned S3 URL that has the original URL inside (encoded)
       const dec = decodeURIComponent(s);
       const m = dec.match(/https?:\/\/[^/]+\/assets\/img\/[^\s&"']+/i);
       if (m && m[0]) return toAbsoluteCpanel(m[0]);
-
-      // Case 2: already looks like a cPanel asset path or URL
       if (/^\/?assets\/img\//i.test(s)) return toAbsoluteCpanel(s);
       if (/https?:\/\/[^/]+\/assets\/img\//i.test(s)) return s;
-
       return "";
     } catch {
       return "";
     }
   }
 
-  // Retry helper for (possibly) presigned images (used by sections other than hero)
+  // Retry helper for images (structure retained)
   async function setImgWithAutoRefresh(imgEl, getSrcAsync, refreshSectionOnce) {
     let tried = false;
-
     const apply = async () => {
       const src = await getSrcAsync();
       if (src) imgEl.src = src;
     };
-
     imgEl.onerror = async () => {
       if (tried) return;
       tried = true;
       try { await refreshSectionOnce(); await apply(); } catch (e) { console.warn("Image refresh failed:", e); }
     };
-
     await apply();
   }
 
@@ -808,7 +782,6 @@
             </div>`;
           container.insertAdjacentHTML("beforeend", html);
 
-          // Force hero image to cPanel asset only
           const rawHero = data.imageUrl ?? data.image?.url ?? "";
           const cpanelUrl = getCpanelAssetUrlOnly(rawHero);
           const heroImg = document.getElementById("hero-image");
@@ -819,7 +792,7 @@
           }
         }
 
-        // -------- ABOUT --------
+        // -------- ABOUT (cPanel-only image) --------
         else if (section.type === "about") {
           html += `
           <div class="container-fluid pt-6 pb-6" id="about-section">
@@ -854,22 +827,26 @@
           const aboutImg = document.getElementById("about-img");
           await setImgWithAutoRefresh(
             aboutImg,
-            async () => withCacheBusterSafe(await resolveImageUrl((cacheByType.about || data).imageUrl || ""), Date.now()),
+            async () => {
+              const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+              const raw = (cacheByType.about || data).imageUrl || "";
+              const cp = getCpanelAssetUrlOnly(raw);
+              return cp ? withCacheBusterSafe(cp, version) : "";
+            },
             fetchSection
           );
         }
 
-        // -------- WHY CHOOSE US --------
+        // -------- WHY CHOOSE US (cPanel-only background) --------
         else if (section.type === "whychooseus") {
           const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
-          const bgFinal = withCacheBusterSafe(
-            await resolveImageUrl(data.bgImageUrl || ""),
-            data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()
-          );
+          const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+          const cpBg = getCpanelAssetUrlOnly(data.bgImageUrl || "");
+          const bgFinal = cpBg ? withCacheBusterSafe(cpBg, version) : "";
 
           html += `
           <div class="container-fluid feature mt-6 mb-6 wow fadeIn" data-wow-delay="0.1s" id="whychoose-wrapper"
-               style="position: relative; background-image: url('${bgFinal}'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #000; z-index: 0;">
+               style="position: relative; ${bgFinal ? `background-image: url('${bgFinal}');` : ""} background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #000; z-index: 0;">
             <div id="whychoose-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,${overlay}); z-index: 1;"></div>
             <div class="container position-relative" style="z-index: 2;">
               <div class="row g-0 justify-content-end">
@@ -881,7 +858,7 @@
                     <p id="whychoose-desc" class="text-light mb-4 wow fadeIn" data-wow-delay="0.4s">${data.description || ""}</p>
                     <div id="whychoose-stats" class="row g-4 pt-2 mb-4">
                       ${(data.stats || []).map((stat, index) => `
-                        <div class="col-sm-6 wow fadeIn" data-wow-delay="0.${index + 5}s">
+                        <div class="col-sm-6 wow FadeIn" data-wow-delay="0.${index + 5}s">
                           <div class="flex-column text-center border border-5 border-primary p-5">
                             <h1 class="text-white">${stat.value}</h1>
                             <p class="text-white text-uppercase mb-0">${stat.label}</p>
@@ -891,7 +868,7 @@
                     <div class="border border-5 border-primary border-bottom-0 p-5">
                       <div id="whychoose-progress">
                         ${(data.progressBars || []).map((bar, index) => `
-                          <div class="experience mb-4 wow fadeIn" data-wow-delay="0.${index + 7}s">
+                          <div class="experience mb-4 wow FadeIn" data-wow-delay="0.${index + 7}s">
                             <div class="d-flex justify-content-between mb-2">
                               <span class="text-white text-uppercase">${bar.label}</span>
                               <span class="text-white">${bar.percent}%</span>
@@ -911,7 +888,7 @@
           container.insertAdjacentHTML("beforeend", html);
         }
 
-        // -------- SERVICES --------
+        // -------- SERVICES (cPanel-only images) --------
         else if (section.type === "services") {
           html += `
           <section class="container-xxl service py-5">
@@ -948,24 +925,25 @@
             const imgEl = node.querySelector(".svc-img");
             await setImgWithAutoRefresh(
               imgEl,
-              async () => withCacheBusterSafe(
-                await resolveImageUrl(item.imageUrl || "") || "/img/service-placeholder.jpg",
-                item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now()
-              ),
+              async () => {
+                const version = item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
+                const cp = getCpanelAssetUrlOnly(item.imageUrl || "");
+                return cp ? withCacheBusterSafe(cp, version) : "";
+              },
               fetchSection
             );
           }
         }
 
-        // -------- APPOINTMENT --------
+        // -------- APPOINTMENT (cPanel-only background) --------
         else if (section.type === "appointment") {
-          const bgFinal = withCacheBusterSafe(
-            await resolveImageUrl(data.backgroundImage || ""),
-            data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()
-          );
+          const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+          const cpBg = getCpanelAssetUrlOnly(data.backgroundImage || "");
+          const bgFinal = cpBg ? withCacheBusterSafe(cpBg, version) : "";
+
           html += `
           <section class="container-fluid appoinment mt-6 mb-6 py-5 wow FadeIn" id="appointment-section"
-            style="background-image: url('${bgFinal}'); background-size: cover; background-position: center;">
+            style="${bgFinal ? `background-image: url('${bgFinal}');` : ""} background-size: cover; background-position: center;">
             <div class="container pt-5">
               <div class="row gy-5 gx-0">
                 <div class="col-lg-6 pe-lg-5">
@@ -1002,7 +980,7 @@
           container.insertAdjacentHTML("beforeend", html);
         }
 
-        // -------- TEAM --------
+        // -------- TEAM (cPanel-only images) --------
         else if (section.type === "team") {
           html += `
           <section class="container-xxl py-5">
@@ -1036,16 +1014,17 @@
             const imgEl = node.querySelector(".team-img");
             await setImgWithAutoRefresh(
               imgEl,
-              async () => withCacheBusterSafe(
-                await resolveImageUrl(member.imageUrl || "") || "/img/team-placeholder.jpg",
-                member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now()
-              ),
+              async () => {
+                const version = member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now();
+                const cp = getCpanelAssetUrlOnly(member.imageUrl || "");
+                return cp ? withCacheBusterSafe(cp, version) : "";
+              },
               fetchSection
             );
           }
         }
 
-        // -------- TESTIMONIALS --------
+        // -------- TESTIMONIALS (cPanel-only images) --------
         else if (section.type === "testimonials") {
           const list = Array.isArray(data) ? data : [];
           const makeCard = (item) => {
@@ -1095,10 +1074,11 @@
             const item = list[i];
             await setImgWithAutoRefresh(
               el,
-              async () => withCacheBusterSafe(
-                await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
-                item?.updatedAt ? new Date(item?.updatedAt).getTime() : Date.now()
-              ),
+              async () => {
+                const version = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
+                const cp = getCpanelAssetUrlOnly(item?.imageUrl || "");
+                return cp ? withCacheBusterSafe(cp, version) : "";
+              },
               fetchSection
             );
           }
@@ -1109,10 +1089,11 @@
             const item = list[i];
             await setImgWithAutoRefresh(
               el,
-              async () => withCacheBusterSafe(
-                await resolveImageUrl(item?.imageUrl || "") || "/img/testimonial-placeholder.jpg",
-                item?.updatedAt ? new Date(item?.updatedAt).getTime() : Date.now()
-              ),
+              async () => {
+                const version = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
+                const cp = getCpanelAssetUrlOnly(item?.imageUrl || "");
+                return cp ? withCacheBusterSafe(cp, version) : "";
+              },
               fetchSection
             );
           }
