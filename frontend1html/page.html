@@ -44,9 +44,9 @@
       <div class="d-flex align-items-center">
         <a href="page.html" class="d-flex align-items-center gap-2">
           <!-- Text logo (default) -->
-          <!-- <h2 id="logo-text" class="text-white fw-bold m-0">WELDORK</h2> -->
+          <h2 id="logo-text" class="text-white fw-bold m-0">WELDORK</h2>
           <!-- Image logo (shown by JS if configured) -->
-          <!-- <img id="logo-image" src="" alt="Logo" style="display:none;max-height:60px;" /> -->
+          <img id="logo-image" src="" alt="Logo" style="display:none;max-height:60px;" />
         </a>
 
         <div class="ms-auto d-flex align-items-center">
@@ -68,49 +68,6 @@
       </div>
     </div>
   </div>
-
-
-
-  <script>
-(async function () {
-  const BRAND = document.getElementById("brand");
-  if (!BRAND) return;
-
-  try {
-    // Your backend returns { logoUrl, logoText, logoSize, logoWidth, logoHeight, ... }
-    const res = await fetch("/api/topbar/demo-user/gym-template-1", {
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const t = await res.json();
-
-    const url = String(t.logoUrl || "").trim();
-    if (url) {
-      const img = new Image();
-      img.src = url;                    // use the cPanel URL as-is
-      img.alt = t.logoAlt || "Logo";
-      img.style.maxHeight = "60px";
-      img.width  = t.logoWidth  || 150;
-      img.height = t.logoHeight || 50;
-      BRAND.appendChild(img);
-    } else {
-      const h2 = document.createElement("h2");
-      h2.className = "text-white fw-bold m-0";
-      h2.textContent = t.logoText || "WELDORK";
-      if (t.logoSize) h2.style.fontSize = `${t.logoSize}px`;
-      BRAND.appendChild(h2);
-    }
-  } catch (e) {
-    // Fallback: show text if API fails
-    const h2 = document.createElement("h2");
-    h2.className = "text-white fw-bold m-0";
-    h2.textContent = "WELDORK";
-    BRAND.appendChild(h2);
-    console.error("topbar logo load failed:", e);
-  }
-})();
-</script>
 
   <!-- Navbar -->
   <div class="container-fluid bg-white sticky-top wow fadeIn" data-wow-delay="0.1s">
