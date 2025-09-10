@@ -53,6 +53,32 @@
 
 // C:\Users\97158\Desktop\project1\dashboard\next.config.js
 
+// const BACKEND_ORIGIN =
+//   process.env.BACKEND_ORIGIN || "http://127.0.0.1:5000";
+
+// const CPANEL_HOST = (process.env.NEXT_PUBLIC_CPANEL_HOST || "ion7.mavsketch.com")
+//   .replace(/^https?:\/\//, "");
+
+// module.exports = {
+//   reactStrictMode: true,
+//   images: {
+//     remotePatterns: [
+//       // new uploads location on cPanel
+//       { protocol: "https", hostname: CPANEL_HOST, pathname: "/uploads/**" },
+//       // (optional) allow http while SSL/AutoSSL is pending
+//       { protocol: "http",  hostname: CPANEL_HOST, pathname: "/uploads/**" },
+
+//       // (optional) keep old domain during migration
+//       // { protocol: "https", hostname: "sogimchurch.com", pathname: "/assets/img/**" },
+//       // { protocol: "https", hostname: "www.sogimchurch.com", pathname: "/assets/img/**" },
+//     ],
+//   },
+//   async rewrites() {
+//     return [{ source: "/api/:path*", destination: `${BACKEND_ORIGIN}/api/:path*` }];
+//   },
+// };
+
+
 const BACKEND_ORIGIN =
   process.env.BACKEND_ORIGIN || "http://127.0.0.1:5000";
 
@@ -65,12 +91,11 @@ module.exports = {
     remotePatterns: [
       // new uploads location on cPanel
       { protocol: "https", hostname: CPANEL_HOST, pathname: "/uploads/**" },
-      // (optional) allow http while SSL/AutoSSL is pending
       { protocol: "http",  hostname: CPANEL_HOST, pathname: "/uploads/**" },
 
-      // (optional) keep old domain during migration
-      // { protocol: "https", hostname: "sogimchurch.com", pathname: "/assets/img/**" },
-      // { protocol: "https", hostname: "www.sogimchurch.com", pathname: "/assets/img/**" },
+      // old static assets (many sections use this)
+      { protocol: "https", hostname: CPANEL_HOST, pathname: "/assets/img/**" },
+      { protocol: "http",  hostname: CPANEL_HOST, pathname: "/assets/img/**" },
     ],
   },
   async rewrites() {
