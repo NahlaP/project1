@@ -1,134 +1,9 @@
 
 
 
-// // og
 
-// // server.ts
-// import "dotenv/config";
-// import express from "express";
-// import mongoose from "mongoose";
-// import path from "path";
-// import fs from "fs";
-// import cors from "cors";
-
-// // ---- your existing routes ----
-// import uploadRoutes from "./routes/upload.routes";
-// import authRoutes from "./routes/auth.routes";
-// import sectionRoutes from "./routes/section.routes";
-// import topbarRoutes from "./routes/topbar.routes";
-// import navbarRoutes from "./routes/navbar.routes";
-// import heroRoutes from "./routes/hero.routes";
-// import aboutRoutes from "./routes/about.routes";
-// import whyChooseUsRoutes from "./routes/whyChooseUs.routes";
-// import serviceRoutes from "./routes/service.routes";
-// import appointmentRoutes from "./routes/appointment.routes";
-// import teamRoutes from "./routes/team.routes";
-// import testimonialRoutes from "./routes/testimonial.routes";
-// import contactRoutes from "./routes/contact.routes";
-// import pageRoutes from "./routes/page.routes";
-
-// const app = express();
-
-// // Bind to loopback so Nginx (127.0.0.1) can proxy to us
-// const PORT = Number(process.env.PORT || 5000);
-// const HOST = process.env.HOST || "127.0.0.1";
-
-// // Trust the proxy (cookies, req.ip, etc.)
-// app.set("trust proxy", 1);
-
-// // ---------- CORS (permissive so the editor works) ----------
-// app.use(cors({ origin: (_o, cb) => cb(null, true), credentials: true }));
-// app.options("*", cors());
-// // -----------------------------------------------------------
-
-// // ---------- Body parsers & limits ----------
-// app.use(express.json({ limit: "50mb" }));
-// app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-// // ------------------------------------------
-
-// // ---------- Ensure local upload dir exists (if you use multer/temp) ----------
-// try {
-//   const up = path.join(__dirname, "..", "uploads");
-//   fs.mkdirSync(up, { recursive: true });
-// } catch {}
-// // ---------------------------------------------------------------------------
-
-// // ---------- Health checks ----------
-// app.get("/", (_req, res) => res.send("✅ Backend is live!"));
-// app.get(["/api", "/api/"], (_req, res) =>
-//   res.json({ ok: true, message: "Backend is live!" })
-// );
-// // -----------------------------------
-
-// // ---------- Optional static (if you use it) ----------
-// const staticDir = path.join(__dirname, "..", "frontend1html");
-// console.log("📂 Serving static HTML from:", staticDir);
-// app.use("/frontend1html", express.static(staticDir));
-// // -----------------------------------------------
-
-// // ---------- API routes ----------
-// app.use("/api/upload", uploadRoutes);
-// app.use("/api/auth", authRoutes);
-// app.use("/api/sections", sectionRoutes);
-// app.use("/api/topbar", topbarRoutes);
-// app.use("/api/navbar", navbarRoutes);
-// app.use("/api/hero", heroRoutes);
-// app.use("/api/about", aboutRoutes);
-// app.use("/api/whychoose", whyChooseUsRoutes);
-// app.use("/api/services", serviceRoutes);
-// app.use("/api/appointment", appointmentRoutes);
-// app.use("/api/team", teamRoutes);
-// app.use("/api/testimonial", testimonialRoutes);
-// app.use("/api/contact-info", contactRoutes);
-// app.use("/api", pageRoutes);
-// // ----------------------------------
-
-// // ---------- 404 for unknown API routes ----------
-// app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
-// // -----------------------------------------------
-
-// // ---------- Global error handler (surfacing multer/S3/etc.) ----------
-// app.use(
-//   (
-//     err: any,
-//     _req: express.Request,
-//     res: express.Response,
-//     _next: express.NextFunction
-//   ) => {
-//     const status = err.status || err.statusCode || 500;
-//     const msg =
-//       err.message ||
-//       (typeof err === "string" ? err : "Internal Server Error");
-//     console.error("🛑 Error:", msg, err?.stack || "");
-//     res.status(status).json({ error: msg });
-//   }
-// );
-// // --------------------------------------------------------------------
-
-// // ---------- DB + start ----------
-// const mongoUri = process.env.MONGO_URI || "";
-// mongoose
-//   .connect(mongoUri)
-//   .then(() => {
-//     console.log("🟢 MongoDB connected!");
-//     app.listen(PORT, HOST, () => {
-//       console.log(`🚀 Server listening at http://${HOST}:${PORT}`);
-//     });
-//   })
-//   .catch((err) => {
-//     console.error("🔴 MongoDB connection error:", err);
-//     // still start server so health endpoints work even if DB is down
-//     app.listen(PORT, HOST, () => {
-//       console.log(`🚀 Server (no DB) at http://${HOST}:${PORT}`);
-//     });
-//   });
-// // ---------------------------------
-
-
-
-
-// // working fine
-// // server.ts
+// working fine
+// server.ts
 // import "dotenv/config";
 // import express from "express";
 // import mongoose from "mongoose";
@@ -259,7 +134,7 @@
 
 
 
-
+// cpanel
 // server.ts
 import "dotenv/config";
 import express from "express";
