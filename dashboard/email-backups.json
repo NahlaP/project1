@@ -1,0 +1,116 @@
+{
+  "items": [
+    {
+      "email": "copy9@mavsketch.com",
+      "user": "copy9",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "marco@mavsketch.com",
+      "user": "marco",
+      "domain": "mavsketch.com",
+      "quotaMB": 0,
+      "unlimited": true,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "joseph@mavsketch.com",
+      "user": "joseph",
+      "domain": "mavsketch.com",
+      "quotaMB": 1024,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "madhubala@mavsketch.com",
+      "user": "madhubala",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "timothy@mavsketch.com",
+      "user": "timothy",
+      "domain": "mavsketch.com",
+      "quotaMB": 1024,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "nahla@mavsketch.com",
+      "user": "nahla",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "sales@mavsketch.com",
+      "user": "sales",
+      "domain": "mavsketch.com",
+      "quotaMB": 1024,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "matthew@mavsketch.com",
+      "user": "matthew",
+      "domain": "mavsketch.com",
+      "quotaMB": 1024,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "info@mavsketch.com",
+      "user": "info",
+      "domain": "mavsketch.com",
+      "quotaMB": 0,
+      "unlimited": true,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "fatima@mavsketch.com",
+      "user": "fatima",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "muskan@mavsketch.com",
+      "user": "muskan",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "miguel@mavsketch.com",
+      "user": "miguel",
+      "domain": "mavsketch.com",
+      "quotaMB": 1024,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    },
+    {
+      "email": "copy1@mavsketch.com",
+      "user": "copy1",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T19:10:41.617Z"
+    },
+    {
+      "email": "copy2@mavsketch.com",
+      "user": "copy2",
+      "domain": "mavsketch.com",
+      "quotaMB": 10240,
+      "unlimited": false,
+      "created_at": "2025-09-18T16:22:13.531Z"
+    }
+  ]
+}
