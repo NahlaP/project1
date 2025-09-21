@@ -2,8 +2,8 @@
 
 
 
-// working fine
-// server.ts
+// // cpanel
+// // server.ts
 // import "dotenv/config";
 // import express from "express";
 // import mongoose from "mongoose";
@@ -20,13 +20,31 @@
 // // Trust the proxy (cookies, req.ip, etc.)
 // app.set("trust proxy", 1);
 
-// // ---------- CORS (permissive so the editor works) ----------
-// app.use(cors({ origin: (_o, cb) => cb(null, true), credentials: true }));
-// // ❌ Express 5 no longer supports "*" in route paths → remove this line:
-// // app.options("*", cors());
-// // If you really want an explicit OPTIONS handler, use this instead:
-// // app.options("(.*)", cors());
-// // -----------------------------------------------------------
+// // ---------- CORS (allow-list) ----------
+// const allowList: (RegExp | string)[] = [
+//   /^https?:\/\/([a-z0-9-]+\.)*mavsketch\.com(:\d+)?$/i, // new cPanel domain(s)
+//   // keep old temporarily if needed:
+//   // /^https?:\/\/([a-z0-9-]+\.)*sogimchurch\.com(:\d+)?$/i,
+//   /^http:\/\/localhost(:\d+)?$/i,
+//   /\.vercel\.app$/i,
+// ];
+
+
+// app.use(
+//   cors({
+//     origin: (origin, cb) => {
+//       if (!origin) return cb(null, true); // curl/postman/no Origin header
+//       const ok = allowList.some((rule) =>
+//         typeof rule === "string" ? origin === rule : rule.test(origin)
+//       );
+//       cb(ok ? null : new Error("CORS blocked"), ok);
+//     },
+//     credentials: true,
+//   })
+// );
+// // OPTIONAL global preflight for Express 5 (use RegExp, NOT a string)
+// // app.options(/.*/, cors());
+// // --------------------------------------
 
 // // ---------- Body parsers & limits ----------
 // app.use(express.json({ limit: "50mb" }));
@@ -134,6 +152,8 @@
 
 
 
+
+
 // cpanel
 // server.ts
 import "dotenv/config";
@@ -154,9 +174,9 @@ app.set("trust proxy", 1);
 
 // ---------- CORS (allow-list) ----------
 const allowList: (RegExp | string)[] = [
-  /^https?:\/\/([a-z0-9-]+\.)*mavsketch\.com(:\d+)?$/i, // new cPanel domain(s)
-  // keep old temporarily if needed:
-  // /^https?:\/\/([a-z0-9-]+\.)*sogimchurch\.com(:\d+)?$/i,
+  /^https?:\/\/([a-z0-9-]+\.)*mavsketch\.com(:\d+)?$/i,
+  // add your public EC2 IP:
+  /^https?:\/\/3\.109\.207\.179(:\d+)?$/i,
   /^http:\/\/localhost(:\d+)?$/i,
   /\.vercel\.app$/i,
 ];
