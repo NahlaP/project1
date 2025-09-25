@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,11 +22,11 @@
   <link href="css/bootstrap.min.css" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
 
-  <!-- ✅ Make /api/* work everywhere -->
+  <!--✅ Make /api/* work everywhere -->
   <script>
-    // cPanel PHP proxy that forwards to your EC2 backend
+    
     window.__API_PROXY__ = '/api-proxy.php';
-    // Localhost -> send requests to EC2/IP instead of cPanel
+    
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
       window.__API_BASE__ = 'http://3.109.207.179';
     }
@@ -33,7 +35,7 @@
 </head>
 <body>
   <!-- Spinner -->
-  <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+  <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center" style="z-index:99999">
     <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
   </div>
 
@@ -41,7 +43,7 @@
   <div class="container-fluid bg-primary text-white d-none d-lg-flex wow fadeIn" data-wow-delay="0.1s">
     <div class="container py-3">
       <div class="d-flex align-items-center">
-        <a href="page.html" class="d-flex align-items-center gap-2">
+        <a href="/" class="d-flex align-items-center gap-2">
           <h2 id="logo-text" class="text-white fw-bold m-0">WELDORK</h2>
           <img id="logo-image" src="" alt="Logo" style="display:none;max-height:60px;" />
         </a>
@@ -70,7 +72,7 @@
   <div class="container-fluid bg-white sticky-top wow fadeIn" data-wow-delay="0.1s">
     <div class="container">
       <nav class="navbar navbar-expand-lg bg-white navbar-light p-lg-0">
-        <a href="page.html" class="navbar-brand d-lg-none">
+        <a href="/" class="navbar-brand d-lg-none">
           <h1 class="fw-bold m-0">WELDORK</h1>
         </a>
         <button type="button" class="navbar-toggler me-0" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -82,9 +84,9 @@
   </div>
 
   <!-- Dynamic page content -->
-  <main id="dynamic-page-content"></main>
+  <main id="dynamic-page-content" style="visibility:hidden"></main>
 
-  <!-- Footer (contact info filled by footer.js) -->
+  <!-- Footer -->
   <div class="container-fluid bg-dark footer py-5 wow fadeIn" data-wow-delay="0.1s">
     <div class="container py-5">
       <div class="row g-5">
@@ -156,12 +158,14 @@
   <script defer src="js/navbar.js?v=2"></script>
   <script defer src="js/footer.js?v=2"></script>
 
-  <!-- Page sections -->
+  <!-- Page sections config -->
   <script>
     window.APP_S3_BUCKET = 'project1-uploads-12345';
     window.APP_S3_REGION = 'ap-south-1';
   </script>
-  <!-- NOTE: relative path here (no leading /) -->
-  <script src="js/page-loader.js?v=3"></script>
+
+  <!-- NEW loader (parallel fetch + single reveal) -->
+  <script src="js/page-loader.js?v=10"></script>
 </body>
 </html>
+

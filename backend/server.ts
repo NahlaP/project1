@@ -154,7 +154,7 @@
 
 
 
-// cpanel
+// cpanel and aws
 // server.ts
 import "dotenv/config";
 import express from "express";
@@ -201,6 +201,7 @@ app.use(
 // ---------- Body parsers & limits ----------
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
 // ------------------------------------------
 
 // ---------- Ensure local upload dir exists (if you use multer/temp) ----------
@@ -297,3 +298,6 @@ mongoose
     });
   });
 // ---------------------------------
+
+
+
