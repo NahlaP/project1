@@ -39,40 +39,6 @@
 
 
 
-// // ogaws s3 upload
-
-// // C:\Users\97158\Desktop\project1\dashboard\next.config.js
-// const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://3.109.207.179";
-
-// // add your bucket + region here (or pull from env if you prefer)
-// const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || "project1-uploads-12345";
-// const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || "ap-south-1";
-// const S3_ORIGIN = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-
-// module.exports = {
-//   reactStrictMode: true,
-//   async rewrites() {
-//     return [
-//       // your existing API proxy
-//       { source: "/api/:path*", destination: `${BACKEND_ORIGIN}/api/:path*` },
-
-//       // 🔧 Fix pre-hydration relative fetches:
-//       // e.g. /editorpages/sections/about/xxx.jpg  →  https://<bucket>.s3.<region>.amazonaws.com/sections/about/xxx.jpg
-//       { source: "/editorpages/sections/:path*", destination: `${S3_ORIGIN}/sections/:path*` },
-
-//       // also catch plain /sections/... just in case
-//       { source: "/sections/:path*", destination: `${S3_ORIGIN}/sections/:path*` },
-
-//       // optional: stop the missing fallback 404
-//       // (remove this if you add /public/img/about.jpg instead)
-//       { source: "/img/about.jpg", destination: "https://placehold.co/700x350?text=About" },
-//     ];
-//   },
-// };
-
-
-
-
 
 
 
@@ -108,17 +74,51 @@
 
 
 
+// // og current local works fine but not ec2
+// /** @type {import('next').NextConfig} */
+// const nextConfig = {
+//   reactStrictMode: true,
+//   images: {
+//     remotePatterns: [
+//       {
+//         protocol: 'https',
+//         hostname: 'project1-uploads-12345.s3.ap-south-1.amazonaws.com',
+//       },
+//       // { protocol: 'https', hostname: 'ion7.mavsketch.com' },
+//     ],
+//   },
+//   async rewrites() {
+//     const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://127.0.0.1:5000';
+//     const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'project1-uploads-12345';
+//     const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || 'ap-south-1';
+//     const S3_ORIGIN = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+
+//     return [
+      
+//       { source: '/next-api/:path*', destination: '/api/:path*' },
+
+//       // Backend Express routes stay on /api/*
+//       { source: '/api/:path*', destination: `${BACKEND_ORIGIN}/api/:path*` },
+
+//       // Static from S3
+//       { source: '/sections/:path*', destination: `${S3_ORIGIN}/sections/:path*` },
+//     ];
+//   },
+// };
+
+// module.exports = nextConfig;
+
+
+
+
+
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'project1-uploads-12345.s3.ap-south-1.amazonaws.com',
-      },
-      // { protocol: 'https', hostname: 'ion7.mavsketch.com' },
+      { protocol: 'https', hostname: 'project1-uploads-12345.s3.ap-south-1.amazonaws.com' },
     ],
   },
   async rewrites() {
@@ -128,13 +128,17 @@ const nextConfig = {
     const S3_ORIGIN = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
 
     return [
-      
+      // keep your client code working
       { source: '/next-api/:path*', destination: '/api/:path*' },
 
-      // Backend Express routes stay on /api/*
+      // --- BYPASS: keep these handled by Next API ---
+      { source: '/api/email/:path*', destination: '/api/email/:path*' },
+      { source: '/api/emails', destination: '/api/emails' },
+
+      // everything else under /api/* goes to Express
       { source: '/api/:path*', destination: `${BACKEND_ORIGIN}/api/:path*` },
 
-      // Static from S3
+      // static from S3
       { source: '/sections/:path*', destination: `${S3_ORIGIN}/sections/:path*` },
     ];
   },
