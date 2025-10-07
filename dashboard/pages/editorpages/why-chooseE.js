@@ -1,10 +1,12 @@
 
 
+
+
+// // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\why-chooseE.js
 // "use client";
 
 // import { useEffect, useState } from "react";
 // import { useRouter } from "next/router";
-// import { Button } from "react-bootstrap";
 // import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
 // export default function WhyChooseEditorPage() {
@@ -14,15 +16,53 @@
 //     description: "",
 //     stats: [],
 //     progressBars: [],
-//     bgImageUrl: "",
+//     bgImageUrl: "",   // may be a full presigned URL OR just a key
 //     bgOverlay: 0.5,
 //   });
 
+//   const [displayUrl, setDisplayUrl] = useState("");
+
+//   // presign any key via backend helper
+//   const getSignedUrlFor = async (key) => {
+//     if (!key) return "";
+//     try {
+//       const res = await fetch(
+//         `${backendBaseUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`
+//       );
+//       const json = await res.json().catch(() => ({}));
+//       return json?.url || json?.signedUrl || "";
+//     } catch {
+//       return "";
+//     }
+//   };
+
 //   useEffect(() => {
-//     fetch(`${backendBaseUrl}/api/whychoose/${userId}/${templateId}`)
-//       .then((res) => res.json())
-//       .then((data) => setWhychoose(data || {}))
-//       .catch((err) => console.error("❌ Failed to fetch Why Choose section", err));
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${backendBaseUrl}/api/whychoose/${userId}/${templateId}`,
+//           { headers: { Accept: "application/json" }, cache: "no-store" }
+//         );
+//         const data = (await res.json()) || {};
+//         setWhychoose(data);
+
+//         // If bgImageUrl is a full URL, use it. If it's a key, presign it.
+//         const val = data?.bgImageUrl || "";
+//         if (val) {
+//           if (/^https?:\/\//i.test(val)) {
+//             setDisplayUrl(val);
+//           } else {
+//             const url = await getSignedUrlFor(val);
+//             setDisplayUrl(url || "");
+//           }
+//         } else {
+//           setDisplayUrl("");
+//         }
+//       } catch (err) {
+//         console.error("❌ Failed to fetch Why Choose section", err);
+//         setDisplayUrl("");
+//       }
+//     })();
 //   }, []);
 
 //   return (
@@ -33,7 +73,7 @@
 //         height: "290px",
 //         borderRadius: "20px",
 //         overflow: "hidden",
-//         backgroundImage: `url(${backendBaseUrl}${whychoose.bgImageUrl})`,
+//         backgroundImage: displayUrl ? `url(${displayUrl})` : "none", // ✅ use presigned/full URL directly
 //         backgroundSize: "cover",
 //         backgroundPosition: "center",
 //         position: "relative",
@@ -109,31 +149,50 @@
 
 
 
-
-
-
-
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\why-chooseE.js
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { backendBaseUrl, userId, templateId } from "../../lib/config";
+import { backendBaseUrl, userId as defaultUserId, templateId as defaultTemplateId } from "../../lib/config";
+import { api } from "../../lib/api";
 
 export default function WhyChooseEditorPage() {
-  const router = useRouter();
+  const userId = defaultUserId;
+
+  // Resolve template: ?templateId= → backend selection → config fallback
+  const [effectiveTemplateId, setEffectiveTemplateId] = useState("");
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      try {
+        // 1) URL param
+        const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const fromUrl = sp?.get("templateId")?.trim();
+        if (fromUrl) { if (!off) setEffectiveTemplateId(fromUrl); return; }
+        // 2) Backend-selected
+        const sel = await api.selectedTemplateForUser(userId).catch(() => null);
+        const t = sel?.data?.templateId;
+        if (t) { if (!off) setEffectiveTemplateId(t); return; }
+        // 3) Fallback
+        if (!off) setEffectiveTemplateId(defaultTemplateId || "gym-template-1");
+      } catch {
+        if (!off) setEffectiveTemplateId(defaultTemplateId || "gym-template-1");
+      }
+    })();
+    return () => { off = true; };
+  }, [userId]);
 
   const [whychoose, setWhychoose] = useState({
     description: "",
     stats: [],
     progressBars: [],
-    bgImageUrl: "",   // may be a full presigned URL OR just a key
+    bgImageUrl: "", // may be full URL or just a key
+    bgImageKey: "", // optional explicit key from backend
     bgOverlay: 0.5,
   });
-
   const [displayUrl, setDisplayUrl] = useState("");
 
-  // presign any key via backend helper
+  // Presign any S3 key via backend
   const getSignedUrlFor = async (key) => {
     if (!key) return "";
     try {
@@ -147,25 +206,29 @@ export default function WhyChooseEditorPage() {
     }
   };
 
+  // Load whenever template changes
   useEffect(() => {
+    if (!effectiveTemplateId) return;
     (async () => {
       try {
         const res = await fetch(
-          `${backendBaseUrl}/api/whychoose/${userId}/${templateId}`,
+          `${backendBaseUrl}/api/whychoose/${userId}/${effectiveTemplateId}`,
           { headers: { Accept: "application/json" }, cache: "no-store" }
         );
         const data = (await res.json()) || {};
-        setWhychoose(data);
+        setWhychoose((p) => ({ ...p, ...data }));
 
-        // If bgImageUrl is a full URL, use it. If it's a key, presign it.
-        const val = data?.bgImageUrl || "";
-        if (val) {
-          if (/^https?:\/\//i.test(val)) {
-            setDisplayUrl(val);
-          } else {
-            const url = await getSignedUrlFor(val);
-            setDisplayUrl(url || "");
-          }
+        // prefer full URL; else presign a key (bgImageKey or bgImageUrl-as-key)
+        const full = data?.bgImageUrl;
+        const keyCandidate =
+          data?.bgImageKey ||
+          (full && !/^https?:\/\//i.test(full) ? String(full) : "");
+
+        if (full && /^https?:\/\//i.test(full)) {
+          setDisplayUrl(full);
+        } else if (keyCandidate) {
+          const url = await getSignedUrlFor(keyCandidate);
+          setDisplayUrl(url || "");
         } else {
           setDisplayUrl("");
         }
@@ -174,7 +237,7 @@ export default function WhyChooseEditorPage() {
         setDisplayUrl("");
       }
     })();
-  }, []);
+  }, [effectiveTemplateId, userId]);
 
   return (
     <div
@@ -184,7 +247,7 @@ export default function WhyChooseEditorPage() {
         height: "290px",
         borderRadius: "20px",
         overflow: "hidden",
-        backgroundImage: displayUrl ? `url(${displayUrl})` : "none", // ✅ use presigned/full URL directly
+        backgroundImage: displayUrl ? `url(${displayUrl})` : "none",
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative",
@@ -204,16 +267,12 @@ export default function WhyChooseEditorPage() {
       {/* Content */}
       <div
         className="d-flex flex-column justify-content-center px-4 py-3"
-        style={{
-          position: "relative",
-          zIndex: 2,
-          width: "100%",
-          height: "127%",
-        }}
+        style={{ position: "relative", zIndex: 2, width: "100%", height: "127%" }}
       >
         <h4 className="fw-bold mb-2 text-uppercase" style={{ fontSize: "1.25rem" }}>
           Why You Should Choose Our Services
         </h4>
+
         <p className="mb-2" style={{ fontSize: "0.95rem" }}>
           {whychoose.description || "Add a compelling reason here."}
         </p>
@@ -236,22 +295,10 @@ export default function WhyChooseEditorPage() {
               <span>{bar.percent}%</span>
             </div>
             <div className="progress" style={{ height: "6px" }}>
-              <div
-                className="progress-bar bg-warning"
-                style={{ width: `${bar.percent}%` }}
-              />
+              <div className="progress-bar bg-warning" style={{ width: `${bar.percent}%` }} />
             </div>
           </div>
         ))}
-
-        {/* <Button
-          size="sm"
-          variant="light"
-          className="mt-3"
-          onClick={() => router.push("/editorpages/why-chooseS")}
-        >
-          ✏️ Edit Why Choose Us Section
-        </Button> */}
       </div>
     </div>
   );

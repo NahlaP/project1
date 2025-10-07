@@ -1,5 +1,13 @@
 
 
+
+
+
+
+
+
+
+// // pages/editorpages/appointmentE.js
 // "use client";
 
 // import React, { useEffect, useState } from "react";
@@ -14,23 +22,22 @@
 //     subtitle: "",
 //     officeAddress: "",
 //     officeTime: "",
-//     backgroundImage: "",       // S3 key like sections/appointment/....jpg
-//     backgroundImageUrl: "",    // (if backend provides it)
+//     backgroundImage: "",      // S3 key, e.g., sections/appointment/....jpg
+//     backgroundImageUrl: "",   // presigned from backend if available
 //   });
 
-//   const [previewUrl, setPreviewUrl] = useState(""); // presigned URL for CSS bg
+//   const [previewUrl, setPreviewUrl] = useState(""); // CSS bg image
 //   const [loading, setLoading] = useState(true);
 
-//   // Helper: ask backend to presign any S3 key
+//   // Helper: presign any S3 key via backend
 //   const getSignedUrlFor = async (key) => {
 //     if (!key) return "";
 //     try {
 //       const res = await fetch(
 //         `${backendBaseUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`
 //       );
-//       const json = await res.json();
-//       // Support {url}, {signedUrl}, or bare string
-//       return json?.url || json?.signedUrl || json || "";
+//       const json = await res.json().catch(() => ({}));
+//       return json?.url || json?.signedUrl || "";
 //     } catch (e) {
 //       console.error("Failed to get signed URL", e);
 //       return "";
@@ -42,7 +49,8 @@
 //     (async () => {
 //       try {
 //         const res = await fetch(
-//           `${backendBaseUrl}/api/appointment/${userId}/${templateId}`
+//           `${backendBaseUrl}/api/appointment/${userId}/${templateId}`,
+//           { headers: { Accept: "application/json" }, cache: "no-store" }
 //         );
 //         const result = await res.json();
 //         setAppointment(result || {});
@@ -63,16 +71,17 @@
 //     })();
 //   }, []);
 
-//   // If the stored key changes later, refresh the previewUrl
+//   // If the stored key/url changes later, refresh preview
 //   useEffect(() => {
 //     (async () => {
-//       if (!appointment?.backgroundImage) return;
 //       if (appointment?.backgroundImageUrl) {
 //         setPreviewUrl(appointment.backgroundImageUrl);
 //         return;
 //       }
-//       const url = await getSignedUrlFor(appointment.backgroundImage);
-//       setPreviewUrl(url || "");
+//       if (appointment?.backgroundImage) {
+//         const url = await getSignedUrlFor(appointment.backgroundImage);
+//         setPreviewUrl(url || "");
+//       }
 //     })();
 //   }, [appointment?.backgroundImage, appointment?.backgroundImageUrl]);
 
@@ -126,25 +135,61 @@
 
 
 
-
-
-// pages/editorpages/appointmentE.js
+// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\appointmentE.js
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { backendBaseUrl, userId, templateId } from "../../lib/config";
+import { backendBaseUrl, userId as defaultUserId, templateId as defaultTemplateId } from "../../lib/config";
+import { api } from "../../lib/api";
+
+function useResolvedTemplateId(userId) {
+  const router = useRouter();
+  const [tpl, setTpl] = useState("");
+
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      // 1) URL ?templateId=
+      const fromUrl =
+        typeof router.query.templateId === "string" &&
+        router.query.templateId.trim();
+      if (fromUrl) {
+        if (!off) setTpl(fromUrl);
+        return;
+      }
+      // 2) Backend-selected
+      try {
+        const sel = await api.selectedTemplateForUser(userId);
+        const t = sel?.data?.templateId;
+        if (t && !off) {
+          setTpl(t);
+          return;
+        }
+      } catch {}
+      // 3) Fallback to legacy default (if present)
+      if (!off) setTpl(defaultTemplateId || "gym-template-1");
+    })();
+    return () => {
+      off = true;
+    };
+  }, [router.query.templateId, userId]);
+
+  return tpl;
+}
 
 export default function AppointmentPreview() {
   const router = useRouter();
+  const userId = defaultUserId;
+  const effectiveTemplateId = useResolvedTemplateId(userId);
 
   const [appointment, setAppointment] = useState({
     title: "",
     subtitle: "",
     officeAddress: "",
     officeTime: "",
-    backgroundImage: "",      // S3 key, e.g., sections/appointment/....jpg
-    backgroundImageUrl: "",   // presigned from backend if available
+    backgroundImage: "",     // S3 key
+    backgroundImageUrl: "",  // presigned from backend if available
   });
 
   const [previewUrl, setPreviewUrl] = useState(""); // CSS bg image
@@ -165,32 +210,43 @@ export default function AppointmentPreview() {
     }
   };
 
-  // Initial load
+  // Load when the effective template changes
   useEffect(() => {
+    if (!effectiveTemplateId) return;
+    let abort = false;
+
     (async () => {
+      setLoading(true);
       try {
         const res = await fetch(
-          `${backendBaseUrl}/api/appointment/${userId}/${templateId}`,
+          `${backendBaseUrl}/api/appointment/${encodeURIComponent(
+            userId
+          )}/${encodeURIComponent(effectiveTemplateId)}`,
           { headers: { Accept: "application/json" }, cache: "no-store" }
         );
         const result = await res.json();
+        if (abort) return;
+
         setAppointment(result || {});
-        // Prefer server-provided presigned URL, else presign the key
         if (result?.backgroundImageUrl) {
           setPreviewUrl(result.backgroundImageUrl);
         } else if (result?.backgroundImage) {
           const url = await getSignedUrlFor(result.backgroundImage);
-          setPreviewUrl(url || "");
+          if (!abort) setPreviewUrl(url || "");
         } else {
           setPreviewUrl("");
         }
       } catch (err) {
-        console.error("❌ Failed to fetch appointment", err);
+        if (!abort) console.error("❌ Failed to fetch appointment", err);
       } finally {
-        setLoading(false);
+        if (!abort) setLoading(false);
       }
     })();
-  }, []);
+
+    return () => {
+      abort = true;
+    };
+  }, [userId, effectiveTemplateId]);
 
   // If the stored key/url changes later, refresh preview
   useEffect(() => {
@@ -234,16 +290,20 @@ export default function AppointmentPreview() {
         className="d-flex flex-column justify-content-center p-4"
         style={{ width: "50%", height: "100%", overflowY: "auto" }}
       >
+        <div className="text-muted small mb-1">
+          template: <code>{effectiveTemplateId || "…"}</code>
+        </div>
         <h5 className="fw-bold text-uppercase mb-2">
-          {appointment.title || "Appointment"}
+          {appointment.title || (loading ? "Loading…" : "Appointment")}
         </h5>
-        <p className="mb-2">{appointment.subtitle || "Subtitle goes here..."}</p>
+        <p className="mb-2">{appointment.subtitle || (!loading && "Subtitle goes here...")}</p>
         <p className="mb-1">
           <strong>📍 Address:</strong>{" "}
-          {appointment.officeAddress || "Not specified"}
+          {appointment.officeAddress || (!loading && "Not specified")}
         </p>
         <p className="mb-3">
-          <strong>⏰ Time:</strong> {appointment.officeTime || "Not specified"}
+          <strong>⏰ Time:</strong>{" "}
+          {appointment.officeTime || (!loading && "Not specified")}
         </p>
       </div>
     </div>

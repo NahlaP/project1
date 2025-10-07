@@ -1,10 +1,11 @@
 
 
 
+
+// // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\servicesE.js
 // "use client";
 
 // import React, { useEffect, useState } from "react";
-// import { Button } from "react-bootstrap";
 // import { useRouter } from "next/router";
 // import { backendBaseUrl, userId, templateId } from "../../lib/config";
 
@@ -12,10 +13,55 @@
 //   const router = useRouter();
 //   const [servicesDoc, setServicesDoc] = useState({ services: [] });
 
+//   // helper: presign any S3 key via backend
+//   const getSignedUrlFor = async (key) => {
+//     if (!key) return "";
+//     try {
+//       const res = await fetch(
+//         `${backendBaseUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`
+//       );
+//       const json = await res.json().catch(() => ({}));
+//       return json?.url || json?.signedUrl || "";
+//     } catch {
+//       return "";
+//     }
+//   };
+
 //   useEffect(() => {
-//     fetch(`${backendBaseUrl}/api/services/${userId}/${templateId}`)
-//       .then((res) => res.json())
-//       .then(setServicesDoc);
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${backendBaseUrl}/api/services/${userId}/${templateId}`
+//         );
+//         const doc = (await res.json()) || { services: [] };
+
+//         // build displayUrl per service item
+//         const services = await Promise.all(
+//           (doc.services || []).map(async (item) => {
+//             // prefer server-provided presigned URL if present
+//             if (item.imageUrl && /^https?:\/\//i.test(item.imageUrl)) {
+//               return { ...item, displayUrl: item.imageUrl };
+//             }
+//             // if backend returned only a key (imageKey or imageUrl contains a key), presign it
+//             const key =
+//               item.imageKey ||
+//               (item.imageUrl && !/^https?:\/\//i.test(item.imageUrl)
+//                 ? item.imageUrl
+//                 : "");
+//             if (key) {
+//               const url = await getSignedUrlFor(key);
+//               return { ...item, displayUrl: url || "" };
+//             }
+//             return { ...item, displayUrl: "" };
+//           })
+//         );
+
+//         setServicesDoc({ ...doc, services });
+//       } catch (e) {
+//         console.error("❌ Failed to fetch services", e);
+//         setServicesDoc({ services: [] });
+//       }
+//     })();
 //   }, []);
 
 //   return (
@@ -30,7 +76,10 @@
 //       }}
 //     >
 //       {/* Left: Services Grid */}
-//       <div className="d-flex flex-wrap gap-3" style={{ width: "70%", height: "100%", overflowY: "auto" }}>
+//       <div
+//         className="d-flex flex-wrap gap-3"
+//         style={{ width: "70%", height: "100%", overflowY: "auto" }}
+//       >
 //         {servicesDoc.services.slice(0, 2).map((item) => (
 //           <div
 //             key={item._id}
@@ -41,9 +90,9 @@
 //               backgroundColor: "#f8f9fa",
 //             }}
 //           >
-//             {item.imageUrl && (
+//             {item.displayUrl ? (
 //               <img
-//                 src={`${backendBaseUrl}${item.imageUrl}`}
+//                 src={item.displayUrl} 
 //                 alt={item.title}
 //                 style={{
 //                   width: "100%",
@@ -53,7 +102,8 @@
 //                   marginBottom: "8px",
 //                 }}
 //               />
-//             )}
+//             ) : null}
+
 //             <h6 className="fw-bold mb-1">{item.title}</h6>
 //             <p className="small mb-1 text-muted">{item.description}</p>
 //             {item.buttonText && (
@@ -68,8 +118,11 @@
 //         ))}
 //       </div>
 
-//       {/* Right: Action Button */}
-//       <div className="d-flex align-items-end justify-content-end flex-column ps-3" style={{ width: "30%" }}>
+//       {/* Right: Action Button (unchanged / commented as before) */}
+//       <div
+//         className="d-flex align-items-end justify-content-end flex-column ps-3"
+//         style={{ width: "30%" }}
+//       >
 //         {/* <Button
 //           variant="outline-dark"
 //           size="sm"
@@ -88,23 +141,49 @@
 
 
 
-
-
-
-
-
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\servicesE.js
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { backendBaseUrl, userId, templateId } from "../../lib/config";
+import React, { useEffect, useMemo, useState } from "react";
+import { backendBaseUrl, userId as defaultUserId, templateId as defaultTemplateId } from "../../lib/config";
+import { api } from "../../lib/api";
+
+function useResolvedTemplateId(userId) {
+  const [tpl, setTpl] = useState("");
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      // 1) URL ?templateId=
+      const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const fromUrl = sp?.get("templateId")?.trim();
+      if (fromUrl) {
+        if (!off) setTpl(fromUrl);
+        return;
+      }
+      // 2) Backend-selected
+      try {
+        const sel = await api.selectedTemplateForUser(userId);
+        const t = sel?.data?.templateId;
+        if (t && !off) {
+          setTpl(t);
+          return;
+        }
+      } catch {}
+      // 3) Fallback to legacy default
+      if (!off) setTpl(defaultTemplateId || "gym-template-1");
+    })();
+    return () => { off = true; };
+  }, [userId]);
+  return tpl;
+}
 
 export default function ServicesPagePreview() {
-  const router = useRouter();
+  const userId = defaultUserId;
+  const templateId = useResolvedTemplateId(userId);
+
   const [servicesDoc, setServicesDoc] = useState({ services: [] });
 
-  // helper: presign any S3 key via backend
+  // presign any S3 key via backend
   const getSignedUrlFor = async (key) => {
     if (!key) return "";
     try {
@@ -119,21 +198,22 @@ export default function ServicesPagePreview() {
   };
 
   useEffect(() => {
+    if (!templateId) return;
     (async () => {
       try {
         const res = await fetch(
-          `${backendBaseUrl}/api/services/${userId}/${templateId}`
+          `${backendBaseUrl}/api/services/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
         );
         const doc = (await res.json()) || { services: [] };
 
         // build displayUrl per service item
         const services = await Promise.all(
           (doc.services || []).map(async (item) => {
-            // prefer server-provided presigned URL if present
+            // prefer absolute URL
             if (item.imageUrl && /^https?:\/\//i.test(item.imageUrl)) {
               return { ...item, displayUrl: item.imageUrl };
             }
-            // if backend returned only a key (imageKey or imageUrl contains a key), presign it
+            // if backend returned only a key (imageKey or relative imageUrl), presign it
             const key =
               item.imageKey ||
               (item.imageUrl && !/^https?:\/\//i.test(item.imageUrl)
@@ -153,7 +233,13 @@ export default function ServicesPagePreview() {
         setServicesDoc({ services: [] });
       }
     })();
-  }, []);
+  }, [userId, templateId]);
+
+  // Only show two items in the compact preview card
+  const items = useMemo(
+    () => (servicesDoc.services || []).slice(0, 2),
+    [servicesDoc.services]
+  );
 
   return (
     <div
@@ -171,9 +257,9 @@ export default function ServicesPagePreview() {
         className="d-flex flex-wrap gap-3"
         style={{ width: "70%", height: "100%", overflowY: "auto" }}
       >
-        {servicesDoc.services.slice(0, 2).map((item) => (
+        {items.map((item) => (
           <div
-            key={item._id}
+            key={item._id || item.title}
             className="border rounded p-2 d-flex flex-column"
             style={{
               width: "calc(50% - 10px)",
@@ -183,8 +269,8 @@ export default function ServicesPagePreview() {
           >
             {item.displayUrl ? (
               <img
-                src={item.displayUrl} 
-                alt={item.title}
+                src={item.displayUrl}
+                alt={item.title || "Service"}
                 style={{
                   width: "100%",
                   height: "100px",
@@ -195,11 +281,13 @@ export default function ServicesPagePreview() {
               />
             ) : null}
 
-            <h6 className="fw-bold mb-1">{item.title}</h6>
-            <p className="small mb-1 text-muted">{item.description}</p>
+            <h6 className="fw-bold mb-1">{item.title || "Service Title"}</h6>
+            <p className="small mb-1 text-muted">
+              {item.description || "Service description..."}
+            </p>
             {item.buttonText && (
               <a
-                href={item.buttonHref}
+                href={item.buttonHref || "#"}
                 className="btn btn-outline-primary btn-sm mt-auto"
               >
                 {item.buttonText}
@@ -209,19 +297,11 @@ export default function ServicesPagePreview() {
         ))}
       </div>
 
-      {/* Right: Action Button (unchanged / commented as before) */}
+      {/* Right: placeholder column for symmetry */}
       <div
         className="d-flex align-items-end justify-content-end flex-column ps-3"
         style={{ width: "30%" }}
-      >
-        {/* <Button
-          variant="outline-dark"
-          size="sm"
-          onClick={() => router.push("/editorpages/servicesS")}
-        >
-          ✏️ Edit Services
-        </Button> */}
-      </div>
+      />
     </div>
   );
 }

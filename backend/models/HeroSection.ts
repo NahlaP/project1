@@ -1,38 +1,101 @@
+// // og
 // import mongoose, { Schema, Document } from "mongoose";
 
 // export interface HeroSectionDocument extends Document {
 //   userId: string;
 //   templateId: string;
 //   content: string;
+//   imageUrl?: string; // ✅ optional image (AI or user)
 // }
 
-// const HeroSectionSchema = new Schema<HeroSectionDocument>({
-//   userId: { type: String, required: true },
-//   templateId: { type: String, required: true },
-//   content: { type: String, required: true },
-  
-// }, { timestamps: true });
+// const HeroSectionSchema = new Schema<HeroSectionDocument>(
+//   {
+//     userId: { type: String, required: true },
+//     templateId: { type: String, required: true },
+//     content: { type: String, required: true },
+//     imageUrl: { type: String }, // ✅ AI or user-uploaded image
+//   },
+//   { timestamps: true }
+// );
 
 // export default mongoose.model<HeroSectionDocument>("HeroSection", HeroSectionSchema);
 
-// models/HeroSection.ts
-import mongoose, { Schema, Document } from "mongoose";
+
+
+
+
+
+
+
+
+
+// import mongoose, { Schema, Document } from "mongoose";
+
+// export interface HeroSectionDocument extends Document {
+//   userId: string;
+//   templateId: string;
+//   content?: string;     // optional so image-only updates don't fail
+//   imageUrl?: string;    // stores S3 key
+//   createdAt: Date;
+//   updatedAt: Date;
+// }
+
+// const HeroSectionSchema = new Schema<HeroSectionDocument>(
+//   {
+//     userId: { type: String, required: true, index: true },
+//     templateId: { type: String, required: true, index: true },
+//     content: { type: String, default: "" },
+//     imageUrl: { type: String },
+//   },
+//   { timestamps: true }
+// );
+
+// // one hero doc per user+template
+// HeroSectionSchema.index({ userId: 1, templateId: 1 }, { unique: true });
+
+// export default (mongoose.models.HeroSection as mongoose.Model<HeroSectionDocument>) ||
+//   mongoose.model<HeroSectionDocument>("HeroSection", HeroSectionSchema);
+
+
+
+
+
+
+
+  // video url
+
+  import mongoose, { Schema, Document } from "mongoose";
 
 export interface HeroSectionDocument extends Document {
   userId: string;
   templateId: string;
-  content: string;
-  imageUrl?: string; // ✅ optional image (AI or user)
+
+  content?: string;      // headline
+  imageUrl?: string;     // S3 key for image (poster/fallback if you like)
+
+  videoKey?: string;     // S3 key for hero video
+  posterKey?: string;    // S3 key for hero poster image (optional)
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const HeroSectionSchema = new Schema<HeroSectionDocument>(
   {
-    userId: { type: String, required: true },
-    templateId: { type: String, required: true },
-    content: { type: String, required: true },
-    imageUrl: { type: String }, // ✅ AI or user-uploaded image
+    userId: { type: String, required: true, index: true },
+    templateId: { type: String, required: true, index: true },
+
+    content: { type: String, default: "" },
+    imageUrl: { type: String },   // kept for backwards compatibility
+
+    videoKey: { type: String, default: "" },
+    posterKey: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-export default mongoose.model<HeroSectionDocument>("HeroSection", HeroSectionSchema);
+// one hero doc per user+template
+HeroSectionSchema.index({ userId: 1, templateId: 1 }, { unique: true });
+
+export default (mongoose.models.HeroSection as mongoose.Model<HeroSectionDocument>) ||
+  mongoose.model<HeroSectionDocument>("HeroSection", HeroSectionSchema);

@@ -1,229 +1,311 @@
 
 
-// // og
+// // // og
+// import { Request, Response } from "express";
+// import WhyChooseUs from "../models/WhyChooseUs";
+// import { s3 } from "../lib/s3";
+// import { GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+// import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+// export const getWhyChooseUs = async (req: Request, res: Response) => {
+//   const { userId, templateId } = req.params;
+//   const data = await WhyChooseUs.findOne({ userId, templateId });
+//   if (!data) return res.json({});
+
+//   let signed = "";
+//   if (data.bgImageUrl) {
+//     signed = await getSignedUrl(
+//       s3,
+//       new GetObjectCommand({
+//         Bucket: process.env.S3_BUCKET!,
+//         Key: data.bgImageUrl as string,
+//       }),
+//       { expiresIn: 60 }
+//     );
+//   }
+
+//   const obj = data.toObject();
+//   res.json({
+//     ...obj,
+//     bgImageKey: obj.bgImageUrl || "",
+//     bgImageUrl: signed, // presigned URL for display
+//   });
+// };
+
+// export const updateWhyChooseUs = async (req: Request, res: Response) => {
+//   const { userId, templateId } = req.params;
+//   const { bgImageKey, bgImageUrl, ...rest } = req.body as any;
+
+//   const update: any = { ...rest };
+//   const key = bgImageKey || bgImageUrl; // accept either name
+//   if (key) update.bgImageUrl = key;     // store S3 key
+
+//   const updated = await WhyChooseUs.findOneAndUpdate(
+//     { userId, templateId },
+//     { $set: update },
+//     { new: true, upsert: true }
+//   );
+//   res.json({ message: "✅ Updated successfully", result: updated });
+// };
+
+// // --- upload bg image to S3 (multer-s3 sets req.file.key/bucket) ---
+// export const uploadWhyChooseBg = async (req: Request, res: Response) => {
+//   const { userId, templateId } = req.params;
+//   const file = (req as any).file;
+//   if (!file) return res.status(400).json({ error: "No file uploaded" });
+
+//   const key: string = file.key;       // e.g., sections/whychoose/bg/...
+//   const bucket: string = file.bucket;
+
+//   const doc = await WhyChooseUs.findOneAndUpdate(
+//     { userId, templateId },
+//     { $set: { bgImageUrl: key } },    // store the S3 key
+//     { upsert: true, new: true }
+//   );
+
+//   res.json({ message: "✅ Background uploaded", key, bucket, result: doc });
+// };
+
+// export const deleteWhyChooseBg = async (req: Request, res: Response) => {
+//   const { userId, templateId } = req.params;
+//   const doc = await WhyChooseUs.findOne({ userId, templateId });
+//   if (!doc || !doc.bgImageUrl) {
+//     return res.status(404).json({ error: "No bg image to delete" });
+//   }
+
+//   try {
+//     await s3.send(
+//       new DeleteObjectCommand({
+//         Bucket: process.env.S3_BUCKET!,
+//         Key: doc.bgImageUrl as string,
+//       })
+//     );
+//   } catch { /* ignore delete failures */ }
+
+//   doc.bgImageUrl = "";
+//   await doc.save();
+//   res.json({ message: "✅ Background deleted", result: doc });
+// };
+
+
+
+
+
+
+
+
+
 import { Request, Response } from "express";
 import WhyChooseUs from "../models/WhyChooseUs";
 import { s3 } from "../lib/s3";
-import { GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  DeleteObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-export const getWhyChooseUs = async (req: Request, res: Response) => {
-  const { userId, templateId } = req.params;
-  const data = await WhyChooseUs.findOne({ userId, templateId });
-  if (!data) return res.json({});
+/* ---------------- helpers ---------------- */
+const ids = (req: Request) => ({
+  userId: (req.params as any).userId,
+  templateId: (req.params as any).templateId,
+});
 
-  let signed = "";
-  if (data.bgImageUrl) {
-    signed = await getSignedUrl(
-      s3,
-      new GetObjectCommand({
-        Bucket: process.env.S3_BUCKET!,
-        Key: data.bgImageUrl as string,
-      }),
-      { expiresIn: 60 }
-    );
-  }
-
-  const obj = data.toObject();
-  res.json({
-    ...obj,
-    bgImageKey: obj.bgImageUrl || "",
-    bgImageUrl: signed, // presigned URL for display
-  });
-};
-
-export const updateWhyChooseUs = async (req: Request, res: Response) => {
-  const { userId, templateId } = req.params;
-  const { bgImageKey, bgImageUrl, ...rest } = req.body as any;
-
-  const update: any = { ...rest };
-  const key = bgImageKey || bgImageUrl; // accept either name
-  if (key) update.bgImageUrl = key;     // store S3 key
-
-  const updated = await WhyChooseUs.findOneAndUpdate(
-    { userId, templateId },
-    { $set: update },
-    { new: true, upsert: true }
-  );
-  res.json({ message: "✅ Updated successfully", result: updated });
-};
-
-// --- upload bg image to S3 (multer-s3 sets req.file.key/bucket) ---
-export const uploadWhyChooseBg = async (req: Request, res: Response) => {
-  const { userId, templateId } = req.params;
-  const file = (req as any).file;
-  if (!file) return res.status(400).json({ error: "No file uploaded" });
-
-  const key: string = file.key;       // e.g., sections/whychoose/bg/...
-  const bucket: string = file.bucket;
-
-  const doc = await WhyChooseUs.findOneAndUpdate(
-    { userId, templateId },
-    { $set: { bgImageUrl: key } },    // store the S3 key
-    { upsert: true, new: true }
-  );
-
-  res.json({ message: "✅ Background uploaded", key, bucket, result: doc });
-};
-
-export const deleteWhyChooseBg = async (req: Request, res: Response) => {
-  const { userId, templateId } = req.params;
-  const doc = await WhyChooseUs.findOne({ userId, templateId });
-  if (!doc || !doc.bgImageUrl) {
-    return res.status(404).json({ error: "No bg image to delete" });
-  }
-
+async function presignOrEmpty(key?: string) {
+  if (!key) return "";
   try {
+    return await getSignedUrl(
+      s3,
+      new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: String(key) }),
+      { expiresIn: 300 }
+    );
+  } catch (e) {
+    console.warn("Presign failed:", key, e);
+    return "";
+  }
+}
+
+function cleanKeyCandidate(candidate?: string) {
+  let key = String(candidate ?? "");
+  if (!key) return "";
+  // strip any accidental local upload folder
+  key = key.replace(/^\/home\/[^/]+\/apps\/backend\/uploads\//, "");
+  // if a full URL was sent, ignore (we store keys only)
+  if (/^https?:\/\//i.test(key)) return "";
+  return key;
+}
+
+/* ---------------- handlers ---------------- */
+
+// GET: fetch doc + return presigned bg image URL
+export const getWhyChooseUs = async (req: Request, res: Response) => {
+  try {
+    const { userId, templateId } = ids(req);
+    const data = await WhyChooseUs.findOne({ userId, templateId });
+
+    if (!data) {
+      return res.json({
+        userId,
+        templateId,
+        description: "",
+        stats: [],
+        progressBars: [],
+        bgImageKey: "",
+        bgImageUrl: "",
+        bgImageAlt: "",
+      });
+    }
+
+    const obj = data.toObject();
+    const bgImageKey = obj.bgImageUrl || "";
+    const bgImageUrl = await presignOrEmpty(bgImageKey);
+
+    return res.json({
+      ...obj,
+      bgImageKey,
+      bgImageUrl,
+    });
+  } catch (e) {
+    console.error("getWhyChooseUs error:", e);
+    return res.status(500).json({ error: "Failed to fetch WhyChooseUs" });
+  }
+};
+
+// PUT: upsert fields; accept bgImageKey or bgImageUrl as the S3 key
+export const updateWhyChooseUs = async (req: Request, res: Response) => {
+  try {
+    const { userId, templateId } = ids(req);
+    const { bgImageKey, bgImageUrl, ...rest } = (req.body || {}) as any;
+
+    const update: any = { ...rest };
+    const key = cleanKeyCandidate(bgImageKey ?? bgImageUrl);
+    if (key) update.bgImageUrl = key; // store the S3 key in bgImageUrl
+
+    const updated = await WhyChooseUs.findOneAndUpdate(
+      { userId, templateId },
+      { $set: update },
+      { new: true, upsert: true }
+    );
+
+    return res.json({ message: "✅ Updated successfully", result: updated });
+  } catch (e) {
+    console.error("updateWhyChooseUs error:", e);
+    return res.status(500).json({ error: "Failed to update WhyChooseUs" });
+  }
+};
+
+// POST (multipart): upload bg image (multer-s3), store S3 key, return presigned
+export const uploadWhyChooseBg = async (req: Request, res: Response) => {
+  try {
+    const { userId, templateId } = ids(req);
+    const file = (req as any).file;
+    if (!file) return res.status(400).json({ error: "No file uploaded" });
+
+    const key: string = file.key;       // e.g., sections/whychoose/bg/...
+    const bucket: string = file.bucket;
+
+    const doc = await WhyChooseUs.findOneAndUpdate(
+      { userId, templateId },
+      { $set: { bgImageUrl: key } },    // store the S3 key
+      { upsert: true, new: true }
+    );
+
+    const url = await presignOrEmpty(key);
+
+    return res.json({
+      message: "✅ Background uploaded",
+      key,
+      bucket,
+      result: { ...doc.toObject(), bgImageKey: key, bgImageUrl: url },
+    });
+  } catch (e) {
+    console.error("uploadWhyChooseBg error:", e);
+    return res.status(500).json({ error: "Failed to upload background" });
+  }
+};
+
+// POST (JSON): base64 upload (no multipart), infer extension safely
+export const uploadWhyChooseBgBase64 = async (req: Request, res: Response) => {
+  try {
+    const { userId, templateId } = ids(req);
+    const { dataUrl, base64, filename } = (req.body || {}) as any;
+
+    const safeName = String(filename || "upload").replace(/[^\w.-]+/g, "_");
+    let ext = (safeName.match(/\.(jpg|jpeg|png|webp|gif)$/i)?.[0] || "").toLowerCase();
+    if (!ext) {
+      const mime =
+        (typeof dataUrl === "string" && dataUrl.split(";")[0].split(":")[1]) || "";
+      if (/png/i.test(mime)) ext = ".png";
+      else if (/webp/i.test(mime)) ext = ".webp";
+      else if (/gif/i.test(mime)) ext = ".gif";
+      else ext = ".jpg";
+    }
+    const base = safeName.replace(/\.(jpg|jpeg|png|webp|gif)$/i, "");
+
+    const b64 =
+      (typeof dataUrl === "string" && dataUrl.includes(",")) ? dataUrl.split(",")[1] :
+      (typeof base64 === "string" ? base64 : "");
+    if (!b64) return res.status(400).json({ error: "Missing base64 image data" });
+
+    const key = `sections/whychoose/bg/${userId}-${templateId}-${Date.now()}-${base}${ext}`;
     await s3.send(
-      new DeleteObjectCommand({
+      new PutObjectCommand({
         Bucket: process.env.S3_BUCKET!,
-        Key: doc.bgImageUrl as string,
+        Key: key,
+        Body: Buffer.from(b64, "base64"),
+        ContentType:
+          ext === ".png" ? "image/png" :
+          ext === ".webp" ? "image/webp" :
+          ext === ".gif" ? "image/gif" : "image/jpeg",
+        ACL: "private",
       })
     );
-  } catch { /* ignore delete failures */ }
 
-  doc.bgImageUrl = "";
-  await doc.save();
-  res.json({ message: "✅ Background deleted", result: doc });
+    const doc = await WhyChooseUs.findOneAndUpdate(
+      { userId, templateId },
+      { $set: { bgImageUrl: key } },
+      { upsert: true, new: true }
+    );
+
+    const url = await presignOrEmpty(key);
+
+    return res.json({
+      message: "✅ Background uploaded (base64)",
+      key,
+      result: { ...doc.toObject(), bgImageKey: key, bgImageUrl: url },
+    });
+  } catch (e) {
+    console.error("uploadWhyChooseBgBase64 error:", e);
+    return res.status(500).json({ error: "Failed to upload background (base64)" });
+  }
 };
 
+// DELETE: best-effort S3 delete + clear field
+export const deleteWhyChooseBg = async (req: Request, res: Response) => {
+  try {
+    const { userId, templateId } = ids(req);
+    const doc = await WhyChooseUs.findOne({ userId, templateId });
+    if (!doc || !doc.bgImageUrl) {
+      return res.status(404).json({ error: "No bg image to delete" });
+    }
 
+    try {
+      await s3.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.S3_BUCKET!,
+          Key: doc.bgImageUrl as string,
+        })
+      );
+    } catch {
+      // ignore delete failures; still clear DB
+    }
 
+    doc.bgImageUrl = "";
+    await doc.save();
 
-// // cpanel
-// import { Request, Response } from "express";
-// import dotenv from "dotenv";
-// import jwt from "jsonwebtoken";
-// import WhyChooseUs from "../models/WhyChooseUs";
-
-// dotenv.config();
-
-// /** helper: get ids from params with safe defaults */
-// const ids = (req: Request) => ({
-//   userId: (req.params as any).userId || "demo-user",
-//   templateId: (req.params as any).templateId || "gym-template-1",
-// });
-
-// /** helper: sign short-lived JWT for cPanel upload */
-// function signUploadToken(payload: Record<string, any>) {
-//   const now = Math.floor(Date.now() / 1000);
-//   const exp = now + Number(process.env.TOKEN_TTL_SECONDS || 180);
-//   return jwt.sign({ iat: now, exp, ...payload }, process.env.JWT_SECRET!, {
-//     algorithm: "HS256",
-//   });
-// }
-
-// /** GET: return stored fields; bgImageUrl is already public http(s) URL */
-// export const getWhyChooseUs = async (req: Request, res: Response) => {
-//   try {
-//     const { userId, templateId } = ids(req);
-//     const doc = await WhyChooseUs.findOne({ userId, templateId });
-//     if (!doc) {
-//       return res.json({
-//         userId,
-//         templateId,
-//         title: "",
-//         description: "",
-//         stats: [],
-//         progressBars: [],
-//         bgOverlay: 0.5,
-//         bgImageUrl: "",
-//         bgImageKey: "", // legacy compat
-//       });
-//     }
-//     const obj = doc.toObject();
-//     return res.json({
-//       ...obj,
-//       bgImageUrl: obj.bgImageUrl || "",
-//       bgImageKey: "", // legacy compat (no S3)
-//     });
-//   } catch (err) {
-//     console.error("getWhyChooseUs error:", err);
-//     return res.status(500).json({ error: "Failed to fetch WhyChooseUs" });
-//   }
-// };
-
-// /** PUT: upsert text fields and/or bgImageUrl (must be public http(s) URL) */
-// export const updateWhyChooseUs = async (req: Request, res: Response) => {
-//   try {
-//     const { userId, templateId } = ids(req);
-//     const body = (req.body || {}) as any;
-
-//     // Accept legacy names but only store a public URL
-//     const incomingUrl = String(
-//       body.bgImageUrl ?? body.bgImage ?? body.imageUrl ?? body.image ?? ""
-//     ).trim();
-
-//     // strip legacy fields from payload
-//     const {
-//       bgImageKey, // ignore legacy
-//       imageKey,   // ignore legacy
-//       image,      // consumed above
-//       ...rest
-//     } = body;
-
-//     const update: Record<string, any> = { ...rest };
-
-//     if (incomingUrl) {
-//       if (!/^https?:\/\//i.test(incomingUrl)) {
-//         return res.status(400).json({ error: "bgImageUrl must be a public http(s) URL" });
-//       }
-//       update.bgImageUrl = incomingUrl;
-//     }
-
-//     if (!Object.keys(update).length) {
-//       return res.status(400).json({ error: "Nothing to update" });
-//     }
-
-//     const updated = await WhyChooseUs.findOneAndUpdate(
-//       { userId, templateId },
-//       { $set: update },
-//       { new: true, upsert: true, runValidators: true }
-//     );
-
-//     return res.json({ message: "✅ Updated successfully", result: updated });
-//   } catch (err) {
-//     console.error("updateWhyChooseUs error:", err);
-//     return res.status(500).json({ error: "Failed to update WhyChooseUs" });
-//   }
-// };
-
-// /** NEW: issue short-lived token + upload URL for cPanel (same as hero) */
-// export const getWhyChooseUploadToken = async (req: Request, res: Response) => {
-//   try {
-//     const { filename, size, type } = (req.body || {}) as any;
-//     if (!filename || !size || !type) {
-//       return res.status(400).json({ error: "filename, size, type required" });
-//     }
-//     const base = (process.env.CPANEL_BASE_URL || "").replace(/\/+$/, "");
-//     if (!base) {
-//       return res.status(500).json({ error: "CPANEL_BASE_URL not configured" });
-//     }
-//     const uploadUrl = `${base}/api/upload.php`;
-//     const token = signUploadToken({ scope: "upload", filename, size, type });
-//     return res.json({
-//       token,
-//       uploadUrl,
-//       expiresIn: Number(process.env.TOKEN_TTL_SECONDS || 180),
-//     });
-//   } catch (e) {
-//     console.error("getWhyChooseUploadToken error:", e);
-//     return res.status(500).json({ error: "Failed to create upload token" });
-//   }
-// };
-
-// /** NEW: clear only the bg image URL */
-// export const clearWhyChooseBg = async (req: Request, res: Response) => {
-//   try {
-//     const { userId, templateId } = ids(req);
-//     const doc = await WhyChooseUs.findOneAndUpdate(
-//       { userId, templateId },
-//       { $set: { bgImageUrl: "" } },
-//       { new: true }
-//     );
-//     return res.json({ message: "Background cleared", result: doc });
-//   } catch (err) {
-//     console.error("clearWhyChooseBg error:", err);
-//     return res.status(500).json({ error: "Failed to clear background image" });
-//   }
-// };
+    return res.json({ message: "✅ Background deleted", result: doc });
+  } catch (e) {
+    console.error("deleteWhyChooseBg error:", e);
+    return res.status(500).json({ error: "Failed to delete background" });
+  }
+};

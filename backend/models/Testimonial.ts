@@ -1,18 +1,36 @@
 
-// import mongoose from "mongoose";
+// import mongoose, { Schema, Document } from 'mongoose';
 
-// const testimonialSchema = new mongoose.Schema({
-//   userId: { type: String, required: true },
-//   templateId: { type: String, required: true },
-//   name: String,
-//   profession: String,
-//   message: String,
-//   rating: { type: Number, default: 5 },
-//   imageUrl: String,
-// }, { timestamps: true });
+// export interface ITestimonial extends Document {
+//   userId: string;
+//   templateId: string;
+//   name: string;
+//   profession?: string;
+//   message: string;
+//   rating: number;
+//   imageUrl?: string;
+// }
 
-// export default mongoose.model("Testimonial", testimonialSchema);
-import mongoose, { Schema, Document } from 'mongoose';
+// const TestimonialSchema = new Schema<ITestimonial>(
+//   {
+//     userId: { type: String, required: true },
+//     templateId: { type: String, required: true },
+//     name: { type: String, required: true },
+//     profession: { type: String },
+//     message: { type: String, required: true },
+//     rating: { type: Number, default: 5 },
+//     imageUrl: { type: String }
+//   },
+//   { timestamps: true }
+// );
+
+// export default mongoose.model<ITestimonial>('Testimonial', TestimonialSchema);
+
+
+
+
+
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITestimonial extends Document {
   userId: string;
@@ -20,21 +38,23 @@ export interface ITestimonial extends Document {
   name: string;
   profession?: string;
   message: string;
-  rating: number;
-  imageUrl?: string;
+  rating: number;    // 1..5
+  imageUrl?: string; // S3 key
 }
 
 const TestimonialSchema = new Schema<ITestimonial>(
   {
-    userId: { type: String, required: true },
-    templateId: { type: String, required: true },
+    userId: { type: String, required: true, index: true },
+    templateId: { type: String, required: true, index: true },
     name: { type: String, required: true },
-    profession: { type: String },
+    profession: { type: String, default: "" },
     message: { type: String, required: true },
-    rating: { type: Number, default: 5 },
-    imageUrl: { type: String }
+    rating: { type: Number, default: 5, min: 1, max: 5 },
+    imageUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-export default mongoose.model<ITestimonial>('Testimonial', TestimonialSchema);
+TestimonialSchema.index({ userId: 1, templateId: 1, createdAt: -1 });
+
+export default mongoose.model<ITestimonial>("Testimonial", TestimonialSchema);

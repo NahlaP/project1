@@ -1,32 +1,33 @@
 
 
-
-
-
-
-
-
-
+// og
 // // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\why-chooseS.js
 // "use client";
 
 // import React, { useEffect, useRef, useState } from "react";
 // import {
 //   Container, Row, Col, Card, Button, Form, Alert, Table,
-//   Toast, ToastContainer,
+//   Toast, ToastContainer,               // ⬅️ add
 // } from "react-bootstrap";
 // import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-// import { backendBaseUrl, userId, templateId } from "../../lib/config";
+// import { backendBaseUrl, userId, templateId, s3Bucket, s3Region } from "../../lib/config";
 // import BackBar from "../components/BackBar";
 
+// // API base: keep '' so /api is proxied by Next when backendBaseUrl is empty
 // const API = backendBaseUrl || "";
 
+// // Build a public S3 URL from a plain key (for instant preview)
+// const absFromKey = (key) =>
+//   key && s3Bucket && s3Region
+//     ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${String(key).replace(/^\/+/, "")}`
+//     : "";
+
+// // Helpers
 // const readErr = async (res) => {
 //   const txt = await res.text().catch(() => "");
 //   try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
 //   catch { return txt || `HTTP ${res.status}`; }
 // };
-
 // const isPresigned = (url) =>
 //   /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(String(url));
 // const bust = (url) => (!url || isPresigned(url) ? url : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`);
@@ -37,23 +38,25 @@
 //     stats: [],
 //     progressBars: [],
 //     bgOverlay: 0.5,
-//     bgImageUrl: "",   
+//     bgImageKey: "",    // S3 key to persist in DB
+//     displayUrl: "",    // absolute (pre-signed or public) URL for preview
 //   });
 
-//   // previews
-//   const [serverPreviewUrl, setServerPreviewUrl] = useState("");
+//   // draft image (preview-only until Save)
 //   const [draftFile, setDraftFile] = useState(null);
 //   const [draftPreviewUrl, setDraftPreviewUrl] = useState("");
 //   const lastObjUrlRef = useRef("");
 
 //   const [error, setError] = useState("");
 //   const [saving, setSaving] = useState(false);
-//   const [showToast, setShowToast] = useState(false);
 
-//   const GET_URL     = `${API}/api/whychoose/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-//   const PUT_URL     = GET_URL;
-//   const TOKEN_URL   = `${GET_URL}/upload-token`;     // same flow as hero/appointment
-//   const CLEAR_URL   = `${GET_URL}/clear-image`;      // mirrors hero/appointment clear
+//   // toast (floater)
+//   const [showToast, setShowToast] = useState(false);      // ⬅️ add
+
+//   const GET_URL = `${API}/api/whychoose/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+//   const PUT_URL = GET_URL;
+//   const UPLOAD_BG_URL = `${GET_URL}/bg`;
+//   const DELETE_BG_URL = `${GET_URL}/bg`;
 
 //   const loadData = async () => {
 //     setError("");
@@ -64,22 +67,24 @@
 //     if (!res.ok) throw new Error(await readErr(res));
 //     const j = await res.json();
 
-//     const url = j?.bgImageUrl || j?.bgImage || "";   // accept either field name
+//     // server returns: bgImageKey (key) and/or bgImageUrl (pre-signed URL)
+//     const serverKey = typeof j?.bgImageKey === "string" ? j.bgImageKey : "";
+//     const serverUrl = typeof j?.bgImageUrl === "string" ? j.bgImageUrl : absFromKey(serverKey);
+
 //     setState((p) => ({
 //       ...p,
 //       description: j?.description || "",
 //       stats: Array.isArray(j?.stats) ? j.stats : [],
 //       progressBars: Array.isArray(j?.progressBars) ? j.progressBars : [],
 //       bgOverlay: typeof j?.bgOverlay === "number" ? j.bgOverlay : 0.5,
-//       bgImageUrl: url || "",
+//       bgImageKey: serverKey,
+//       displayUrl: bust(serverUrl || ""),
 //     }));
-//     setServerPreviewUrl(bust(url || ""));
 //   };
 
 //   useEffect(() => { loadData().catch((e) => setError(String(e.message || e))); }, []);
-//   useEffect(() => () => { if (lastObjUrlRef.current) { try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {} } }, []);
 
-//   // ------- form helpers -------
+//   // ------- form change helpers -------
 //   const handleChange = (key, value) => setState((prev) => ({ ...prev, [key]: value }));
 //   const updateArray = (field, idx, key, value) => {
 //     const updated = [...(state[field] || [])];
@@ -94,64 +99,52 @@
 //     setState((p) => ({ ...p, [field]: updated }));
 //   };
 
-//   // ------- local pick (preview only) -------
+//   // ------- choose bg locally (preview only) -------
 //   const onPickLocalBg = (file) => {
 //     if (!file) return;
 //     if (file.size > 10 * 1024 * 1024) { setError("Image must be ≤ 10 MB"); return; }
 //     const url = URL.createObjectURL(file);
-//     if (lastObjUrlRef.current) { try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {} }
+//     if (lastObjUrlRef.current) {
+//       try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {}
+//     }
 //     lastObjUrlRef.current = url;
 //     setDraftFile(file);
 //     setDraftPreviewUrl(url);
 //     setError("");
 //   };
 
-//   // ------- cPanel upload -> returns PUBLIC URL -------
-//   const uploadViaCpanel = async (file) => {
-//     const meta = {
-//       filename: file.name,
-//       size: file.size,
-//       type: file.type || "application/octet-stream",
-//     };
-//     const m1 = await fetch(TOKEN_URL, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(meta),
-//     });
-//     if (!m1.ok) throw new Error(await readErr(m1));
-//     const { token, uploadUrl } = await m1.json();
-
-//     const fd = new FormData();
-//     fd.append("file", file);
-//     const m2 = await fetch(uploadUrl, {
-//       method: "POST",
-//       headers: { "X-ION7-Token": token },  // IMPORTANT header
-//       body: fd,
-//     });
-//     if (!m2.ok) throw new Error(await readErr(m2));
-//     const j = await m2.json();
-//     const url = j?.url || "";
-//     if (!/^https?:\/\//i.test(url)) throw new Error("cPanel upload did not return a public URL");
-//     return url;
-//   };
-
-//   // ------- save (text + arrays + overlay + public URL) -------
+//   // ------- save all (text + arrays + overlay + bgImageKey) -------
 //   const handleSave = async () => {
 //     setSaving(true); setError("");
 //     try {
-//       let urlToPersist = state.bgImageUrl || "";
+//       let keyToPersist = state.bgImageKey || "";
 
+//       // 1) If a new file was selected, upload it now and capture the S3 key
 //       if (draftFile) {
-//         urlToPersist = await uploadViaCpanel(draftFile);
+//         const form = new FormData();
+//         form.append("image", draftFile);
+//         const up = await fetch(UPLOAD_BG_URL, { method: "POST", body: form });
+//         if (!up.ok) throw new Error(await readErr(up));
+//         const uj = await up.json();
+
+//         const uploadedKey =
+//           uj?.result?.bgImageKey ||
+//           uj?.result?.bgImageUrl ||
+//           uj?.bgImageKey ||
+//           uj?.key ||
+//           "";
+
+//         if (!uploadedKey) throw new Error("Upload succeeded but no key was returned.");
+//         keyToPersist = uploadedKey;
 //       }
 
+//       // 2) Persist document (only the key, not the preview URL)
 //       const payload = {
 //         description: state.description,
 //         stats: state.stats,
 //         progressBars: state.progressBars,
 //         bgOverlay: state.bgOverlay,
-//         // backend accepts either; we send bgImageUrl to be explicit
-//         bgImageUrl: urlToPersist,
+//         bgImageKey: keyToPersist,
 //       };
 
 //       const put = await fetch(PUT_URL, {
@@ -161,12 +154,18 @@
 //       });
 //       if (!put.ok) throw new Error(await readErr(put));
 
+//       // 3) Refresh from server (to get fresh pre-signed URL if provided)
 //       await loadData();
 
-//       if (lastObjUrlRef.current) { try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {} lastObjUrlRef.current = ""; }
+//       // 4) Clear draft preview
+//       if (lastObjUrlRef.current) {
+//         try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {}
+//         lastObjUrlRef.current = "";
+//       }
 //       setDraftFile(null);
 //       setDraftPreviewUrl("");
 
+//       // 5) show floater ✅
 //       setShowToast(true);
 //     } catch (e) {
 //       setError(String(e.message || e));
@@ -178,15 +177,14 @@
 //   const handleDeleteBg = async () => {
 //     setError("");
 //     try {
-      
-//       let res = await fetch(CLEAR_URL, { method: "POST" });
-//       if (!res.ok) {
-    
-//         res = await fetch(`${GET_URL}/bg`, { method: "DELETE" });
-//       }
+//       const res = await fetch(DELETE_BG_URL, { method: "DELETE" });
 //       if (!res.ok) throw new Error(await readErr(res));
-//       await loadData();
-//       if (lastObjUrlRef.current) { try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {} lastObjUrlRef.current = ""; }
+//       await res.json();
+//       setState((p) => ({ ...p, bgImageKey: "", displayUrl: "" }));
+//       if (lastObjUrlRef.current) {
+//         try { URL.revokeObjectURL(lastObjUrlRef.current); } catch {}
+//         lastObjUrlRef.current = "";
+//       }
 //       setDraftFile(null);
 //       setDraftPreviewUrl("");
 //     } catch (e) {
@@ -199,12 +197,13 @@
 //     catch (e) { setError(String(e.message || e)); }
 //   };
 
-//   const previewBg = draftPreviewUrl || serverPreviewUrl;
+//   const previewBg = draftPreviewUrl || state.displayUrl;
 
 //   return (
 //     <Container fluid className="py-4">
 //       <Row><Col><h4 className="fw-bold">🏆 Why Choose Us Section</h4> <BackBar /></Col></Row>
 
+//       {/* keep only error alerts */}
 //       {error && <Alert variant="danger" style={{ whiteSpace: "pre-wrap" }}>{error}</Alert>}
 
 //       {/* Preview */}
@@ -278,7 +277,7 @@
 //             <Form.Group>
 //               <Form.Label>Background Image</Form.Label>
 //               <div className="d-flex gap-2">
-//                 {/* preview-only; upload occurs on Save via cPanel */}
+//                 {/* preview-only; upload occurs on Save */}
 //                 <Form.Control
 //                   type="file"
 //                   accept="image/*"
@@ -300,7 +299,7 @@
 //                 </div>
 //               )}
 //               <div className="small text-muted mt-1">
-//                 <strong>Stored URL:</strong> {state.bgImageUrl || "(none)"}{" "}
+//                 <strong>Stored key:</strong> {state.bgImageKey || "(none)"}{" "}
 //                 {draftPreviewUrl && <em className="ms-2">(Draft selected – not saved yet)</em>}
 //               </div>
 //             </Form.Group>
@@ -340,14 +339,14 @@
 //               <tr key={i}>
 //                 <td>
 //                   <Form.Control
-//                     value={s.label || ""}
+//                     value={s.label}
 //                     onChange={(e) => updateArray("stats", i, "label", e.target.value)}
 //                   />
 //                 </td>
 //                 <td>
 //                   <Form.Control
 //                     type="number"
-//                     value={s.value ?? 0}
+//                     value={s.value}
 //                     onChange={(e) => updateArray("stats", i, "value", e.target.value)}
 //                   />
 //                 </td>
@@ -376,14 +375,14 @@
 //               <tr key={i}>
 //                 <td>
 //                   <Form.Control
-//                     value={b.label || ""}
+//                     value={b.label}
 //                     onChange={(e) => updateArray("progressBars", i, "label", e.target.value)}
 //                   />
 //                 </td>
 //                 <td>
 //                   <Form.Control
 //                     type="number"
-//                     value={b.percent ?? 0}
+//                     value={b.percent}
 //                     onChange={(e) => updateArray("progressBars", i, "percent", e.target.value)}
 //                   />
 //                 </td>
@@ -409,8 +408,15 @@
 //         </div>
 //       </Card>
 
+//       {/* Floating toast (floater) */}
 //       <ToastContainer position="bottom-end" className="p-3">
-//         <Toast bg="success" onClose={() => setShowToast(false)} show={showToast} delay={2200} autohide>
+//         <Toast
+//           bg="success"
+//           onClose={() => setShowToast(false)}
+//           show={showToast}
+//           delay={2200}
+//           autohide
+//         >
 //           <Toast.Body className="text-white">✅ Saved successfully.</Toast.Body>
 //         </Toast>
 //       </ToastContainer>
@@ -436,16 +442,26 @@
 
 
 
+
+
+
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\why-chooseS.js
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import {
   Container, Row, Col, Card, Button, Form, Alert, Table,
-  Toast, ToastContainer,               // ⬅️ add
+  Toast, ToastContainer,
 } from "react-bootstrap";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-import { backendBaseUrl, userId, templateId, s3Bucket, s3Region } from "../../lib/config";
+import {
+  backendBaseUrl,
+  userId as defaultUserId,
+  templateId as defaultTemplateId,
+  s3Bucket,
+  s3Region,
+} from "../../lib/config";
+import { api } from "../../lib/api";
 import BackBar from "../components/BackBar";
 
 // API base: keep '' so /api is proxied by Next when backendBaseUrl is empty
@@ -460,14 +476,55 @@ const absFromKey = (key) =>
 // Helpers
 const readErr = async (res) => {
   const txt = await res.text().catch(() => "");
-  try { const j = JSON.parse(txt); return j?.error || j?.message || txt || `HTTP ${res.status}`; }
-  catch { return txt || `HTTP ${res.status}`; }
+  try {
+    const j = JSON.parse(txt);
+    return j?.error || j?.message || txt || `HTTP ${res.status}`;
+  } catch {
+    return txt || `HTTP ${res.status}`;
+  }
 };
 const isPresigned = (url) =>
   /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(String(url));
 const bust = (url) => (!url || isPresigned(url) ? url : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`);
 
+/** Resolve templateId in this order:
+ *  1) ?templateId=… in URL
+ *  2) backend-selected template for the user
+ *  3) config fallback (legacy)
+ */
+function useResolvedTemplateId(userId) {
+  const [tpl, setTpl] = useState("");
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      // 1) URL param
+      const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const fromUrl = sp?.get("templateId")?.trim();
+      if (fromUrl) {
+        if (!off) setTpl(fromUrl);
+        return;
+      }
+      // 2) Backend-selected
+      try {
+        const sel = await api.selectedTemplateForUser(userId);
+        const t = sel?.data?.templateId;
+        if (t && !off) {
+          setTpl(t);
+          return;
+        }
+      } catch {}
+      // 3) Fallback
+      if (!off) setTpl(defaultTemplateId || "gym-template-1");
+    })();
+    return () => { off = true; };
+  }, [userId]);
+  return tpl;
+}
+
 function WhyChooseEditorPage() {
+  const userId = defaultUserId;
+  const templateId = useResolvedTemplateId(userId);
+
   const [state, setState] = useState({
     description: "",
     stats: [],
@@ -486,14 +543,17 @@ function WhyChooseEditorPage() {
   const [saving, setSaving] = useState(false);
 
   // toast (floater)
-  const [showToast, setShowToast] = useState(false);      // ⬅️ add
+  const [showToast, setShowToast] = useState(false);
 
-  const GET_URL = `${API}/api/whychoose/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+  const GET_URL = templateId
+    ? `${API}/api/whychoose/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
+    : "";
   const PUT_URL = GET_URL;
-  const UPLOAD_BG_URL = `${GET_URL}/bg`;
-  const DELETE_BG_URL = `${GET_URL}/bg`;
+  const UPLOAD_BG_URL = GET_URL ? `${GET_URL}/bg` : "";
+  const DELETE_BG_URL = GET_URL ? `${GET_URL}/bg` : "";
 
   const loadData = async () => {
+    if (!GET_URL) return;
     setError("");
     const res = await fetch(`${GET_URL}?t=${Date.now()}`, {
       headers: { Accept: "application/json" },
@@ -517,7 +577,12 @@ function WhyChooseEditorPage() {
     }));
   };
 
-  useEffect(() => { loadData().catch((e) => setError(String(e.message || e))); }, []);
+  // load whenever the effective templateId changes
+  useEffect(() => {
+    if (!templateId) return;
+    loadData().catch((e) => setError(String(e.message || e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId]);
 
   // ------- form change helpers -------
   const handleChange = (key, value) => setState((prev) => ({ ...prev, [key]: value }));
@@ -550,6 +615,7 @@ function WhyChooseEditorPage() {
 
   // ------- save all (text + arrays + overlay + bgImageKey) -------
   const handleSave = async () => {
+    if (!PUT_URL) return;
     setSaving(true); setError("");
     try {
       let keyToPersist = state.bgImageKey || "";
@@ -564,7 +630,6 @@ function WhyChooseEditorPage() {
 
         const uploadedKey =
           uj?.result?.bgImageKey ||
-          uj?.result?.bgImageUrl ||
           uj?.bgImageKey ||
           uj?.key ||
           "";
@@ -610,6 +675,7 @@ function WhyChooseEditorPage() {
   };
 
   const handleDeleteBg = async () => {
+    if (!DELETE_BG_URL) return;
     setError("");
     try {
       const res = await fetch(DELETE_BG_URL, { method: "DELETE" });
@@ -837,7 +903,7 @@ function WhyChooseEditorPage() {
         </Table>
 
         <div className="text-end">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !templateId}>
             {saving ? "Saving…" : "💾 Save Changes"}
           </Button>
         </div>
@@ -864,6 +930,16 @@ WhyChooseEditorPage.getLayout = (page) => (
 );
 
 export default WhyChooseEditorPage;
+
+
+
+
+
+
+
+
+
+
 
 
 

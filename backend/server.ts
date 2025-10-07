@@ -2,7 +2,10 @@
 
 
 
-// // cpanel
+
+
+
+// // cpanel and aws
 // // server.ts
 // import "dotenv/config";
 // import express from "express";
@@ -22,9 +25,9 @@
 
 // // ---------- CORS (allow-list) ----------
 // const allowList: (RegExp | string)[] = [
-//   /^https?:\/\/([a-z0-9-]+\.)*mavsketch\.com(:\d+)?$/i, // new cPanel domain(s)
-//   // keep old temporarily if needed:
-//   // /^https?:\/\/([a-z0-9-]+\.)*sogimchurch\.com(:\d+)?$/i,
+//   /^https?:\/\/([a-z0-9-]+\.)*mavsketch\.com(:\d+)?$/i,
+//   // add your public EC2 IP:
+//   /^https?:\/\/3\.109\.207\.179(:\d+)?$/i,
 //   /^http:\/\/localhost(:\d+)?$/i,
 //   /\.vercel\.app$/i,
 // ];
@@ -49,6 +52,7 @@
 // // ---------- Body parsers & limits ----------
 // app.use(express.json({ limit: "50mb" }));
 // app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
 // // ------------------------------------------
 
 // // ---------- Ensure local upload dir exists (if you use multer/temp) ----------
@@ -154,6 +158,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // cpanel and aws
 // server.ts
 import "dotenv/config";
@@ -178,6 +197,9 @@ const allowList: (RegExp | string)[] = [
   // add your public EC2 IP:
   /^https?:\/\/3\.109\.207\.179(:\d+)?$/i,
   /^http:\/\/localhost(:\d+)?$/i,
+    /^http:\/\/127\.0\.0\.1(:3000|:5000|:5500|:5501|:5173)?$/i,
+  /^http:\/\/localhost(:3000|:5000|:5500|:5501|:5173)?$/i,
+
   /\.vercel\.app$/i,
 ];
 
@@ -242,6 +264,7 @@ function safeMount(prefix: string, loader: () => any) {
 }
 
 // ---------- API routes (lazy require for clearer errors) ----------
+safeMount("/api/templates", () => require("./routes/template.routes"));
 safeMount("/api/upload",      () => require("./routes/upload.routes"));
 safeMount("/api/auth",        () => require("./routes/auth.routes"));
 safeMount("/api/sections",    () => require("./routes/section.routes"));
@@ -255,6 +278,12 @@ safeMount("/api/appointment", () => require("./routes/appointment.routes"));
 safeMount("/api/team",        () => require("./routes/team.routes"));
 safeMount("/api/testimonial", () => require("./routes/testimonial.routes"));
 safeMount("/api/contact-info",() => require("./routes/contact.routes"));
+safeMount("/api/projects",     () => require("./routes/projects.routes"));
+safeMount("/api/marquee", () => require("./routes/marquee.routes"));
+safeMount("/api/brands",     () => require("./routes/brands.routes"));
+safeMount("/api/blogs", () => require("./routes/blogs.routes"));
+safeMount("/api/footer", () => require("./routes/footer.routes"));
+
 safeMount("/api",             () => require("./routes/page.routes"));
 // ----------------------------------
 

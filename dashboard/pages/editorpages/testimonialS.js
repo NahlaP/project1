@@ -1,111 +1,58 @@
 
 
 
-// // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\testimonialS.js
+
+
 // 'use client';
 
 // import React, { useEffect, useState } from 'react';
 // import {
-//   Container, Row, Col, Card, Form, Button, Table, Alert, Image,
+//   Container,
+//   Row,
+//   Col,
+//   Card,
+//   Form,
+//   Button,
+//   Table,
+//   Alert,
+//   Image,
 // } from 'react-bootstrap';
 // import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
 // import { backendBaseUrl as backendUrl, userId, templateId } from '../../lib/config';
 // import BackBar from "../components/BackBar";
-
-// // ------------ helpers -------------
-// const readErr = async (res) => {
-//   const t = await res.text().catch(() => '');
-//   try { const j = JSON.parse(t); return j?.error || j?.message || t || `HTTP ${res.status}`; }
-//   catch { return t || `HTTP ${res.status}`; }
-// };
-
 // function TestimonialEditor() {
 //   const [items, setItems] = useState([]);
 //   const [success, setSuccess] = useState('');
 //   const [error, setError] = useState('');
 //   const [loading, setLoading] = useState(false);
-
 //   const [form, setForm] = useState({
-//     name: '', profession: '', message: '', rating: 5,
+//     name: '',
+//     profession: '',
+//     message: '',
+//     rating: 5,
 //   });
-
 //   const [imageFile, setImageFile] = useState(null);
 //   const [editingId, setEditingId] = useState(null);
 //   const [editingImageFile, setEditingImageFile] = useState(null);
 
-//   useEffect(() => { fetchTestimonials(); }, []);
+//   useEffect(() => {
+//     fetchTestimonials();
+//   }, []);
 
 //   const fetchTestimonials = async () => {
 //     try {
-//       const res = await fetch(`${backendUrl}/api/testimonial/${userId}/${templateId}`, {
-//         headers: { Accept: 'application/json' },
-//         cache: 'no-store',
-//       });
-//       if (!res.ok) throw new Error(await readErr(res));
+//       const res = await fetch(`${backendUrl}/api/testimonial/${userId}/${templateId}`);
 //       const data = await res.json();
-//       setItems(Array.isArray(data) ? data : (data?.items || []));
+//       setItems(Array.isArray(data) ? data : []);
 //     } catch (e) {
 //       console.error(e);
 //       setError('Failed to load testimonials');
 //     }
 //   };
 
-//   const resetAlerts = () => { setSuccess(''); setError(''); };
-
-//   /** Get short-lived upload token + uploadUrl from backend */
-//   const getUploadToken = async (filename, type, size) => {
-//     const res = await fetch(
-//       `${backendUrl}/api/testimonial/${userId}/${templateId}/upload-token`,
-//       {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-//         body: JSON.stringify({ filename, type, size }),
-//       }
-//     );
-//     const j = await res.json().catch(() => ({}));
-//     if (!res.ok) throw new Error(j?.error || 'Failed to get upload token');
-//     // { token, uploadUrl, expiresIn }
-//     return j;
-//   };
-
-//   /** Upload file to cPanel using token + uploadUrl (robust across hosts) */
-//   const uploadToCpanel = async (file, token, uploadUrl) => {
-//     const fd = new FormData();
-//     fd.append('file', file);
-//     fd.append('token', token); // body fallback
-
-//     // also include token in URL as a fallback
-//     const urlWithToken =
-//       uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
-
-//     const res = await fetch(urlWithToken, {
-//       method: 'POST',
-//       headers: {
-//         Authorization: `Bearer ${token}`, // primary
-//         'X-ION7-Token': token,            // alternate header (some hosts drop Authorization)
-//       },
-//       body: fd,
-//     });
-//     const j = await res.json().catch(() => ({}));
-//     if (!res.ok || !j?.url) throw new Error(j?.error || 'cPanel upload failed');
-//     // e.g. https://ion7.mavsketch.com/uploads/YYYY/MM/xxxxx.jpg
-//     return j.url;
-//   };
-
-//   /** Create/Update on backend using JSON payload */
-//   const saveJson = async (payload, id = null) => {
-//     const url = id
-//       ? `${backendUrl}/api/testimonial/${id}`
-//       : `${backendUrl}/api/testimonial/${userId}/${templateId}`;
-//     const method = id ? 'PATCH' : 'POST';
-//     const res = await fetch(url, {
-//       method,
-//       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-//       body: JSON.stringify(payload),
-//     });
-//     const j = await res.json().catch(() => ({}));
-//     if (!res.ok) throw new Error(j?.message || 'Save failed');
-//     return j?.data || j;
+//   const resetAlerts = () => {
+//     setSuccess('');
+//     setError('');
 //   };
 
 //   const handleAdd = async () => {
@@ -117,29 +64,28 @@
 
 //     try {
 //       setLoading(true);
+//       const fd = new FormData();
+//       fd.append('name', form.name);
+//       fd.append('profession', form.profession);
+//       fd.append('message', form.message);
+//       fd.append('rating', String(form.rating));
+//       if (imageFile) fd.append('image', imageFile);
 
-//       let imageUrl = '';
-//       if (imageFile) {
-//         const { token, uploadUrl } =
-//           await getUploadToken(imageFile.name, imageFile.type, imageFile.size);
-//         imageUrl = await uploadToCpanel(imageFile, token, uploadUrl);
-//       }
-
-//       const saved = await saveJson({
-//         name: form.name,
-//         profession: form.profession,
-//         message: form.message,
-//         rating: Number(form.rating) || 5,
-//         imageUrl, // optional
+//       const res = await fetch(`${backendUrl}/api/testimonial/${userId}/${templateId}`, {
+//         method: 'POST',
+//         body: fd,
 //       });
 
-//       setItems((prev) => [saved, ...prev]);
+//       if (!res.ok) throw new Error(await res.text());
+//       const data = await res.json();
+//       setItems((prev) => [data, ...prev]);
+
 //       setForm({ name: '', profession: '', message: '', rating: 5 });
 //       setImageFile(null);
 //       setSuccess('✅ Testimonial added');
 //     } catch (e) {
 //       console.error(e);
-//       setError(e?.message || 'Failed to add testimonial');
+//       setError('Failed to add testimonial');
 //     } finally {
 //       setLoading(false);
 //     }
@@ -155,7 +101,7 @@
 //     setEditingId(item._id);
 //     setEditingImageFile(null);
 //     setImageFile(null);
-//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//     window.scrollTo(0, 0);
 //   };
 
 //   const handleEdit = async () => {
@@ -167,25 +113,22 @@
 
 //     try {
 //       setLoading(true);
+//       const fd = new FormData();
+//       fd.append('name', form.name);
+//       fd.append('profession', form.profession);
+//       fd.append('message', form.message);
+//       fd.append('rating', String(form.rating));
+//       if (editingImageFile) fd.append('image', editingImageFile);
 
-//       let imageUrl;
-//       if (editingImageFile) {
-//         const { token, uploadUrl } =
-//           await getUploadToken(editingImageFile.name, editingImageFile.type, editingImageFile.size);
-//         imageUrl = await uploadToCpanel(editingImageFile, token, uploadUrl);
-//       }
+//       const res = await fetch(`${backendUrl}/api/testimonial/${editingId}`, {
+//         method: 'PATCH',
+//         body: fd,
+//       });
 
-//       const payload = {
-//         name: form.name,
-//         profession: form.profession,
-//         message: form.message,
-//         rating: Number(form.rating) || 5,
-//       };
-//       if (imageUrl) payload.imageUrl = imageUrl;
+//       if (!res.ok) throw new Error(await res.text());
+//       const updated = await res.json();
+//       setItems((prev) => prev.map((item) => (item._id === editingId ? updated : item)));
 
-//       const updated = await saveJson(payload, editingId);
-
-//       setItems((prev) => prev.map((t) => (t._id === editingId ? updated : t)));
 //       setSuccess('✅ Testimonial updated');
 //       setForm({ name: '', profession: '', message: '', rating: 5 });
 //       setImageFile(null);
@@ -193,7 +136,7 @@
 //       setEditingId(null);
 //     } catch (e) {
 //       console.error(e);
-//       setError(e?.message || 'Failed to update testimonial');
+//       setError('Failed to update testimonial');
 //     } finally {
 //       setLoading(false);
 //     }
@@ -212,17 +155,11 @@
 //     }
 //   };
 
-//   const imgSrc = (url) =>
-//     url?.startsWith('http')
-//       ? url
-//       : `${backendUrl}${url?.startsWith('/') ? '' : '/'}${url || ''}`;
-
-//   return (
+//   const imgSrc = (url) => (url?.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`);
+// return (
 //     <Container fluid className="py-4">
 //       <Row>
-//         <Col>
-//           <h4 className="fw-bold">⭐ Testimonial Section Editor</h4> <BackBar />
-//         </Col>
+//         <Col><h4 className="fw-bold">⭐ Testimonial Section Editor</h4>  <BackBar /></Col>
 //       </Row>
 
 //       {/* Preview Section */}
@@ -233,11 +170,7 @@
 //             <div className="d-flex flex-wrap gap-4">
 //               {items.length === 0 && <span className="text-muted">No testimonials yet.</span>}
 //               {items.map((t) => (
-//                 <div
-//                   key={t._id}
-//                   className="border rounded p-3 bg-white shadow-sm"
-//                   style={{ width: '300px' }}
-//                 >
+//                 <div key={t._id} className="border rounded p-3 bg-white shadow-sm" style={{ width: '300px' }}>
 //                   {t.imageUrl && (
 //                     <Image
 //                       src={imgSrc(t.imageUrl)}
@@ -246,18 +179,17 @@
 //                       height={80}
 //                       roundedCircle
 //                       className="mb-2"
-//                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
 //                     />
 //                   )}
 //                   <h6 className="mb-1">{t.name}</h6>
 //                   <small className="text-muted">{t.profession}</small>
 //                   <p className="mt-2 mb-1">{t.message}</p>
 //                   <div className="text-warning">
-//                     {Array.from({ length: t.rating || 0 }).map((_, i) => (
-//                       <i key={`f-${t._id}-${i}`} className="fas fa-star"></i>
+//                     {Array.from({ length: t.rating }).map((_, i) => (
+//                       <i key={i} className="fas fa-star"></i>
 //                     ))}
-//                     {Array.from({ length: Math.max(0, 5 - (t.rating || 0)) }).map((_, i) => (
-//                       <i key={`e-${t._id}-${i}`} className="far fa-star"></i>
+//                     {Array.from({ length: 5 - t.rating }).map((_, i) => (
+//                       <i key={i} className="far fa-star"></i>
 //                     ))}
 //                   </div>
 //                 </div>
@@ -320,24 +252,18 @@
 //                     : setImageFile(e.target.files?.[0] || null)
 //                 }
 //               />
-//               <div className="form-text">Max 10MB.</div>
 //             </Form.Group>
 
 //             <Button onClick={editingId ? handleEdit : handleAdd} disabled={loading}>
 //               {loading ? 'Saving…' : editingId ? '✏️ Update Testimonial' : '➕ Add Testimonial'}
 //             </Button>
 //             {editingId && (
-//               <Button
-//                 variant="secondary"
-//                 className="ms-2"
-//                 onClick={() => {
-//                   setEditingId(null);
-//                   setForm({ name: '', profession: '', message: '', rating: 5 });
-//                   setImageFile(null);
-//                   setEditingImageFile(null);
-//                 }}
-//                 disabled={loading}
-//               >
+//               <Button variant="secondary" className="ms-2" onClick={() => {
+//                 setEditingId(null);
+//                 setForm({ name: '', profession: '', message: '', rating: 5 });
+//                 setImageFile(null);
+//                 setEditingImageFile(null);
+//               }}>
 //                 Cancel
 //               </Button>
 //             )}
@@ -359,11 +285,7 @@
 //           </thead>
 //           <tbody>
 //             {items.length === 0 ? (
-//               <tr>
-//                 <td colSpan={6} className="text-center text-muted">
-//                   No testimonials yet.
-//                 </td>
-//               </tr>
+//               <tr><td colSpan={6} className="text-center text-muted">No testimonials yet.</td></tr>
 //             ) : (
 //               items.map((t) => (
 //                 <tr key={t._id}>
@@ -375,7 +297,7 @@
 //                         width={60}
 //                         height={60}
 //                         roundedCircle
-//                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
+//                         onError={(e) => { e.target.style.display = 'none'; }}
 //                       />
 //                     ) : (
 //                       <span className="text-muted">No image</span>
@@ -386,19 +308,10 @@
 //                   <td>{t.message}</td>
 //                   <td>{t.rating}</td>
 //                   <td>
-//                     <Button
-//                       variant="warning"
-//                       size="sm"
-//                       className="me-2"
-//                       onClick={() => handleEditStart(t)}
-//                     >
+//                     <Button variant="warning" size="sm" className="me-2" onClick={() => handleEditStart(t)}>
 //                       Edit
 //                     </Button>
-//                     <Button
-//                       variant="danger"
-//                       size="sm"
-//                       onClick={() => handleDelete(t._id)}
-//                     >
+//                     <Button variant="danger" size="sm" onClick={() => handleDelete(t._id)}>
 //                       Delete
 //                     </Button>
 //                   </td>
@@ -424,21 +337,10 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\testimonialS.js
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Container,
   Row,
@@ -451,9 +353,68 @@ import {
   Image,
 } from 'react-bootstrap';
 import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
-import { backendBaseUrl as backendUrl, userId, templateId } from '../../lib/config';
+import {
+  backendBaseUrl as backendUrl,
+  userId as defaultUserId,
+  templateId as defaultTemplateId,
+} from '../../lib/config';
+import { api } from '../../lib/api';
 import BackBar from "../components/BackBar";
+
+/** Resolve templateId in this order:
+ *  1) ?templateId=… in URL
+ *  2) backend-selected template for the user
+ *  3) config fallback (legacy)
+ */
+function useResolvedTemplateId(userId) {
+  const [tpl, setTpl] = useState('');
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      // 1) URL param
+      const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const fromUrl = sp?.get('templateId')?.trim();
+      if (fromUrl) {
+        if (!off) setTpl(fromUrl);
+        return;
+      }
+      // 2) Backend-selected
+      try {
+        const sel = await api.selectedTemplateForUser(userId);
+        const t = sel?.data?.templateId;
+        if (t && !off) {
+          setTpl(t);
+          return;
+        }
+      } catch {}
+      // 3) Fallback
+      if (!off) setTpl(defaultTemplateId || 'gym-template-1');
+    })();
+    return () => {
+      off = true;
+    };
+  }, [userId]);
+  return tpl;
+}
+
+// Helper to get a presigned URL for a stored S3 key
+async function presignKey(key) {
+  if (!key) return '';
+  try {
+    const res = await fetch(
+      `${backendUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`
+    );
+    const json = await res.json().catch(() => ({}));
+    return json?.url || json?.signedUrl || '';
+  } catch {
+    return '';
+  }
+}
+
 function TestimonialEditor() {
+  const userId = defaultUserId;
+  const templateId = useResolvedTemplateId(userId);
+
   const [items, setItems] = useState([]);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -468,24 +429,62 @@ function TestimonialEditor() {
   const [editingId, setEditingId] = useState(null);
   const [editingImageFile, setEditingImageFile] = useState(null);
 
+  const resetAlerts = () => {
+    setSuccess('');
+    setError('');
+  };
+
+  const imgDisplayUrl = useMemo(
+    () => async (item) => {
+      // If backend already returned a full URL, use it
+      if (item?.imageUrl && /^https?:\/\//i.test(item.imageUrl)) return item.imageUrl;
+
+      // If we have an S3 key (imageKey or non-absolute imageUrl), presign it
+      const maybeKey =
+        item?.imageKey ||
+        (item?.imageUrl && !/^https?:\/\//i.test(item.imageUrl) ? item.imageUrl : '');
+
+      if (maybeKey) {
+        const url = await presignKey(maybeKey);
+        if (url) return url;
+      }
+
+      // Legacy /uploads fallback
+      if (typeof item?.imageUrl === 'string' && item.imageUrl.startsWith('/uploads/')) {
+        return `${backendUrl}${item.imageUrl}`;
+      }
+
+      return '';
+    },
+    []
+  );
+
   useEffect(() => {
+    if (!templateId) return;
     fetchTestimonials();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId]);
 
   const fetchTestimonials = async () => {
     try {
-      const res = await fetch(`${backendUrl}/api/testimonial/${userId}/${templateId}`);
+      const res = await fetch(
+        `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
+      );
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      const arr = Array.isArray(data) ? data : [];
+
+      // Attach displayUrl per item
+      const withUrls = await Promise.all(
+        arr.map(async (t) => ({
+          ...t,
+          displayUrl: await imgDisplayUrl(t),
+        }))
+      );
+      setItems(withUrls);
     } catch (e) {
       console.error(e);
       setError('Failed to load testimonials');
     }
-  };
-
-  const resetAlerts = () => {
-    setSuccess('');
-    setError('');
   };
 
   const handleAdd = async () => {
@@ -504,14 +503,18 @@ function TestimonialEditor() {
       fd.append('rating', String(form.rating));
       if (imageFile) fd.append('image', imageFile);
 
-      const res = await fetch(`${backendUrl}/api/testimonial/${userId}/${templateId}`, {
-        method: 'POST',
-        body: fd,
-      });
+      const res = await fetch(
+        `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
+        { method: 'POST', body: fd }
+      );
 
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      setItems((prev) => [data, ...prev]);
+
+      // Normalize and add displayUrl
+      const newItem = { ...(data?.data || data) };
+      newItem.displayUrl = await imgDisplayUrl(newItem);
+      setItems((prev) => [newItem, ...prev]);
 
       setForm({ name: '', profession: '', message: '', rating: 5 });
       setImageFile(null);
@@ -553,14 +556,19 @@ function TestimonialEditor() {
       fd.append('rating', String(form.rating));
       if (editingImageFile) fd.append('image', editingImageFile);
 
-      const res = await fetch(`${backendUrl}/api/testimonial/${editingId}`, {
+      const res = await fetch(`${backendUrl}/api/testimonial/${encodeURIComponent(editingId)}`, {
         method: 'PATCH',
         body: fd,
       });
 
       if (!res.ok) throw new Error(await res.text());
       const updated = await res.json();
-      setItems((prev) => prev.map((item) => (item._id === editingId ? updated : item)));
+
+      // Refresh display url
+      const up = { ...(updated?.data || updated) };
+      up.displayUrl = await imgDisplayUrl(up);
+
+      setItems((prev) => prev.map((it) => (it._id === editingId ? up : it)));
 
       setSuccess('✅ Testimonial updated');
       setForm({ name: '', profession: '', message: '', rating: 5 });
@@ -578,7 +586,9 @@ function TestimonialEditor() {
   const handleDelete = async (id) => {
     resetAlerts();
     try {
-      const res = await fetch(`${backendUrl}/api/testimonial/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${backendUrl}/api/testimonial/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) throw new Error('Delete failed');
       setItems((prev) => prev.filter((t) => t._id !== id));
       setSuccess('🗑️ Testimonial deleted');
@@ -588,11 +598,13 @@ function TestimonialEditor() {
     }
   };
 
-  const imgSrc = (url) => (url?.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`);
-return (
+  return (
     <Container fluid className="py-4">
       <Row>
-        <Col><h4 className="fw-bold">⭐ Testimonial Section Editor</h4>  <BackBar /></Col>
+        <Col>
+          <h4 className="fw-bold">⭐ Testimonial Section Editor</h4>
+          <BackBar />
+        </Col>
       </Row>
 
       {/* Preview Section */}
@@ -604,24 +616,25 @@ return (
               {items.length === 0 && <span className="text-muted">No testimonials yet.</span>}
               {items.map((t) => (
                 <div key={t._id} className="border rounded p-3 bg-white shadow-sm" style={{ width: '300px' }}>
-                  {t.imageUrl && (
+                  {t.displayUrl ? (
                     <Image
-                      src={imgSrc(t.imageUrl)}
+                      src={t.displayUrl}
                       alt={t.name}
                       width={80}
                       height={80}
                       roundedCircle
                       className="mb-2"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
-                  )}
+                  ) : null}
                   <h6 className="mb-1">{t.name}</h6>
                   <small className="text-muted">{t.profession}</small>
                   <p className="mt-2 mb-1">{t.message}</p>
                   <div className="text-warning">
-                    {Array.from({ length: t.rating }).map((_, i) => (
+                    {Array.from({ length: t.rating || 0 }).map((_, i) => (
                       <i key={i} className="fas fa-star"></i>
                     ))}
-                    {Array.from({ length: 5 - t.rating }).map((_, i) => (
+                    {Array.from({ length: Math.max(0, 5 - (t.rating || 0)) }).map((_, i) => (
                       <i key={i} className="far fa-star"></i>
                     ))}
                   </div>
@@ -687,16 +700,20 @@ return (
               />
             </Form.Group>
 
-            <Button onClick={editingId ? handleEdit : handleAdd} disabled={loading}>
+            <Button onClick={editingId ? handleEdit : handleAdd} disabled={loading || !templateId}>
               {loading ? 'Saving…' : editingId ? '✏️ Update Testimonial' : '➕ Add Testimonial'}
             </Button>
             {editingId && (
-              <Button variant="secondary" className="ms-2" onClick={() => {
-                setEditingId(null);
-                setForm({ name: '', profession: '', message: '', rating: 5 });
-                setImageFile(null);
-                setEditingImageFile(null);
-              }}>
+              <Button
+                variant="secondary"
+                className="ms-2"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm({ name: '', profession: '', message: '', rating: 5 });
+                  setImageFile(null);
+                  setEditingImageFile(null);
+                }}
+              >
                 Cancel
               </Button>
             )}
@@ -722,31 +739,33 @@ return (
             ) : (
               items.map((t) => (
                 <tr key={t._id}>
-                  <td>
-                    {t.imageUrl ? (
+                  <td className="align-middle">
+                    {t.displayUrl ? (
                       <Image
-                        src={imgSrc(t.imageUrl)}
+                        src={t.displayUrl}
                         alt={t.name}
                         width={60}
                         height={60}
                         roundedCircle
-                        onError={(e) => { e.target.style.display = 'none'; }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     ) : (
                       <span className="text-muted">No image</span>
                     )}
                   </td>
-                  <td>{t.name}</td>
-                  <td>{t.profession}</td>
-                  <td>{t.message}</td>
-                  <td>{t.rating}</td>
-                  <td>
-                    <Button variant="warning" size="sm" className="me-2" onClick={() => handleEditStart(t)}>
-                      Edit
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => handleDelete(t._id)}>
-                      Delete
-                    </Button>
+                  <td className="align-middle">{t.name}</td>
+                  <td className="align-middle">{t.profession}</td>
+                  <td className="align-middle">{t.message}</td>
+                  <td className="align-middle">{t.rating}</td>
+                  <td className="align-middle">
+                    <div className="d-flex gap-2 flex-wrap">
+                      <Button variant="warning" size="sm" onClick={() => handleEditStart(t)}>
+                        Edit
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => handleDelete(t._id)}>
+                        Delete
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -763,7 +782,3 @@ TestimonialEditor.getLayout = (page) => (
 );
 
 export default TestimonialEditor;
-
-
-
-

@@ -2,700 +2,508 @@
 
 
 
-
-
-
-
-// cpanel
-// (() => {
-//   'use strict';
-
-//   // -----------------------------------------
-//   // CONFIG
-//   // -----------------------------------------
-//   const userId = "demo-user";
-//   const templateId = "gym-template-1";
-
-//   // Base (https://ion7.mavsketch.com) — can be overridden by setting window.CPANEL_BASE in HTML
-//   const CPANEL_BASE = (window.CPANEL_BASE || `${location.protocol}//${location.host}`).replace(/\/+$/, "");
-
-//   // Our PHP proxy on cPanel that calls the EC2 backend server-side
-//   const API_PROXY = `${CPANEL_BASE}/api-proxy.php`;
-
-//   // Map of section names -> API path (we append /:userId/:templateId when fetching)
-//   const sectionApiMap = {
-//     hero:           `${API_PROXY}?path=/hero`,
-//     about:          `${API_PROXY}?path=/about`,
-//     whychooseus:    `${API_PROXY}?path=/whychoose`,
-//     services:       `${API_PROXY}?path=/services`,
-//     appointment:    `${API_PROXY}?path=/appointment`,
-//     team:           `${API_PROXY}?path=/team`,
-//     testimonials:   `${API_PROXY}?path=/testimonial`,
-//     contact:        `${API_PROXY}?path=/contact-info`,
-//   };
-
-//   // -----------------------------------------
-//   // HELPERS
-//   // -----------------------------------------
-//   const qs = (sel) => document.querySelector(sel);
-
-//   function urlWithTs(url) {
-//     const sep = url.includes("?") ? "&" : "?";
-//     return `${url}${sep}v=${Date.now()}`;
-//   }
-
-//   async function getJson(url) {
-//     const res = await fetch(urlWithTs(url), { cache: "no-store", headers: { Accept: "application/json" } });
-//     if (!res.ok) throw new Error(`${url} HTTP ${res.status}`);
-//     return res.json();
-//   }
-
-//   const isHttp = (u) => /^https?:\/\//i.test(u || "");
-//   const withCacheBusterSafe = (url, version) => url ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version || Date.now())}` : url;
-
-//   // Convert relative path -> absolute on *this* cPanel host
-//   function toAbsoluteCpanel(p) {
-//     if (!p) return "";
-//     if (/^https?:\/\//i.test(p)) return p;
-//     return `${CPANEL_BASE}/${String(p).replace(/^\/+/, "")}`;
-//   }
-
-//   /**
-//    * Extract ONLY the cPanel upload URL:
-//    * - Accept: full URLs containing `/uploads/`
-//    * - Accept: relative paths starting with `/uploads/` or `uploads/`
-//    * - (Keeps back-compat for old `/assets/img/` if you still have any)
-//    */
-//   function getCpanelAssetUrlOnly(raw) {
-//     if (!raw) return "";
-//     const s = String(raw);
-
-//     // already absolute with /uploads/
-//     if (/^https?:\/\/[^/]+\/uploads\//i.test(s)) return s;
-
-//     // relative /uploads/...
-//     if (/^\/?uploads\//i.test(s)) return toAbsoluteCpanel(s);
-
-//     // (back-compat) absolute /assets/img/...
-//     if (/^https?:\/\/[^/]+\/assets\/img\//i.test(s)) return s;
-
-//     // (back-compat) relative /assets/img/...
-//     if (/^\/?assets\/img\//i.test(s)) return toAbsoluteCpanel(s);
-
-//     // sometimes the URL is encoded inside a string – try to extract it
-//     try {
-//       const dec = decodeURIComponent(s);
-//       const mUploads = dec.match(/https?:\/\/[^/]+\/uploads\/[^\s"'&]+/i);
-//       if (mUploads && mUploads[0]) return mUploads[0];
-//       const mAssets = dec.match(/https?:\/\/[^/]+\/assets\/img\/[^\s"'&]+/i);
-//       if (mAssets && mAssets[0]) return mAssets[0];
-//     } catch {}
-
-//     return "";
-//   }
-
-//   // Retry helper for images (kept from your original)
-//   async function setImgWithAutoRefresh(imgEl, getSrcAsync, refreshSectionOnce) {
-//     let tried = false;
-//     const apply = async () => {
-//       const src = await getSrcAsync();
-//       if (src) imgEl.src = src;
-//     };
-//     imgEl.onerror = async () => {
-//       if (tried) return;
-//       tried = true;
-//       try { await refreshSectionOnce(); await apply(); } catch (e) { console.warn("Image refresh failed:", e); }
-//     };
-//     await apply();
-//   }
-
-//   // -----------------------------------------
-//   // RENDER
-//   // -----------------------------------------
-//   async function renderPage() {
-//     const container = document.getElementById("dynamic-page-content");
-//     if (!container) return;
-
-//     const urlParams = new URLSearchParams(window.location.search);
-//     let slug = urlParams.get("slug");
-
-//     // Load all sections (use proxy -> EC2 backend)
-//     let allSections = [];
-//     try {
-//       const sectionsUrl = `${API_PROXY}?path=/sections&userId=${encodeURIComponent(userId)}&templateId=${encodeURIComponent(templateId)}`;
-//       allSections = await getJson(sectionsUrl);
-//     } catch (e) {
-//       console.error("❌ Error loading sections:", e);
-//       container.innerHTML = "<h3 class='text-danger'>❌ Error loading page.</h3>";
-//       return;
-//     }
-
-//     if (!slug) {
-//       const firstPage = (allSections || [])
-//         .filter(s => String(s.type || "").toLowerCase() === "page" && s.visible !== false)
-//         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
-//       location.replace(`page.html?slug=${encodeURIComponent(firstPage?.slug || "home-page")}`);
-//       return;
-//     }
-
-//     const page = (allSections || []).find(s => s.slug === slug && String(s.type || "").toLowerCase() === "page");
-//     if (!page) { container.innerHTML = "<h3 class='text-danger'>❌ Page not found</h3>"; return; }
-
-//     const assignedSections = (allSections || [])
-//       .filter(s => s.parentPageId === page._id && (s.visible !== false))
-//       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-//     if (!assignedSections.length) { container.innerHTML = "<h3 class='text-warning'>❌ No sections found for this page.</h3>"; return; }
-
-//     container.innerHTML = "";
-//     const cacheByType = {};
-
-//     for (const section of assignedSections) {
-//       const apiBase = sectionApiMap[section.type];
-//       if (!apiBase) continue;
-
-//       // fetch one section via proxy -> EC2
-//       const fetchSection = async () => {
-//         const url = `${apiBase}/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-//         const data = await getJson(url);
-//         cacheByType[section.type] = data;
-//         return data;
-//       };
-
-//       try {
-//         const data = await fetchSection();
-//         let html = "";
-
-//         // ---------- HERO ----------
-//         if (section.type === "hero") {
-//           const title = (data.title ?? data.content ?? "Welcome to our site");
-//           html += `
-//             <div class="container-fluid p-0 mb-6">
-//               <div id="header-carousel" class="carousel slide" data-bs-ride="carousel">
-//                 <div class="carousel-inner">
-//                   <div class="carousel-item active" style="min-height: 100vh; position: relative;">
-//                     <img id="hero-image" class="w-100 h-100" style="object-fit: cover; max-height: 100vh;" alt="Hero Image" />
-//                     <div class="carousel-caption" style="background: rgba(0,0,0,0.5); padding: 4rem; text-align: left;">
-//                       <h1 class="display-3 text-white mb-4" id="hero-title">${title}</h1>
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>`;
-//           container.insertAdjacentHTML("beforeend", html);
-
-//           const rawHero = data.imageUrl ?? data.image?.url ?? "";
-//           const cpanelUrl = getCpanelAssetUrlOnly(rawHero);
-//           const heroImg = document.getElementById("hero-image");
-//           if (heroImg && cpanelUrl) {
-//             const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-//             heroImg.src = withCacheBusterSafe(cpanelUrl, version);
-//             heroImg.alt = data.imageAlt || "Hero Image";
-//           }
-//         }
-
-//         // ---------- ABOUT ----------
-//         else if (section.type === "about") {
-//           html += `
-//           <div class="container-fluid pt-6 pb-6" id="about-section">
-//             <div class="container">
-//               <div class="row g-5">
-//                 <div class="col-lg-6">
-//                   <div class="about-img">
-//                     <img id="about-img" class="img-fluid w-100" alt="${data.imageAlt || "About Image"}" style="max-height: 350px; object-fit: cover" />
-//                   </div>
-//                 </div>
-//                 <div class="col-lg-6">
-//                   <h1 class="display-6 text-uppercase mb-4">${data.title || "About Title"}</h1>
-//                   <p class="mb-4">${data.description || ""}</p>
-//                   <div class="row g-5 mb-4">
-//                     ${(data.bullets || []).map((b) => `
-//                       <div class="col-sm-6">
-//                         <div class="d-flex align-items-center">
-//                           <div class="flex-shrink-0 btn-xl-square bg-light me-3"><i class="fa fa-check-square fa-2x text-primary"></i></div>
-//                           <h5 class="lh-base text-uppercase mb-0">${typeof b === "string" ? b : (b?.text ?? "")}</h5>
-//                         </div>
-//                       </div>`).join("")}
-//                   </div>
-//                   <div class="border border-5 border-primary p-4 text-center mt-4">
-//                     <h4 class="lh-base text-uppercase mb-0">${data.highlight || "Highlight"}</h4>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>`;
-//           container.insertAdjacentHTML("beforeend", html);
-
-//           const aboutImg = document.getElementById("about-img");
-//           await setImgWithAutoRefresh(
-//             aboutImg,
-//             async () => {
-//               const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-//               const raw = (cacheByType.about || data).imageUrl || "";
-//               const cp = getCpanelAssetUrlOnly(raw);
-//               return cp ? withCacheBusterSafe(cp, version) : "";
-//             },
-//             fetchSection
-//           );
-//         }
-
-//         // ---------- WHY CHOOSE US ----------
-//         else if (section.type === "whychooseus") {
-//           const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
-//           const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-//           const cpBg = getCpanelAssetUrlOnly(data.bgImageUrl || "");
-//           const bgFinal = cpBg ? withCacheBusterSafe(cpBg, version) : "";
-
-//           html += `
-//           <div class="container-fluid feature mt-6 mb-6" id="whychoose-wrapper"
-//                style="position: relative; ${bgFinal ? `background-image: url('${bgFinal}');` : ""} background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #000; z-index: 0;">
-//             <div id="whychoose-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,${overlay}); z-index: 1;"></div>
-//             <div class="container position-relative" style="z-index: 2;">
-//               <div class="row g-0 justify-content-end">
-//                 <div class="col-lg-6 pt-5">
-//                   <div class="mt-5">
-//                     <h1 id="whychoose-title" class="display-6 text-white text-uppercase mb-4">${data.title || "Why You Should Choose Our Fitness Services"}</h1>
-//                     <p id="whychoose-desc" class="text-light mb-4">${data.description || ""}</p>
-//                     <div id="whychoose-stats" class="row g-4 pt-2 mb-4">
-//                       ${(data.stats || []).map((stat) => `
-//                         <div class="col-sm-6">
-//                           <div class="flex-column text-center border border-5 border-primary p-5">
-//                             <h1 class="text-white">${stat.value}</h1>
-//                             <p class="text-white text-uppercase mb-0">${stat.label}</p>
-//                           </div>
-//                         </div>`).join("")}
-//                     </div>
-//                     <div class="border border-5 border-primary border-bottom-0 p-5" id="whychoose-progress">
-//                       ${(data.progressBars || []).map((bar) => `
-//                         <div class="experience mb-4">
-//                           <div class="d-flex justify-content-between mb-2">
-//                             <span class="text-white text-uppercase">${bar.label}</span>
-//                             <span class="text-white">${bar.percent}%</span>
-//                           </div>
-//                           <div class="progress">
-//                             <div class="progress-bar bg-primary" role="progressbar" style="width: ${bar.percent}%"
-//                                  aria-valuenow="${bar.percent}" aria-valuemin="0" aria-valuemax="100"></div>
-//                           </div>
-//                         </div>`).join("")}
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>`;
-//           container.insertAdjacentHTML("beforeend", html);
-//         }
-
-//         // ---------- SERVICES ----------
-//         else if (section.type === "services") {
-//           html += `
-//           <section class="container-xxl service py-5">
-//             <div class="container">
-//               <div class="text-center mx-auto mb-5">
-//                 <h1 class="display-6 mb-3">${section.title || "Our Services"}</h1>
-//               </div>
-//               <div class="row g-4" id="services-grid"></div>
-//             </div>
-//           </section>`;
-//           container.insertAdjacentHTML("beforeend", html);
-
-//           const grid = qs("#services-grid");
-//           for (const [index, item] of (data.services || []).entries()) {
-//             const delay = item.delay || `0.${index + 1}s`;
-//             const node = document.createElement("div");
-//             node.className = "col-lg-3 col-md-6";
-//             node.setAttribute("data-wow-delay", delay);
-//             node.innerHTML = `
-//               <div class="service-item">
-//                 <div class="service-inner pb-5">
-//                   <img class="img-fluid w-100 svc-img" alt="${item.title || "Service"}">
-//                   <div class="service-text px-5 pt-4">
-//                     <h5 class="text-uppercase">${item.title || "Untitled"}</h5>
-//                     <p>${item.description || "No description available."}</p>
-//                   </div>
-//                   <a class="btn btn-light px-3" href="${item.buttonHref || "#"}">
-//                     ${item.buttonText || "Read More"} <i class="bi bi-chevron-double-right ms-1"></i>
-//                   </a>
-//                 </div>
-//               </div>`;
-//             grid.appendChild(node);
-
-//             const imgEl = node.querySelector(".svc-img");
-//             await setImgWithAutoRefresh(
-//               imgEl,
-//               async () => {
-//                 const version = item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
-//                 const cp = getCpanelAssetUrlOnly(item.imageUrl || "");
-//                 return cp ? withCacheBusterSafe(cp, version) : "";
-//               },
-//               fetchSection
-//             );
-//           }
-//         }
-
-//         // ---------- APPOINTMENT ----------
-// else if (section.type === "appointment") {
-//   const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-//   const cpBg = getCpanelAssetUrlOnly(data.backgroundImage || "");
-//   const bgFinal = cpBg ? withCacheBusterSafe(cpBg, version) : "";
-
-//   html += `
-//   <section
-//     class="container-fluid appoinment mt-6 mb-6 py-5 wow fadeIn"
-//     id="appointment-section"
-//     style="${bgFinal ? `background-image: url('${bgFinal}');` : ""} background-size: cover; background-position: center;"
-//     data-wow-delay="0.1s"
-//   >
-//     <div class="container pt-5">
-//       <div class="row gy-5 gx-0">
-//         <div class="col-lg-6 pe-lg-5">
-//           <h1 class="display-6 text-uppercase text-white mb-4">${data.title || "Book Your Appointment"}</h1>
-//           <p class="text-white mb-5">${data.subtitle || ""}</p>
-
-//           <div class="d-flex align-items-start mb-3">
-//             <div class="btn-lg-square bg-white me-3"><i class="bi bi-geo-alt text-dark fs-3"></i></div>
-//             <div>
-//               <h5 class="text-white mb-2">Office Address</h5>
-//               <p class="text-white mb-0">${data.officeAddress || ""}</p>
-//             </div>
-//           </div>
-
-//           <div class="d-flex align-items-start">
-//             <div class="btn-lg-square bg-white me-3"><i class="bi bi-clock text-dark fs-3"></i></div>
-//             <div>
-//               <h5 class="text-white mb-2">Office Time</h5>
-//               <p class="text-white mb-0">${data.officeTime || ""}</p>
-//             </div>
-//           </div>
-//         </div>
-
-//         <div class="col-lg-6">
-//           <form>
-//             <div class="row g-3">
-//               <div class="col-12 col-sm-6">
-//                 <input type="text" class="form-control bg-light border-0 px-4" placeholder="Your Name" required>
-//               </div>
-//               <div class="col-12 col-sm-6">
-//                 <input type="email" class="form-control bg-light border-0 px-4" placeholder="Your Email" required>
-//               </div>
-//               <div class="col-12 col-sm-6">
-//                 <input type="text" class="form-control bg-light border-0 px-4" placeholder="Mobile" required>
-//               </div>
-//               <div class="col-12 col-sm-6">
-//                 <select id="service" class="form-select bg-light border-0 px-4">
-//                   ${(Array.isArray(data.services) ? data.services : [])
-//                     .map(s => `<option>${typeof s === "string" ? s : (s?.name || s?.label || "")}</option>`)
-//                     .join("")}
-//                 </select>
-//               </div>
-//               <div class="col-12">
-//                 <textarea class="form-control bg-light border-0 px-4" rows="4" placeholder="Message"></textarea>
-//               </div>
-//               <div class="col-12">
-//                 <button class="btn btn-primary w-100 py-3" type="submit">Submit</button>
-//               </div>
-//             </div>
-//           </form>
-//         </div>
-//       </div>
-//     </div>
-//   </section>`;
-//   container.insertAdjacentHTML("beforeend", html);
-// }
-
-
-//         // ---------- TEAM ----------
-//         else if (section.type === "team") {
-//           html += `
-//           <section class="container-xxl py-5">
-//             <div class="container">
-//               <div class="text-center mx-auto mb-5">
-//                 <h1 class="display-6 mb-3">${section.title || "Our Team"}</h1>
-//               </div>
-//               <div class="row g-4" id="team-grid"></div>
-//             </div>
-//           </section>`;
-//           container.insertAdjacentHTML("beforeend", html);
-
-//           const grid = qs("#team-grid");
-//           const list = Array.isArray(data) ? data : [];
-//           for (const member of list) {
-//             const node = document.createElement("div");
-//             node.className = "col-lg-3 col-md-6";
-//             node.innerHTML = `
-//               <div class="team-item bg-light">
-//                 <div class="overflow-hidden">
-//                   <img class="img-fluid w-100 team-img" alt="${member.name || "Member"}" />
-//                 </div>
-//                 <div class="text-center p-4">
-//                   <h5 class="fw-bold mb-2">${member.name || ""}</h5>
-//                   <p class="text-uppercase text-muted">${member.role || ""}</p>
-//                 </div>
-//               </div>`;
-//             grid.appendChild(node);
-
-//             const imgEl = node.querySelector(".team-img");
-//             await setImgWithAutoRefresh(
-//               imgEl,
-//               async () => {
-//                 const version = member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now();
-//                 const cp = getCpanelAssetUrlOnly(member.imageUrl || "");
-//                 return cp ? withCacheBusterSafe(cp, version) : "";
-//               },
-//               fetchSection
-//             );
-//           }
-//         }
-
-//        // -------- TESTIMONIALS (cPanel-only images) --------
-// else if (section.type === "testimonials") {
-//   const list = Array.isArray(data) ? data : [];
-
-//   const makeCard = (item) => {
-//     const stars = '<i class="far fa-star text-primary me-1"></i>'.repeat(item.rating || 5);
-//     return `
-//       <div class="testimonial-item bg-white p-4">
-//         <div class="d-flex align-items-center mb-3">
-//           <img class="img-fluid flex-shrink-0 rounded-circle testi-img" style="width:50px;height:50px;" alt="${item.name || "Client"}">
-//           <div class="ps-3">
-//             <div class="mb-1">${stars}</div>
-//             <h5 class="mb-1">${item.name || ""}</h5>
-//             <small>${item.profession || ""}</small>
-//           </div>
-//         </div>
-//         <p class="mb-0">${item.message || ""}</p>
-//       </div>`;
-//   };
-
-//   const animatedImagesHtml = list.slice(0, 4).map((item, i) => `
-//     <div class="wow fadeInUp" data-wow-delay="${0.2 + i * 0.2}s">
-//       <img class="img-fluid rounded-circle w-100 h-100 testi-big" alt="${item.name || "Client"}" style="object-fit:cover;">
-//     </div>`).join("");
-
-//   html += `
-//   <section class="container-fluid pt-6 pb-6">
-//     <div class="container">
-//       <div class="text-center mx-auto wow fadeInUp" data-wow-delay="0.1s" style="max-width: 600px;">
-//         <h1 class="display-6 text-uppercase mb-5">${section.title || "What They’re Talking About Our Training Work"}</h1>
-//       </div>
-//       <div class="row g-5 align-items-center">
-//         <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.3s">
-//           <div class="testimonial-img" id="testimonial-image-list">${animatedImagesHtml}</div>
-//         </div>
-//         <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.5s">
-//           <div class="owl-carousel testimonial-carousel" id="testimonial-carousel">
-//             ${list.map(makeCard).join("")}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   </section>`;
-//   container.insertAdjacentHTML("beforeend", html);
-
-//   // big image circles
-//   const bigImgs = Array.from(document.querySelectorAll(".testi-big"));
-//   for (let i = 0; i < bigImgs.length; i++) {
-//     const el = bigImgs[i];
-//     const item = list[i];
-//     await setImgWithAutoRefresh(
-//       el,
-//       async () => {
-//         const version = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
-//         const cp = getCpanelAssetUrlOnly(item?.imageUrl || "");
-//         return cp ? withCacheBusterSafe(cp, version) : "";
-//       },
-//       fetchSection
-//     );
-//   }
-
-//   // small avatar circles inside cards
-//   const smallImgs = Array.from(document.querySelectorAll(".testi-img"));
-//   for (let i = 0; i < smallImgs.length; i++) {
-//     const el = smallImgs[i];
-//     const item = list[i];
-//     await setImgWithAutoRefresh(
-//       el,
-//       async () => {
-//         const version = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
-//         const cp = getCpanelAssetUrlOnly(item?.imageUrl || "");
-//         return cp ? withCacheBusterSafe(cp, version) : "";
-//       },
-//       fetchSection
-//     );
-//   }
-
-//   // Re-init OwlCarousel (uses jQuery’s $)
-//   setTimeout(() => {
-//     if (window.$ && typeof window.$.fn?.owlCarousel === "function") {
-//       const $carousel = $(".testimonial-carousel");
-//       if ($carousel.length) {
-//         try {
-//           $carousel.trigger("destroy.owl.carousel").removeClass("owl-loaded");
-//           $carousel.find(".owl-stage-outer").children().unwrap();
-//         } catch {}
-//         $carousel.owlCarousel({
-//           autoplay: true,
-//           smartSpeed: 1000,
-//           dots: true,
-//           loop: true,
-//           items: 1,
-//           margin: 25
-//         });
-//       }
-//     }
-//   }, 200);
-// }
-
-
-//         // ---------- CONTACT ----------
-//         else if (section.type === "contact") {
-//           // ... (same as your current version)
-//         }
-
-//       } catch (err) {
-//         console.error(`❌ Failed to load section: ${section.type}`, err);
-//         container.insertAdjacentHTML("beforeend", `<p class="text-danger">❌ Error loading ${section.type}</p>`);
-//       }
-//     }
-//   }
-
-//   renderPage();
-// })();
-
-
-
-
-
-
-
-
-
-
-
 (() => {
   'use strict';
 
-  // -----------------------------------------
-  // CONFIG
-  // -----------------------------------------
-  const userId = "demo-user";
-  const templateId = "gym-template-1";
+  const appRoot = document.getElementById('app-root');
+  const spinner = document.getElementById('spinner');
 
-  // Base (e.g. https://ion7.mavsketch.com) — can be overridden by setting window.CPANEL_BASE in HTML
+  // lock scroll while loading
+  document.documentElement.classList.add('__lock');
+  const showSpinner = () => spinner && (spinner.style.display = 'flex');
+  const hideSpinner = () => {
+    if (spinner) { spinner.style.opacity = '0'; setTimeout(() => spinner.remove(), 260); }
+    document.documentElement.classList.remove('__lock');
+  };
+  showSpinner();
+
+  // ---------- CONFIG ----------
+  const userId     = window.APP_USER_ID     || "demo-user";
+  const templateId = window.APP_TEMPLATE_ID || "gym-template-1";
+
   const CPANEL_BASE = (window.CPANEL_BASE || `${location.protocol}//${location.host}`).replace(/\/+$/, "");
+  const API_PROXY   = `${CPANEL_BASE}/api-proxy.php`;
 
-  // Our PHP proxy on cPanel that calls the EC2 backend server-side
-  const API_PROXY = `${CPANEL_BASE}/api-proxy.php`;
+  const S3_BUCKET = window.APP_S3_BUCKET || "project1-uploads-12345";
+  const S3_REGION = window.APP_S3_REGION || "ap-south-1";
 
-  // Map of section names -> API path (we append /:userId/:templateId when fetching)
   const sectionApiMap = {
-    hero:           `${API_PROXY}?path=/hero`,
-    about:          `${API_PROXY}?path=/about`,
-    whychooseus:    `${API_PROXY}?path=/whychoose`,
-    services:       `${API_PROXY}?path=/services`,
-    appointment:    `${API_PROXY}?path=/appointment`,
-    team:           `${API_PROXY}?path=/team`,
-    testimonials:   `${API_PROXY}?path=/testimonial`,
-    contact:        `${API_PROXY}?path=/contact-info`,
+    hero:         `${API_PROXY}?path=/hero`,
+    about:        `${API_PROXY}?path=/about`,
+    whychooseus:  `${API_PROXY}?path=/whychoose`,
+    services:     `${API_PROXY}?path=/services`,
+    appointment:  `${API_PROXY}?path=/appointment`,
+    team:         `${API_PROXY}?path=/team`,
+    testimonials: `${API_PROXY}?path=/testimonial`,
+    contact:      `${API_PROXY}?path=/contact-info`,
   };
 
-  // -----------------------------------------
-  // HELPERS
-  // -----------------------------------------
-  const qs = (sel) => document.querySelector(sel);
+  // ---------- HELPERS ----------
+  const isHttp      = (u) => /^https?:\/\//i.test(u || "");
+  const isPresigned = (u) => /\bX-Amz-(Signature|Credential|Algorithm|Date|Expires|SignedHeaders)=/i.test(u || "");
 
-  function urlWithTs(url) {
-    const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}v=${Date.now()}`;
-  }
+  const upgradeToHttpsIfNeeded = (url) => {
+    if (!url) return "";
+    if (isPresigned(url)) return url; // do not touch presigned URLs
+    if (location.protocol === "https:" && /^http:\/\//i.test(url)) {
+      return url.replace(/^http:\/\//i, "https://");
+    }
+    return url;
+  };
 
   async function getJson(url) {
-    const res = await fetch(urlWithTs(url), { cache: "no-store", headers: { Accept: "application/json" } });
+    const sep = url.includes("?") ? "&" : "?";
+    const res = await fetch(`${url}${sep}v=${Date.now()}`, {
+      cache: "no-store",
+      headers: { Accept: "application/json" }
+    });
     if (!res.ok) throw new Error(`${url} HTTP ${res.status}`);
     return res.json();
   }
 
-  const isHttp = (u) => /^https?:\/\//i.test(u || "");
-  const isKey  = (u) => /^(sections|uploads)\//i.test(u || "");
-  const isPresigned = (u) => /\bX-Amz-(Signature|Credential|Algorithm|Date|Expires|SignedHeaders)=/i.test(u || "");
+  function withCacheBusterSafe(url, ts) {
+    if (!url) return "";
+    if (isPresigned(url)) return upgradeToHttpsIfNeeded(url);
+    const upgraded = upgradeToHttpsIfNeeded(url);
+    return `${upgraded}${upgraded.includes("?") ? "&" : "?"}v=${encodeURIComponent(ts || Date.now())}`;
+  }
 
-  // cache-bust only non-presigned URLs (so we don't break AWS signatures)
-  const withCacheBusterSafe = (url, version) =>
-    (url && !isPresigned(url))
-      ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version || Date.now())}`
-      : url;
-
-  // Make a relative path absolute on this cPanel host
   function toAbsoluteCpanel(p) {
     if (!p) return "";
-    if (isHttp(p)) return p;
+    if (/^https?:\/\//i.test(p)) return upgradeToHttpsIfNeeded(p);
     return `${CPANEL_BASE}/${String(p).replace(/^\/+/, "")}`;
   }
 
-  // Universal resolver: accepts presigned S3 URL, S3 key, or cPanel /uploads
-  async function resolveImageUrl(raw) {
+  // Main resolver: accepts full URLs, S3 keys, or local paths.
+  async function resolveAssetUrl(rawOrKey) {
+    const raw = String(rawOrKey || "");
     if (!raw) return "";
 
-    // a) already http(s) (S3 presigned or any CDN) -> use as-is
-    if (isHttp(raw)) return raw;
+    // already a URL?
+    if (isHttp(raw)) return upgradeToHttpsIfNeeded(raw);
 
-    // b) relative cPanel uploads/assets -> make absolute
-    if (/^\/?(uploads|assets\/img)\//i.test(raw)) {
-      return toAbsoluteCpanel(raw);
-    }
-
-    // c) S3 key like "sections/.../file.jpg" -> ask backend (via PHP proxy) for presigned URL
-    if (isKey(raw)) {
-      const url = `${API_PROXY}?path=/upload/file-url&key=${encodeURIComponent(raw)}`;
+    // not a leading slash => likely a key -> ask backend for a presigned URL
+    if (!raw.startsWith("/")) {
       try {
-        const r = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+        const r = await fetch(`${API_PROXY}?path=/upload/file-url&key=${encodeURIComponent(raw)}`, {
+          headers: { Accept: "application/json" }, cache: "no-store"
+        });
         if (r.ok) {
           const j = await r.json();
-          return j?.url || j?.signedUrl || j || "";
+          const u = j?.url || j?.signedUrl || "";
+          if (u) return upgradeToHttpsIfNeeded(u);
         }
-      } catch (_) {}
+      } catch {}
+      // fallback to public object URL
+      const clean = raw.replace(/^\/+/, "");
+      return `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${clean}`;
     }
 
-    // d) last resort: try to make it absolute to cPanel
+    // local asset under cPanel
     return toAbsoluteCpanel(raw);
   }
 
-  // Retry helper for images
-  async function setImgWithAutoRefresh(imgEl, getSrcAsync, refreshSectionOnce) {
-    let tried = false;
-    const apply = async () => {
-      const src = await getSrcAsync();
-      if (src) imgEl.src = src;
-    };
-    imgEl.onerror = async () => {
-      if (tried) return;
-      tried = true;
-      try { await refreshSectionOnce(); await apply(); } catch (e) { console.warn("Image refresh failed:", e); }
-    };
-    await apply();
+  function stripAnimationsAndUnhide(root) {
+    root.querySelectorAll(".wow, .animate, [data-wow-delay]").forEach(el => {
+      el.classList.remove("wow","fadeIn","fadeInUp","fadeInDown","fadeInLeft","fadeInRight","animated");
+      el.removeAttribute("data-wow-delay");
+      el.style.visibility = "visible";
+      el.style.opacity = "1";
+      el.style.animation = "none";
+      el.style.transition = "none";
+    });
   }
 
-  // -----------------------------------------
-  // RENDER
-  // -----------------------------------------
+  // Wait for header/footer scripts to populate text/links
+  function waitForHeaderFooter(timeoutMs = 1400) {
+    const t0 = performance.now();
+    return new Promise((resolve) => {
+      const ok = () => {
+        const navReady  = !!document.querySelector('#navbarCollapse .navbar-nav, #navbarCollapse a, #navbarCollapse li');
+        const topReady  = !!document.getElementById('topbar-email')?.textContent?.trim();
+        const footReady = !!document.getElementById('footer-address')?.textContent?.trim();
+        return navReady && topReady && footReady;
+      };
+      if (ok()) return resolve();
+      const id = setInterval(() => {
+        if (ok() || performance.now() - t0 > timeoutMs) { clearInterval(id); resolve(); }
+      }, 50);
+    });
+  }
+
+  // ---------- RENDERERS ----------
+  function rHero(data) {
+    const title = (data.title ?? data.content ?? "Welcome to our site");
+    const html = `
+      <div class="container-fluid p-0 mb-6">
+        <div id="header-carousel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner">
+            <div class="carousel-item active" style="min-height:100vh;position:relative;">
+              <img id="hero-image" class="w-100 h-100" style="object-fit:cover;max-height:100vh;" alt="Hero Image" />
+              <div class="carousel-caption" style="background:rgba(0,0,0,.5);padding:4rem;text-align:left;">
+                <h1 class="display-3 text-white mb-4" id="hero-title">${title}</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    const postRender = async (root) => {
+      const img = root.querySelector('#hero-image');
+      const v = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+      const raw = data.imageUrl || data.imageKey || data.image?.url || "";
+      const url = await resolveAssetUrl(raw);
+      img.src = withCacheBusterSafe(url, v);
+    };
+    return { html, postRender };
+  }
+
+  function rAbout(data) {
+    const html = `
+      <div class="container-fluid pt-6 pb-6" id="about-section">
+        <div class="container">
+          <div class="row g-5">
+            <div class="col-lg-6">
+              <div class="about-img">
+                <img id="about-img" class="img-fluid w-100" alt="${data.imageAlt || "About Image"}" style="max-height:350px;object-fit:cover" />
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <h1 class="display-6 text-uppercase mb-4">${data.title || "About Title"}</h1>
+              <p class="mb-4">${data.description || ""}</p>
+              <div class="row g-5 mb-4">
+                ${(data.bullets || []).map(b => `
+                  <div class="col-sm-6">
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0 btn-xl-square bg-light me-3"><i class="fa fa-check-square fa-2x text-primary"></i></div>
+                      <h5 class="lh-base text-uppercase mb-0">${typeof b === "string" ? b : (b?.text ?? "")}</h5>
+                    </div>
+                  </div>`).join("")}
+              </div>
+              <div class="border border-5 border-primary p-4 text-center mt-4">
+                <h4 class="lh-base text-uppercase mb-0">${data.highlight || "Highlight"}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    const postRender = async (root) => {
+      const img = root.querySelector('#about-img');
+      const v   = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+      const raw = data.imageUrl || data.imageKey || "";
+      const url = await resolveAssetUrl(raw);
+      img.src = withCacheBusterSafe(url, v);
+    };
+    return { html, postRender };
+  }
+
+  function rWhyChoose(data) {
+    const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
+    const v       = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+    const html = `
+      <div class="container-fluid feature mt-6 mb-6" id="whychoose-wrapper" style="position:relative;background:#000;">
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,${overlay});"></div>
+        <div class="container position-relative">
+          <div class="row g-0 justify-content-end">
+            <div class="col-lg-6 pt-5">
+              <div class="mt-5">
+                <h1 class="display-6 text-white text-uppercase mb-4">${data.title || "Why Choose Us"}</h1>
+                <p class="text-light mb-4">${data.description || ""}</p>
+                <div class="row g-4 pt-2 mb-4">
+                  ${(data.stats || []).map(stat => `
+                    <div class="col-sm-6">
+                      <div class="flex-column text-center border border-5 border-primary p-5">
+                        <h1 class="text-white">${stat.value}</h1>
+                        <p class="text-white text-uppercase mb-0">${stat.label}</p>
+                      </div>
+                    </div>`).join("")}
+                </div>
+                <div class="border border-5 border-primary border-bottom-0 p-5">
+                  ${(data.progressBars || []).map(bar => `
+                    <div class="experience mb-4">
+                      <div class="d-flex justify-content-between mb-2">
+                        <span class="text-white text-uppercase">${bar.label}</span>
+                        <span class="text-white">${bar.percent}%</span>
+                      </div>
+                      <div class="progress">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width:${bar.percent}%"
+                             aria-valuenow="${bar.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                    </div>`).join("")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    const postRender = async (root) => {
+      const wrap = root.querySelector('#whychoose-wrapper');
+      const bgRaw = data.bgImageUrl || data.bgImageKey || data.bgImage || "";
+      if (!bgRaw || !wrap) return;
+      const bgUrl = withCacheBusterSafe(await resolveAssetUrl(bgRaw), v);
+      wrap.style.backgroundImage = `url('${bgUrl}')`;
+      wrap.style.backgroundSize = 'cover';
+      wrap.style.backgroundRepeat = 'no-repeat';
+      wrap.style.backgroundPosition = 'center';
+    };
+    return { html, postRender };
+  }
+
+  function rServices(data) {
+    const html = `
+      <section class="container-xxl service py-5">
+        <div class="container">
+          <div class="text-center mx-auto mb-5">
+            <h1 class="display-6 mb-3">${data.title || "Our Services"}</h1>
+          </div>
+          <div class="row g-4" id="services-grid"></div>
+        </div>
+      </section>`;
+    const postRender = async (root) => {
+      const grid = root.querySelector("#services-grid");
+      if (!grid) return;
+      for (const item of (data.services || [])) {
+        const node = document.createElement("div");
+        node.className = "col-lg-3 col-md-6";
+        node.innerHTML = `
+          <div class="service-item">
+            <div class="service-inner pb-5">
+              <img class="img-fluid w-100 svc-img" alt="${item.title || "Service"}">
+              <div class="service-text px-5 pt-4">
+                <h5 class="text-uppercase">${item.title || "Untitled"}</h5>
+                <p>${item.description || "No description available."}</p>
+              </div>
+              <a class="btn btn-light px-3" href="${item.buttonHref || "#"}">
+                ${item.buttonText || "Read More"} <i class="bi bi-chevron-double-right ms-1"></i>
+              </a>
+            </div>
+          </div>`;
+        grid.appendChild(node);
+
+        const imgEl = node.querySelector(".svc-img");
+        const v   = item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
+        const raw = item.imageUrl || item.imageKey || "";
+        const url = await resolveAssetUrl(raw);
+        imgEl.src = withCacheBusterSafe(url, v);
+      }
+    };
+    return { html, postRender };
+  }
+
+  function rAppointment(data) {
+    const html = `
+      <section class="container-fluid appoinment mt-6 mb-6 py-5" id="appointment-section"
+        style="background-size:cover;background-position:center;">
+        <div class="container pt-5">
+          <div class="row gy-5 gx-0">
+            <div class="col-lg-6 pe-lg-5">
+              <h1 class="display-6 text-uppercase text-white mb-4">${data.title || "Book Your Appointment"}</h1>
+              <p class="text-white mb-5">${data.subtitle || ""}</p>
+            </div>
+            <div class="col-lg-6">
+              <form>
+                <div class="row g-3">
+                  <div class="col-12 col-sm-6"><input type="text" class="form-control bg-light border-0 px-4" placeholder="Your Name" required></div>
+                  <div class="col-12 col-sm-6"><input type="email" class="form-control bg-light border-0 px-4" placeholder="Your Email" required></div>
+                  <div class="col-12"><textarea class="form-control bg-light border-0 px-4" rows="4" placeholder="Message"></textarea></div>
+                  <div class="col-12"><button class="btn btn-primary w-100 py-3" type="submit">Submit</button></div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>`;
+    const postRender = async (root) => {
+      const v  = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+      const raw = data.backgroundImageUrl || data.backgroundImageKey || data.backgroundImage || "";
+      const bg = withCacheBusterSafe(await resolveAssetUrl(raw), v);
+      const sec = root.querySelector("#appointment-section");
+      if (sec && bg) sec.style.backgroundImage = `url('${bg}')`;
+    };
+    return { html, postRender };
+  }
+
+  function rTeam(data) {
+    const html = `
+      <section class="container-xxl py-5">
+        <div class="container">
+          <div class="text-center mx-auto mb-5">
+            <h1 class="display-6 mb-3">${data.title || "Our Team"}</h1>
+          </div>
+          <div class="row g-4" id="team-grid"></div>
+        </div>
+      </section>`;
+    const postRender = async (root) => {
+      const grid = root.querySelector("#team-grid");
+      if (!grid) return;
+      const list = Array.isArray(data) ? data : (data.members || []);
+      for (const member of list) {
+        const node = document.createElement("div");
+        node.className = "col-lg-3 col-md-6";
+        node.innerHTML = `
+          <div class="team-item bg-light">
+            <div class="overflow-hidden">
+              <img class="img-fluid w-100 team-img" alt="${member.name || "Member"}" />
+            </div>
+            <div class="text-center p-4">
+              <h5 class="fw-bold mb-2">${member.name || ""}</h5>
+              <p class="text-uppercase text-muted">${member.role || ""}</p>
+            </div>
+          </div>`;
+        grid.appendChild(node);
+
+        const imgEl = node.querySelector(".team-img");
+        const v   = member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now();
+        const raw = member.imageUrl || member.imageKey || "";
+        const url = await resolveAssetUrl(raw);
+        imgEl.src = withCacheBusterSafe(url, v);
+      }
+    };
+    return { html, postRender };
+  }
+
+  function rTestimonials(data) {
+    const list = Array.isArray(data) ? data : (data.items || []);
+    const starsTpl = (n=5) => '<i class="far fa-star text-primary me-1"></i>'.repeat(n);
+
+    const html = `
+      <section class="container-fluid pt-6 pb-6">
+        <div class="container">
+          <div class="text-center mx-auto" style="max-width:600px;">
+            <h1 class="display-6 text-uppercase mb-5">${data.title || "What They’re Saying"}</h1>
+          </div>
+          <div class="row g-5 align-items-center">
+            <div class="col-lg-5">
+              <div class="testimonial-img" id="testimonial-image-list">
+                ${list.slice(0, 4).map(item => `
+                  <div>
+                    <img class="img-fluid rounded-circle w-100 h-100 testi-big" alt="${item.name || "Client"}" style="object-fit:cover;">
+                  </div>`).join("")}
+              </div>
+            </div>
+            <div class="col-lg-7">
+              <div class="owl-carousel testimonial-carousel" id="testimonial-carousel">
+                ${list.map(item => `
+                  <div class="testimonial-item bg-white p-4">
+                    <div class="d-flex align-items-center mb-3">
+                      <img class="img-fluid flex-shrink-0 rounded-circle testi-img" style="width:50px;height:50px;" alt="${item.name || "Client"}">
+                      <div class="ps-3">
+                        <div class="mb-1">${starsTpl(item.rating || 5)}</div>
+                        <h5 class="mb-1">${item.name || ""}</h5>
+                        <small>${item.title || item.profession || ""}</small>
+                      </div>
+                    </div>
+                    <p class="mb-0">${item.message || ""}</p>
+                  </div>`).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>`;
+    const postRender = async (root) => {
+      const bigImgs = Array.from(root.querySelectorAll(".testi-big"));
+      const smallImgs = Array.from(root.querySelectorAll(".testi-img"));
+      for (let i = 0; i < bigImgs.length; i++) {
+        const el = bigImgs[i]; const item = list[i];
+        const v = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
+        const raw = item?.imageUrl || item?.imageKey || "";
+        const url = await resolveAssetUrl(raw);
+        el.src = withCacheBusterSafe(url, v);
+      }
+      for (let i = 0; i < smallImgs.length; i++) {
+        const el = smallImgs[i]; const item = list[i];
+        const v = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
+        const raw = item?.imageUrl || item?.imageKey || "";
+        const url = await resolveAssetUrl(raw);
+        el.src = withCacheBusterSafe(url, v);
+      }
+    };
+    return { html, postRender };
+  }
+
+  function rContact(data) {
+    const hours = data.businessHours || {};
+    const socials = data.socialLinks || {};
+    const normalize = (u) => { try { return /^https?:\/\//i.test(u) ? u : `https://${u}`; } catch { return u; } };
+
+    const socialsHtml = ["facebook", "twitter", "youtube", "linkedin"].map((k) => {
+      const href = socials[k];
+      if (!href) return "";
+      const icon = k === "facebook" ? "fab fa-facebook-f"
+                : k === "twitter"  ? "fab fa-twitter"
+                : k === "youtube"  ? "fab fa-youtube"
+                : "fab fa-linkedin-in";
+      return `<a class="btn btn-square btn-light me-2" href="${normalize(href)}" target="_blank" rel="noopener"><i class="${icon}"></i></a>`;
+    }).join("");
+
+    const html = `
+      <section class="container-xxl py-6" id="contact-section">
+        <div class="container">
+          <div class="row g-5">
+            <div class="col-lg-5">
+              <h2 class="display-6 text-uppercase mb-4">${data.title || "Contact Us"}</h2>
+              <p class="mb-3"><i class="fa fa-map-marker-alt text-primary me-3"></i>${data.address || data.office || "-"}</p>
+              <p class="mb-3"><i class="fa fa-phone-alt text-primary me-3"></i>${data.phone ? `<a href="tel:${String(data.phone).replace(/\s+/g, "")}">${data.phone}</a>` : "-"}</p>
+              <p class="mb-3"><i class="fa fa-envelope text-primary me-3"></i>${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : "-"}</p>
+              <div class="d-flex pt-2">${socialsHtml}</div>
+            </div>
+            <div class="col-lg-7">
+              <h5 class="text-uppercase mb-4">Business Hours</h5>
+              <div class="row">
+                <div class="col-sm-6 mb-3"><p class="text-uppercase mb-0">Monday - Friday</p><p class="mb-0">${hours.mondayToFriday || hours.weekday || "-"}</p></div>
+                <div class="col-sm-6 mb-3"><p class="text-uppercase mb-0">Saturday</p><p class="mb-0">${hours.saturday || "-"}</p></div>
+                <div class="col-sm-6"><p class="text-uppercase mb-0">Sunday</p><p class="mb-0">${hours.sunday || "-"}</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="container-fluid text-body copyright py-4">
+        <div class="container">
+          <div class="row">
+            <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+              &copy; ${new Date().getFullYear()} ${data.copyright || "gym"}, All Rights Reserved.
+            </div>
+          </div>
+        </div>
+      </section>`;
+    return { html, postRender: async () => {} };
+  }
+
+  const RENDERERS = {
+    hero: rHero,
+    about: rAbout,
+    whychooseus: rWhyChoose,
+    services: rServices,
+    appointment: rAppointment,
+    team: rTeam,
+    testimonials: rTestimonials,
+    contact: rContact,
+  };
+
+  // ---------- MAIN ----------
   async function renderPage() {
-    const container = document.getElementById("dynamic-page-content");
-    if (!container) return;
+    const live = document.getElementById("dynamic-page-content");
+    if (!live) return;
 
-    const urlParams = new URLSearchParams(window.location.search);
-    let slug = urlParams.get("slug");
+    if (document.readyState === 'loading') {
+      await new Promise(res => document.addEventListener('DOMContentLoaded', res, { once: true }));
+    }
 
-    // Load all sections (use proxy -> EC2 backend)
+    // 1) sections list
     let allSections = [];
     try {
       const sectionsUrl = `${API_PROXY}?path=/sections&userId=${encodeURIComponent(userId)}&templateId=${encodeURIComponent(templateId)}`;
       allSections = await getJson(sectionsUrl);
     } catch (e) {
       console.error("❌ Error loading sections:", e);
-      container.innerHTML = "<h3 class='text-danger'>❌ Error loading page.</h3>";
+      live.innerHTML = "<h3 class='text-danger'>❌ Error loading page.</h3>";
+      appRoot.hidden = false;
+      hideSpinner();
       return;
     }
 
+    const slug = new URLSearchParams(location.search).get("slug");
     if (!slug) {
       const firstPage = (allSections || [])
         .filter(s => String(s.type || "").toLowerCase() === "page" && s.visible !== false)
@@ -705,427 +513,80 @@
     }
 
     const page = (allSections || []).find(s => s.slug === slug && String(s.type || "").toLowerCase() === "page");
-    if (!page) { container.innerHTML = "<h3 class='text-danger'>❌ Page not found</h3>"; return; }
+    if (!page) {
+      live.innerHTML = "<h3 class='text-danger'>❌ Page not found</h3>";
+      appRoot.hidden = false; hideSpinner(); return;
+    }
 
     const assignedSections = (allSections || [])
       .filter(s => s.parentPageId === page._id && (s.visible !== false))
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-    if (!assignedSections.length) { container.innerHTML = "<h3 class='text-warning'>❌ No sections found for this page.</h3>"; return; }
+    if (!assignedSections.length) {
+      live.innerHTML = "<h3 class='text-warning'>❌ No sections found for this page.</h3>";
+      appRoot.hidden = false; hideSpinner(); return;
+    }
 
-    container.innerHTML = "";
-    const cacheByType = {};
+    // 2) data fetch in parallel
+    const fetchOne = (type) => {
+      const base = sectionApiMap[type];
+      if (!base) return Promise.resolve(null);
+      const url = `${base}/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+      return getJson(url);
+    };
+    const dataList = await Promise.all(
+      assignedSections.map(s => fetchOne(s.type).catch(e => ({ __error: e })))
+    );
 
-    for (const section of assignedSections) {
-      const apiBase = sectionApiMap[section.type];
-      if (!apiBase) continue;
+    // 3) build off-DOM
+    const offscreen = document.createElement("div");
+    const postTasks = [];
 
-      // fetch one section via proxy -> EC2
-      const fetchSection = async () => {
-        const url = `${apiBase}/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
-        const data = await getJson(url);
-        cacheByType[section.type] = data;
-        return data;
-      };
+    assignedSections.forEach((section, idx) => {
+      const data = dataList[idx];
+      if (!data || data.__error) {
+        const err = document.createElement("p");
+        err.className = "text-danger";
+        err.textContent = `❌ Error loading ${section.type}`;
+        offscreen.appendChild(err);
+        return;
+      }
+      const renderer = RENDERERS[section.type];
+      if (!renderer) return;
 
-      try {
-        const data = await fetchSection();
-        let html = "";
+      const { html, postRender } = renderer(data, () => fetchOne(section.type));
+      const wrap = document.createElement("div");
+      wrap.id = `section-${section.type}`;
+      wrap.innerHTML = html;
+      offscreen.appendChild(wrap);
+      if (typeof postRender === "function") postTasks.push(() => postRender(offscreen));
+    });
 
-        // ---------- HERO ----------
-        if (section.type === "hero") {
-          const title = (data.title ?? data.content ?? "Welcome to our site");
-          html += `
-            <div class="container-fluid p-0 mb-6">
-              <div id="header-carousel" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                  <div class="carousel-item active" style="min-height: 100vh; position: relative;">
-                    <img id="hero-image" class="w-100 h-100" style="object-fit: cover; max-height: 100vh;" alt="Hero Image" />
-                    <div class="carousel-caption" style="background: rgba(0,0,0,0.5); padding: 4rem; text-align: left;">
-                      <h1 class="display-3 text-white mb-4" id="hero-title">${title}</h1>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>`;
-          container.insertAdjacentHTML("beforeend", html);
+    // 4) run post renders in parallel
+    await Promise.allSettled(postTasks.map(fn => fn()));
 
-          const heroImg = document.getElementById("hero-image");
-          if (heroImg) {
-            const rawHero = data.imageUrl ?? data.image?.url ?? data.imageKey ?? "";
-            const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-            const finalUrl = await resolveImageUrl(rawHero);
-            if (finalUrl) {
-              heroImg.src = withCacheBusterSafe(finalUrl, version);
-              heroImg.alt = data.imageAlt || "Hero Image";
-            }
-          }
-        }
+    // 5) swap to live DOM
+    stripAnimationsAndUnhide(offscreen);
+    live.innerHTML = offscreen.innerHTML;
+    live.style.visibility = 'visible';
 
-        // ---------- ABOUT ----------
-        else if (section.type === "about") {
-          html += `
-          <div class="container-fluid pt-6 pb-6" id="about-section">
-            <div class="container">
-              <div class="row g-5">
-                <div class="col-lg-6">
-                  <div class="about-img">
-                    <img id="about-img" class="img-fluid w-100" alt="${data.imageAlt || "About Image"}" style="max-height: 350px; object-fit: cover" />
-                  </div>
-                </div>
-                <div class="col-lg-6">
-                  <h1 class="display-6 text-uppercase mb-4">${data.title || "About Title"}</h1>
-                  <p class="mb-4">${data.description || ""}</p>
-                  <div class="row g-5 mb-4">
-                    ${(data.bullets || []).map((b) => `
-                      <div class="col-sm-6">
-                        <div class="d-flex align-items-center">
-                          <div class="flex-shrink-0 btn-xl-square bg-light me-3"><i class="fa fa-check-square fa-2x text-primary"></i></div>
-                          <h5 class="lh-base text-uppercase mb-0">${typeof b === "string" ? b : (b?.text ?? "")}</h5>
-                        </div>
-                      </div>`).join("")}
-                  </div>
-                  <div class="border border-5 border-primary p-4 text-center mt-4">
-                    <h4 class="lh-base text-uppercase mb-0">${data.highlight || "Highlight"}</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-          container.insertAdjacentHTML("beforeend", html);
+    // 6) wait a moment for header/footer scripts, then reveal app
+    await waitForHeaderFooter(1400);
+    appRoot.hidden = false;
 
-          const aboutImg = document.getElementById("about-img");
-          await setImgWithAutoRefresh(
-            aboutImg,
-            async () => {
-              const d = cacheByType.about || data;
-              const raw = d.imageUrl || d.imageKey || "";
-              const version = d.updatedAt ? new Date(d.updatedAt).getTime() : Date.now();
-              const u = await resolveImageUrl(raw);
-              return withCacheBusterSafe(u, version);
-            },
-            fetchSection
-          );
-        }
-
-        // ---------- WHY CHOOSE US ----------
-        else if (section.type === "whychooseus") {
-          const overlay = typeof data.bgOverlay === "number" ? data.bgOverlay : 0.5;
-          const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-          const bgRaw = data.bgImageUrl || data.bgImageKey || "";
-          const bgUrl = await resolveImageUrl(bgRaw);
-          const bgFinal = bgUrl ? withCacheBusterSafe(bgUrl, version) : "";
-
-          html += `
-          <div class="container-fluid feature mt-6 mb-6" id="whychoose-wrapper"
-              style="position: relative; ${bgFinal ? `background-image: url('${bgFinal}');` : ""} background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #000; z-index: 0;">
-            <div id="whychoose-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,${overlay}); z-index: 1;"></div>
-            <div class="container position-relative" style="z-index: 2;">
-              <div class="row g-0 justify-content-end">
-                <div class="col-lg-6 pt-5">
-                  <div class="mt-5">
-                    <h1 id="whychoose-title" class="display-6 text-white text-uppercase mb-4">${data.title || "Why You Should Choose Our Fitness Services"}</h1>
-                    <p id="whychoose-desc" class="text-light mb-4">${data.description || ""}</p>
-                    <div id="whychoose-stats" class="row g-4 pt-2 mb-4">
-                      ${(data.stats || []).map((stat) => `
-                        <div class="col-sm-6">
-                          <div class="flex-column text-center border border-5 border-primary p-5">
-                            <h1 class="text-white">${stat.value}</h1>
-                            <p class="text-white text-uppercase mb-0">${stat.label}</p>
-                          </div>
-                        </div>`).join("")}
-                    </div>
-                    <div class="border border-5 border-primary border-bottom-0 p-5" id="whychoose-progress">
-                      ${(data.progressBars || []).map((bar) => `
-                        <div class="experience mb-4">
-                          <div class="d-flex justify-content-between mb-2">
-                            <span class="text-white text-uppercase">${bar.label}</span>
-                            <span class="text-white">${bar.percent}%</span>
-                          </div>
-                          <div class="progress">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: ${bar.percent}%"
-                                 aria-valuenow="${bar.percent}" aria-valuemin="0" aria-valuemax="100"></div>
-                          </div>
-                        </div>`).join("")}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-          container.insertAdjacentHTML("beforeend", html);
-        }
-
-        // ---------- SERVICES ----------
-        else if (section.type === "services") {
-          html += `
-          <section class="container-xxl service py-5">
-            <div class="container">
-              <div class="text-center mx-auto mb-5">
-                <h1 class="display-6 mb-3">${section.title || "Our Services"}</h1>
-              </div>
-              <div class="row g-4" id="services-grid"></div>
-            </div>
-          </section>`;
-          container.insertAdjacentHTML("beforeend", html);
-
-          const grid = qs("#services-grid");
-          for (const [index, item] of (data.services || []).entries()) {
-            const delay = item.delay || `0.${index + 1}s`;
-            const node = document.createElement("div");
-            node.className = "col-lg-3 col-md-6";
-            node.setAttribute("data-wow-delay", delay);
-            node.innerHTML = `
-              <div class="service-item">
-                <div class="service-inner pb-5">
-                  <img class="img-fluid w-100 svc-img" alt="${item.title || "Service"}">
-                  <div class="service-text px-5 pt-4">
-                    <h5 class="text-uppercase">${item.title || "Untitled"}</h5>
-                    <p>${item.description || "No description available."}</p>
-                  </div>
-                  <a class="btn btn-light px-3" href="${item.buttonHref || "#"}">
-                    ${item.buttonText || "Read More"} <i class="bi bi-chevron-double-right ms-1"></i>
-                  </a>
-                </div>
-              </div>`;
-            grid.appendChild(node);
-
-            const imgEl = node.querySelector(".svc-img");
-            await setImgWithAutoRefresh(
-              imgEl,
-              async () => {
-                const version = item.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
-                const u = await resolveImageUrl(item.imageUrl || item.imageKey || "");
-                return withCacheBusterSafe(u, version);
-              },
-              fetchSection
-            );
-          }
-        }
-
-        // ---------- APPOINTMENT ----------
-        else if (section.type === "appointment") {
-          const version = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
-          const bgRaw = data.backgroundImageUrl || data.backgroundImage || "";
-          const bgUrl = await resolveImageUrl(bgRaw);
-          const bgFinal = bgUrl ? withCacheBusterSafe(bgUrl, version) : "";
-
-          html += `
-          <section
-            class="container-fluid appoinment mt-6 mb-6 py-5 wow fadeIn"
-            id="appointment-section"
-            style="${bgFinal ? `background-image: url('${bgFinal}');` : ""} background-size: cover; background-position: center;"
-            data-wow-delay="0.1s"
-          >
-            <div class="container pt-5">
-              <div class="row gy-5 gx-0">
-                <div class="col-lg-6 pe-lg-5">
-                  <h1 class="display-6 text-uppercase text-white mb-4">${data.title || "Book Your Appointment"}</h1>
-                  <p class="text-white mb-5">${data.subtitle || ""}</p>
-
-                  <div class="d-flex align-items-start mb-3">
-                    <div class="btn-lg-square bg-white me-3"><i class="bi bi-geo-alt text-dark fs-3"></i></div>
-                    <div>
-                      <h5 class="text-white mb-2">Office Address</h5>
-                      <p class="text-white mb-0">${data.officeAddress || ""}</p>
-                    </div>
-                  </div>
-
-                  <div class="d-flex align-items-start">
-                    <div class="btn-lg-square bg-white me-3"><i class="bi bi-clock text-dark fs-3"></i></div>
-                    <div>
-                      <h5 class="text-white mb-2">Office Time</h5>
-                      <p class="text-white mb-0">${data.officeTime || ""}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-lg-6">
-                  <form>
-                    <div class="row g-3">
-                      <div class="col-12 col-sm-6">
-                        <input type="text" class="form-control bg-light border-0 px-4" placeholder="Your Name" required>
-                      </div>
-                      <div class="col-12 col-sm-6">
-                        <input type="email" class="form-control bg-light border-0 px-4" placeholder="Your Email" required>
-                      </div>
-                      <div class="col-12 col-sm-6">
-                        <input type="text" class="form-control bg-light border-0 px-4" placeholder="Mobile" required>
-                      </div>
-                      <div class="col-12 col-sm-6">
-                        <select id="service" class="form-select bg-light border-0 px-4">
-                          ${(Array.isArray(data.services) ? data.services : [])
-                            .map(s => `<option>${typeof s === "string" ? s : (s?.name || s?.label || "")}</option>`)
-                            .join("")}
-                        </select>
-                      </div>
-                      <div class="col-12">
-                        <textarea class="form-control bg-light border-0 px-4" rows="4" placeholder="Message"></textarea>
-                      </div>
-                      <div class="col-12">
-                        <button class="btn btn-primary w-100 py-3" type="submit">Submit</button>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </section>`;
-          container.insertAdjacentHTML("beforeend", html);
-        }
-
-        // ---------- TEAM ----------
-        else if (section.type === "team") {
-          html += `
-          <section class="container-xxl py-5">
-            <div class="container">
-              <div class="text-center mx-auto mb-5">
-                <h1 class="display-6 mb-3">${section.title || "Our Team"}</h1>
-              </div>
-              <div class="row g-4" id="team-grid"></div>
-            </div>
-          </section>`;
-          container.insertAdjacentHTML("beforeend", html);
-
-          const grid = qs("#team-grid");
-          const list = Array.isArray(data) ? data : [];
-          for (const member of list) {
-            const node = document.createElement("div");
-            node.className = "col-lg-3 col-md-6";
-            node.innerHTML = `
-              <div class="team-item bg-light">
-                <div class="overflow-hidden">
-                  <img class="img-fluid w-100 team-img" alt="${member.name || "Member"}" />
-                </div>
-                <div class="text-center p-4">
-                  <h5 class="fw-bold mb-2">${member.name || ""}</h5>
-                  <p class="text-uppercase text-muted">${member.role || ""}</p>
-                </div>
-              </div>`;
-            grid.appendChild(node);
-
-            const imgEl = node.querySelector(".team-img");
-            await setImgWithAutoRefresh(
-              imgEl,
-              async () => {
-                const version = member.updatedAt ? new Date(member.updatedAt).getTime() : Date.now();
-                const u = await resolveImageUrl(member.imageUrl || member.imageKey || "");
-                return withCacheBusterSafe(u, version);
-              },
-              fetchSection
-            );
-          }
-        }
-
-        // ---------- TESTIMONIALS ----------
-        else if (section.type === "testimonials") {
-          const list = Array.isArray(data) ? data : [];
-
-          const makeCard = (item) => {
-            const stars = '<i class="far fa-star text-primary me-1"></i>'.repeat(item.rating || 5);
-            return `
-              <div class="testimonial-item bg-white p-4">
-                <div class="d-flex align-items-center mb-3">
-                  <img class="img-fluid flex-shrink-0 rounded-circle testi-img" style="width:50px;height:50px;" alt="${item.name || "Client"}">
-                  <div class="ps-3">
-                    <div class="mb-1">${stars}</div>
-                    <h5 class="mb-1">${item.name || ""}</h5>
-                    <small>${item.profession || ""}</small>
-                  </div>
-                </div>
-                <p class="mb-0">${item.message || ""}</p>
-              </div>`;
-          };
-
-          const animatedImagesHtml = list.slice(0, 4).map((item, i) => `
-            <div class="wow fadeInUp" data-wow-delay="${0.2 + i * 0.2}s">
-              <img class="img-fluid rounded-circle w-100 h-100 testi-big" alt="${item.name || "Client"}" style="object-fit:cover;">
-            </div>`).join("");
-
-          html += `
-          <section class="container-fluid pt-6 pb-6">
-            <div class="container">
-              <div class="text-center mx-auto wow fadeInUp" data-wow-delay="0.1s" style="max-width: 600px;">
-                <h1 class="display-6 text-uppercase mb-5">${section.title || "What They’re Talking About Our Training Work"}</h1>
-              </div>
-              <div class="row g-5 align-items-center">
-                <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.3s">
-                  <div class="testimonial-img" id="testimonial-image-list">${animatedImagesHtml}</div>
-                </div>
-                <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.5s">
-                  <div class="owl-carousel testimonial-carousel" id="testimonial-carousel">
-                    ${list.map(makeCard).join("")}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>`;
-          container.insertAdjacentHTML("beforeend", html);
-
-          // Big image circles
-          const bigImgs = Array.from(document.querySelectorAll(".testi-big"));
-          for (let i = 0; i < bigImgs.length; i++) {
-            const el = bigImgs[i];
-            const item = list[i];
-            await setImgWithAutoRefresh(
-              el,
-              async () => {
-                const version = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
-                const u = await resolveImageUrl(item?.imageUrl || item?.imageKey || "");
-                return withCacheBusterSafe(u, version);
-              },
-              fetchSection
-            );
-          }
-
-          // Small avatar circles inside cards
-          const smallImgs = Array.from(document.querySelectorAll(".testi-img"));
-          for (let i = 0; i < smallImgs.length; i++) {
-            const el = smallImgs[i];
-            const item = list[i];
-            await setImgWithAutoRefresh(
-              el,
-              async () => {
-                const version = item?.updatedAt ? new Date(item.updatedAt).getTime() : Date.now();
-                const u = await resolveImageUrl(item?.imageUrl || item?.imageKey || "");
-                return withCacheBusterSafe(u, version);
-              },
-              fetchSection
-            );
-          }
-
-          // Re-init OwlCarousel (uses jQuery’s $)
-          setTimeout(() => {
-            if (window.$ && typeof window.$.fn?.owlCarousel === "function") {
-              const $carousel = $(".testimonial-carousel");
-              if ($carousel.length) {
-                try {
-                  $carousel.trigger("destroy.owl.carousel").removeClass("owl-loaded");
-                  $carousel.find(".owl-stage-outer").children().unwrap();
-                } catch {}
-                $carousel.owlCarousel({
-                  autoplay: true,
-                  smartSpeed: 1000,
-                  dots: true,
-                  loop: true,
-                  items: 1,
-                  margin: 25
-                });
-              }
-            }
-          }, 200);
-        }
-
-        // ---------- CONTACT ----------
-        else if (section.type === "contact") {
-          // Keep your existing contact renderer here if you have one.
-        }
-
-      } catch (err) {
-        console.error(`❌ Failed to load section: ${section.type}`, err);
-        container.insertAdjacentHTML("beforeend", `<p class="text-danger">❌ Error loading ${section.type}</p>`);
+    // 7) init Owl if present
+    if (window.$ && typeof window.$.fn?.owlCarousel === "function") {
+      const $carousel = $(".testimonial-carousel");
+      if ($carousel.length) {
+        try {
+          $carousel.trigger("destroy.owl.carousel").removeClass("owl-loaded");
+          $carousel.find(".owl-stage-outer").children().unwrap();
+        } catch {}
+        $carousel.owlCarousel({ autoplay:true, smartSpeed:1000, dots:true, loop:true, items:1, margin:25 });
       }
     }
+
+    hideSpinner();
   }
 
   renderPage();

@@ -1,27 +1,25 @@
 
 
-
-
-
 // // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\teamS.js
 // 'use client';
 
 // import React, { useEffect, useRef, useState } from 'react';
 // import {
-//   Container, Row, Col, Card, Form, Button, Table, Alert, Image,
-//   Toast, ToastContainer,
+//   Container,
+//   Row,
+//   Col,
+//   Card,
+//   Form,
+//   Button,
+//   Table,
+//   Alert,
+//   Image,
+//   Toast,
+//   ToastContainer,
 // } from 'react-bootstrap';
 // import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
 // import { backendBaseUrl, userId, templateId } from '../../lib/config';
 // import BackBar from "../components/BackBar";
-
-// // ---------- helpers ----------
-// const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-// const readErr = async (res) => {
-//   const t = await res.text().catch(() => '');
-//   try { const j = JSON.parse(t); return j?.error || j?.message || t || `HTTP ${res.status}`; }
-//   catch { return t || `HTTP ${res.status}`; }
-// };
 
 // function TeamEditor() {
 //   const [members, setMembers] = useState([]);
@@ -41,15 +39,20 @@
 //   const [showToast, setShowToast] = useState(false);
 
 //   const clearAlertsSoon = () =>
-//     setTimeout(() => { setSuccess(''); setError(''); }, 2500);
+//     setTimeout(() => {
+//       setSuccess('');
+//       setError('');
+//     }, 2500);
 
 //   const normalizeMembers = (payload) =>
 //     Array.isArray(payload) ? payload : payload?.members || [];
 
-//   // Prefer URL from API; fallback to legacy /uploads path if present
+//   // Prefer presigned URL from API; fallback to legacy /uploads path
 //   const imgSrc = (m) => {
 //     if (m?.imageUrl) return m.imageUrl;
-//     if (m?.imageKey?.startsWith('/uploads/')) return `${backendBaseUrl}${m.imageKey}`;
+//     if (m?.imageKey?.startsWith('/uploads/')) {
+//       return `${backendBaseUrl}${m.imageKey}`;
+//     }
 //     return '';
 //   };
 
@@ -58,15 +61,18 @@
 //       headers: { Accept: 'application/json' },
 //       cache: 'no-store',
 //     });
-//     if (!res.ok) throw new Error(await readErr(res));
 //     const json = await res.json();
 //     setMembers(normalizeMembers(json));
 //   };
 
 //   useEffect(() => {
 //     (async () => {
-//       try { await reloadTeam(); }
-//       catch { setError('Failed to load team'); clearAlertsSoon(); }
+//       try {
+//         await reloadTeam();
+//       } catch {
+//         setError('Failed to load team');
+//         clearAlertsSoon();
+//       }
 //     })();
 
 //     return () => {
@@ -107,82 +113,28 @@
 //     setError('');
 //   };
 
-//   /** Get upload token+URL from backend */
-//   const getUploadToken = async (filename, type, size) => {
-//     const res = await fetch(
-//       `${backendBaseUrl}/api/team/${userId}/${templateId}/upload-token`,
-//       {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-//         body: JSON.stringify({ filename, type, size }),
-//       }
-//     );
-//     const j = await res.json().catch(() => ({}));
-//     if (!res.ok) throw new Error(j?.error || 'Failed to get upload token');
-//     // expected: { token, uploadUrl, expiresIn }
-//     return j;
-//   };
-
-//   /** Upload file to cPanel using token + uploadUrl (robust across hosts) */
-//   const uploadToCpanel = async (file, token, uploadUrl) => {
-//     const fd = new FormData();
-//     fd.append('file', file);
-//     fd.append('token', token); // body fallback
-
-//     // also include token as query (another fallback)
-//     const urlWithToken =
-//       uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
-
-//     const res = await fetch(urlWithToken, {
-//       method: 'POST',
-//       headers: {
-//         Authorization: `Bearer ${token}`, // primary
-//         'X-ION7-Token': token,            // alt header (shared hosts may drop Authorization)
-//       },
-//       body: fd,
-//     });
-//     const j = await res.json().catch(() => ({}));
-//     if (!res.ok || !j?.url) throw new Error(j?.error || 'cPanel upload failed');
-//     return j.url; // e.g. https://ion7.mavsketch.com/uploads/YYYY/MM/xxxx.jpg
-//   };
-
-//   /** Create or update a member on backend using JSON (imageUrl when present) */
-//   const saveMemberJson = async (payload, id = null) => {
-//     const url = id
-//       ? `${backendBaseUrl}/api/team/${id}`
-//       : `${backendBaseUrl}/api/team/${userId}/${templateId}`;
-//     const method = id ? 'PATCH' : 'POST';
-//     const res = await fetch(url, {
-//       method,
-//       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-//       body: JSON.stringify(payload),
-//     });
-//     const j = await res.json().catch(() => ({}));
-//     if (!res.ok) throw new Error(j?.message || 'Save failed');
-//     return j?.data || j;
-//   };
-
-//   // ADD
+//   // ADD: multipart (name, role, socials JSON string, optional image)
 //   const handleAdd = async () => {
-//     setLoading(true); setSuccess(''); setError('');
+//     setLoading(true);
+//     setSuccess('');
+//     setError('');
 //     try {
-//       let imageUrl = '';
+//       const fd = new FormData();
+//       fd.append('name', form.name);
+//       fd.append('role', form.role);
+//       fd.append('socials', JSON.stringify(form.socialLinks || {}));
+//       if (imageFile) fd.append('image', imageFile);
 
-//       if (imageFile) {
-//         const { token, uploadUrl } =
-//           await getUploadToken(imageFile.name, imageFile.type, imageFile.size);
-//         imageUrl = await uploadToCpanel(imageFile, token, uploadUrl);
-//       }
+//       const res = await fetch(
+//         `${backendBaseUrl}/api/team/${userId}/${templateId}`,
+//         { method: 'POST', body: fd }
+//       );
+//       const data = await res.json();
+//       if (!res.ok) throw new Error(data?.message || 'Failed to add');
 
-//       const saved = await saveMemberJson({
-//         name: form.name,
-//         role: form.role,
-//         socialLinks: form.socialLinks || {},
-//         imageUrl, // may be empty if no image chosen
-//       });
-
-//       setMembers((prev) => [...prev, saved]);
+//       setMembers((prev) => [...prev, data?.data || data]);
 //       await reloadTeam();
+
 //       setSuccess('✅ Team member added');
 //       setShowToast(true);
 //       resetForm();
@@ -199,7 +151,7 @@
 //     setForm({
 //       name: member.name || '',
 //       role: member.role || '',
-//       socialLinks: member.socialLinks || member.socials || {},
+//       socialLinks: member.socials || member.socialLinks || {},
 //     });
 //     setEditingId(member._id);
 //     if (lastObjUrlRef.current) {
@@ -211,28 +163,27 @@
 //     window.scrollTo({ top: 0, behavior: 'smooth' });
 //   };
 
-//   // UPDATE
+//   // UPDATE: multipart (name, role, socials JSON string, optional image)
 //   const handleUpdate = async () => {
 //     if (!editingId) return;
-//     setLoading(true); setSuccess(''); setError('');
+//     setLoading(true);
+//     setSuccess('');
+//     setError('');
 //     try {
-//       let imageUrl;
+//       const fd = new FormData();
+//       fd.append('name', form.name);
+//       fd.append('role', form.role);
+//       fd.append('socials', JSON.stringify(form.socialLinks || {}));
+//       if (imageFile) fd.append('image', imageFile);
 
-//       if (imageFile) {
-//         const { token, uploadUrl } =
-//           await getUploadToken(imageFile.name, imageFile.type, imageFile.size);
-//         imageUrl = await uploadToCpanel(imageFile, token, uploadUrl);
-//       }
+//       const res = await fetch(`${backendBaseUrl}/api/team/${editingId}`, {
+//         method: 'PATCH',
+//         body: fd,
+//       });
+//       const data = await res.json();
+//       if (!res.ok) throw new Error(data?.message || 'Failed to update');
 
-//       const payload = {
-//         name: form.name,
-//         role: form.role,
-//         socialLinks: form.socialLinks || {},
-//       };
-//       if (imageUrl) payload.imageUrl = imageUrl;
-
-//       const updated = await saveMemberJson(payload, editingId);
-
+//       const updated = data?.data || data;
 //       setMembers((prev) => prev.map((m) => (m._id === editingId ? updated : m)));
 //       await reloadTeam();
 
@@ -249,10 +200,14 @@
 //   };
 
 //   const handleDelete = async (id) => {
-//     setLoading(true); setSuccess(''); setError('');
+//     setLoading(true);
+//     setSuccess('');
+//     setError('');
 //     try {
-//       const res = await fetch(`${backendBaseUrl}/api/team/${id}`, { method: 'DELETE' });
-//       const data = await res.json().catch(() => ({}));
+//       const res = await fetch(`${backendBaseUrl}/api/team/${id}`, {
+//         method: 'DELETE',
+//       });
+//       const data = await res.json();
 //       if (!res.ok) throw new Error(data?.message || 'Failed to delete');
 
 //       setMembers((prev) => prev.filter((m) => m._id !== id));
@@ -351,9 +306,12 @@
 //             </Form.Group>
 
 //             <Form.Group className="mb-3">
-//               <Form.Label>{editingId ? 'Replace Image (optional)' : 'Image'}</Form.Label>
+//               <Form.Label>
+//                 {editingId ? 'Replace Image (optional)' : 'Image'}
+//               </Form.Label>
 //               <Form.Control
-//                 type="file" accept="image/*"
+//                 type="file"
+//                 accept="image/*"
 //                 onChange={(e) => onPickLocal(e.target.files?.[0] || null)}
 //               />
 //               {currentImage ? (
@@ -374,11 +332,21 @@
 //             </Form.Group>
 
 //             <Button disabled={loading} onClick={editingId ? handleUpdate : handleAdd}>
-//               {editingId ? (loading ? 'Updating…' : '✏️ Update Member')
-//                          : (loading ? 'Adding…'   : '➕ Add Member')}
+//               {editingId
+//                 ? loading
+//                   ? 'Updating…'
+//                   : '✏️ Update Member'
+//                 : loading
+//                 ? 'Adding…'
+//                 : '➕ Add Member'}
 //             </Button>
 //             {editingId && (
-//               <Button variant="secondary" className="ms-2" onClick={resetForm} disabled={loading}>
+//               <Button
+//                 variant="secondary"
+//                 className="ms-2"
+//                 onClick={resetForm}
+//                 disabled={loading}
+//               >
 //                 Cancel
 //               </Button>
 //             )}
@@ -409,16 +377,28 @@
 //                       roundedCircle
 //                       style={{ objectFit: 'cover' }}
 //                     />
-//                   ) : 'No image'}
+//                   ) : (
+//                     'No image'
+//                   )}
 //                 </td>
 //                 <td className="align-middle">{m.name}</td>
 //                 <td className="align-middle">{m.role}</td>
+
+//                 {/* Keep TD as a table-cell; put flex on an inner div */}
 //                 <td className="align-middle">
 //                   <div className="d-flex gap-2 flex-wrap">
-//                     <Button variant="warning" size="sm" onClick={() => handleEditStart(m)}>
+//                     <Button
+//                       variant="warning"
+//                       size="sm"
+//                       onClick={() => handleEditStart(m)}
+//                     >
 //                       Edit
 //                     </Button>
-//                     <Button variant="danger" size="sm" onClick={() => handleDelete(m._id)}>
+//                     <Button
+//                       variant="danger"
+//                       size="sm"
+//                       onClick={() => handleDelete(m._id)}
+//                     >
 //                       Delete
 //                     </Button>
 //                   </div>
@@ -427,17 +407,27 @@
 //             ))}
 //             {!members.length && (
 //               <tr>
-//                 <td colSpan={4} className="text-center text-muted">No team members yet</td>
+//                 <td colSpan={4} className="text-center text-muted">
+//                   No team members yet
+//                 </td>
 //               </tr>
 //             )}
 //           </tbody>
 //         </Table>
 //       </Card>
 
-//       {/* Floating toast */}
+//       {/* Floating toast (floater) */}
 //       <ToastContainer position="bottom-end" className="p-3">
-//         <Toast bg="success" onClose={() => setShowToast(false)} show={showToast} delay={2200} autohide>
-//           <Toast.Body className="text-white">{success || 'Saved successfully.'}</Toast.Body>
+//         <Toast
+//           bg="success"
+//           onClose={() => setShowToast(false)}
+//           show={showToast}
+//           delay={2200}
+//           autohide
+//         >
+//           <Toast.Body className="text-white">
+//             {success || 'Saved successfully.'}
+//           </Toast.Body>
 //         </Toast>
 //       </ToastContainer>
 //     </Container>
@@ -445,20 +435,8 @@
 // }
 
 // TeamEditor.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
+
 // export default TeamEditor;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -486,10 +464,48 @@ import {
   ToastContainer,
 } from 'react-bootstrap';
 import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
-import { backendBaseUrl, userId, templateId } from '../../lib/config';
+import { backendBaseUrl, userId as defaultUserId, templateId as defaultTemplateId } from '../../lib/config';
+import { api } from '../../lib/api';
 import BackBar from "../components/BackBar";
 
+/** Resolve templateId in this order:
+ *  1) ?templateId=… in URL
+ *  2) backend-selected template for the user
+ *  3) config fallback (legacy)
+ */
+function useResolvedTemplateId(userId) {
+  const [tpl, setTpl] = useState('');
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      // URL first
+      const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const fromUrl = sp?.get('templateId')?.trim();
+      if (fromUrl) {
+        if (!off) setTpl(fromUrl);
+        return;
+      }
+      // Backend-selected
+      try {
+        const sel = await api.selectedTemplateForUser(userId);
+        const t = sel?.data?.templateId;
+        if (t && !off) {
+          setTpl(t);
+          return;
+        }
+      } catch {}
+      // Fallback
+      if (!off) setTpl(defaultTemplateId || 'gym-template-1');
+    })();
+    return () => { off = true; };
+  }, [userId]);
+  return tpl;
+}
+
 function TeamEditor() {
+  const userId = defaultUserId;
+  const templateId = useResolvedTemplateId(userId);
+
   const [members, setMembers] = useState([]);
   const [form, setForm] = useState({ name: '', role: '', socialLinks: {} });
 
@@ -517,19 +533,20 @@ function TeamEditor() {
 
   // Prefer presigned URL from API; fallback to legacy /uploads path
   const imgSrc = (m) => {
-    if (m?.imageUrl) return m.imageUrl;
-    if (m?.imageKey?.startsWith('/uploads/')) {
+    if (m?.imageUrl) return m.imageUrl; // presigned or absolute
+    if (m?.imageKey?.startsWith?.('/uploads/')) {
       return `${backendBaseUrl}${m.imageKey}`;
     }
     return '';
   };
 
   const reloadTeam = async () => {
-    const res = await fetch(`${backendBaseUrl}/api/team/${userId}/${templateId}`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    });
-    const json = await res.json();
+    if (!templateId) return;
+    const res = await fetch(
+      `${backendBaseUrl}/api/team/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
+      { headers: { Accept: 'application/json' }, cache: 'no-store' }
+    );
+    const json = await res.json().catch(() => ({}));
     setMembers(normalizeMembers(json));
   };
 
@@ -549,7 +566,7 @@ function TeamEditor() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [templateId]); // << re-load when template changes
 
   const resetForm = () => {
     setForm({ name: '', role: '', socialLinks: {} });
@@ -583,6 +600,7 @@ function TeamEditor() {
 
   // ADD: multipart (name, role, socials JSON string, optional image)
   const handleAdd = async () => {
+    if (!templateId) return;
     setLoading(true);
     setSuccess('');
     setError('');
@@ -594,10 +612,10 @@ function TeamEditor() {
       if (imageFile) fd.append('image', imageFile);
 
       const res = await fetch(
-        `${backendBaseUrl}/api/team/${userId}/${templateId}`,
+        `${backendBaseUrl}/api/team/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
         { method: 'POST', body: fd }
       );
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || 'Failed to add');
 
       setMembers((prev) => [...prev, data?.data || data]);
@@ -644,11 +662,11 @@ function TeamEditor() {
       fd.append('socials', JSON.stringify(form.socialLinks || {}));
       if (imageFile) fd.append('image', imageFile);
 
-      const res = await fetch(`${backendBaseUrl}/api/team/${editingId}`, {
+      const res = await fetch(`${backendBaseUrl}/api/team/${encodeURIComponent(editingId)}`, {
         method: 'PATCH',
         body: fd,
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || 'Failed to update');
 
       const updated = data?.data || data;
@@ -672,10 +690,10 @@ function TeamEditor() {
     setSuccess('');
     setError('');
     try {
-      const res = await fetch(`${backendBaseUrl}/api/team/${id}`, {
+      const res = await fetch(`${backendBaseUrl}/api/team/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || 'Failed to delete');
 
       setMembers((prev) => prev.filter((m) => m._id !== id));
@@ -774,9 +792,7 @@ function TeamEditor() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>
-                {editingId ? 'Replace Image (optional)' : 'Image'}
-              </Form.Label>
+              <Form.Label>{editingId ? 'Replace Image (optional)' : 'Image'}</Form.Label>
               <Form.Control
                 type="file"
                 accept="image/*"
@@ -799,7 +815,7 @@ function TeamEditor() {
               ) : null}
             </Form.Group>
 
-            <Button disabled={loading} onClick={editingId ? handleUpdate : handleAdd}>
+            <Button disabled={loading || !templateId} onClick={editingId ? handleUpdate : handleAdd}>
               {editingId
                 ? loading
                   ? 'Updating…'
@@ -905,6 +921,3 @@ function TeamEditor() {
 TeamEditor.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
 
 export default TeamEditor;
-
-
-
