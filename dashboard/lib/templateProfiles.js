@@ -1,6 +1,4 @@
-// dashboard/lib/templateProfiles.js
-// Central source of truth for what each template exposes per section.
-// You can grow this as you add sections/fields.
+
 
 export const TEMPLATE_PROFILES = {
   "sir-template-1": {

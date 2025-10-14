@@ -114,3 +114,19 @@
 //     </>
 //   );
 // }
+
+
+
+// pages/templates/index.jsx
+import Link from "next/link";
+
+export default function TemplatesIndex() {
+  return (
+    <div style={{ padding: "3rem", textAlign: "center" }}>
+      <h3>Templates page moved</h3>
+      <p>
+        Go to the <Link href="/dashboard">Dashboard</Link> to pick a template.
+      </p>
+    </div>
+  );
+}
