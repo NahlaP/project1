@@ -46,31 +46,29 @@
 
 
 
-
-
 // dashboard/lib/config.js
+
 export const backendBaseUrl =
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN || 'http://127.0.0.1:5000';
 
 export const userId = 'demo-user';
 
+// ✅ Re-introduce templateId for pages that import it:
+export const templateId =
+  process.env.NEXT_PUBLIC_DEFAULT_TEMPLATE_ID || 'gym-template-1';
 
-// Optional (if you use absFromKey somewhere)
-export const s3Bucket = 'project1-uploads-uae-12345';
-export const s3Region = 'me-central-1';
+// Optional: make S3 host configurable via env (UAE values for prod)
+export const s3Bucket =
+  process.env.NEXT_PUBLIC_S3_BUCKET || 'project1-uploads-uae-12345';
+export const s3Region =
+  process.env.NEXT_PUBLIC_S3_REGION || 'me-central-1';
 
-// --- Local remember of selected template (used for fast client-side routing) ---
+// --- Local remember of selected template (client-side only)
 const KEY = 'selected_template';
-
 export function setSelectedTemplateId(id) {
-  try {
-    if (typeof window !== 'undefined') localStorage.setItem(KEY, id || '');
-  } catch {}
+  try { if (typeof window !== 'undefined') localStorage.setItem(KEY, id || ''); } catch {}
 }
-
 export function getSelectedTemplateId() {
-  try {
-    if (typeof window !== 'undefined') return localStorage.getItem(KEY) || '';
-  } catch {}
+  try { if (typeof window !== 'undefined') return localStorage.getItem(KEY) || ''; } catch {}
   return '';
 }
