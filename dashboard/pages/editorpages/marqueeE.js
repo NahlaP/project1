@@ -11,7 +11,7 @@ import { api } from "../../lib/api";
 
 const API = backendBaseUrl || "";
 
-/* Resolve templateId the same way as other previews (Page builder passes ?templateId) */
+
 function useResolvedTemplateId(userId) {
   const router = useRouter();
   const [tid, setTid] = useState("");
@@ -127,7 +127,7 @@ export default function MarqueePreview() {
           >
             {rowDup}
           </div>
-          {/* Row 2 (slower / offset for nice effect) */}
+      
           <div
             className="d-flex mt-3"
             style={{
@@ -141,7 +141,7 @@ export default function MarqueePreview() {
         </div>
       </div>
 
-      {/* Right: list + edit button (same pattern/size as About/Projects) */}
+      
       <div
         className="d-flex flex-column justify-content-center px-4 py-3"
         style={{ width: "50%", height: "127%", overflowY: "auto" }}

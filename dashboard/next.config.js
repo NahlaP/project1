@@ -38,12 +38,12 @@
 
 
 
-
+// prod
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
-  // Images: allow your UAE S3 bucket
+ 
   images: {
     remotePatterns: [
       {
@@ -64,7 +64,7 @@ const nextConfig = {
     const S3_ORIGIN = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
 
     return [
-      // Keep Next API routes local
+     
       { source: '/next-api/:path*', destination: '/api/:path*' },
 
       // Bypass: these stay on Next

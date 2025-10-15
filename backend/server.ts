@@ -1,4 +1,4 @@
-
+// og code before change into 2 env
 // cpanel and aws
 // server.ts
 import "dotenv/config";
@@ -72,6 +72,11 @@ app.get("/", (_req, res) => res.send("✅ Backend is live!"));
 app.get(["/api", "/api/"], (_req, res) =>
   res.json({ ok: true, message: "Backend is live!" })
 );
+
+
+
+
+
 // -----------------------------------
 
 // ---------- Optional static (if you use it) ----------
@@ -161,6 +166,10 @@ mongoose
     });
   });
 // ---------------------------------
+
+
+
+
 
 
 
