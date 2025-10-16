@@ -652,6 +652,10 @@ import { api, getUserId } from "../../lib/api";
 const USER_ID_CONST = "demo-user";
 const TEMPLATE_ID_CONST = "gym-template-1";
 
+// Public host to “ping” so index.php sets cookie on .mavsketch.com
+const PUBLIC_HOST =
+  process.env.NEXT_PUBLIC_PUBLIC_HOST || "https://ion7dev.mavsketch.com";
+
 const http = axios.create({ baseURL: "" });
 
 /* ---------------- Cookie helpers (prod + localhost safe) ---------------- */
@@ -722,11 +726,18 @@ function TemplateChooserCard({ onOpenEditor }) {
       await api.selectTemplate(templateId, userId);
       setSelected(templateId);
 
-      // NEW: set cross-subdomain cookie so ion7dev.mavsketch.com shows the latest selection
+      // 1) set cross-subdomain cookie (helps if dashboard is on same eTLD)
       setTemplateCookie(templateId);
 
-      // Optional: open/refresh public site to confirm switch
-      // window.open('https://ion7dev.mavsketch.com/?r=' + Date.now(), '_blank');
+      // 2) ping the public host so its index.php sets cookie server-side, too
+      //    (no-cors so it works cross-origin; credentials include for good measure)
+      fetch(`${PUBLIC_HOST}/?templateId=${encodeURIComponent(templateId)}`, {
+        mode: "no-cors",
+        credentials: "include"
+      });
+
+      // Optional: open public site in a new tab if you want instant visual confirmation
+      // window.open(`${PUBLIC_HOST}/`, "_blank");
     } catch (e) {
       alert(e.message || "Failed to select template");
     } finally {
