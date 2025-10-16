@@ -640,59 +640,17 @@
 // dashboard/pages/dashboard/index.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import axios from "axios";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
 
-import { api, getUserId } from "../../lib/api";
+import { api, getUserId, PUBLIC_HOST } from "../../lib/api";
+import { setTemplateCookie } from "../../lib/templateCookie";
 
-const USER_ID_CONST = "demo-user";
-const TEMPLATE_ID_CONST = "gym-template-1";
-
-// Public host to “ping” so index.php sets cookie on .mavsketch.com
-const PUBLIC_HOST =
-  process.env.NEXT_PUBLIC_PUBLIC_HOST || "https://ion7dev.mavsketch.com";
-
-const http = axios.create({ baseURL: "" });
-
-/* ---------------- Cookie helpers (prod + localhost safe) ---------------- */
-function getBaseDomain(
-  hostname = (typeof location !== "undefined" ? location.hostname : "")
-) {
-  // If localhost or an IP, don't set Domain attr
-  if (
-    !hostname ||
-    hostname === "localhost" ||
-    /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) ||
-    hostname.split(".").length < 2
-  )
-    return "";
-
-  const parts = hostname.split(".");
-  const tld = parts[parts.length - 1];
-  const use3 = tld.length === 2 && parts.length >= 3; // e.g., .ae
-  const base = parts.slice(use3 ? -3 : -2).join(".");
-  return `.${base}`; // e.g., .mavsketch.com
-}
-
-function setTemplateCookie(templateId) {
-  const oneYear = 60 * 60 * 24 * 365;
-  const attrs = [
-    `templateId=${encodeURIComponent(templateId)}`,
-    `Max-Age=${oneYear}`,
-    `Path=/`,
-    `SameSite=Lax`,
-  ];
-  if (typeof location !== "undefined") {
-    const baseDomain = getBaseDomain();
-    if (baseDomain) attrs.push(`Domain=${baseDomain}`);
-    if (location.protocol === "https:") attrs.push("Secure");
-  }
-  document.cookie = attrs.join("; ");
-}
+const USER_ID_CONST = "demo-user";          // replace with real user id if needed
+const TEMPLATE_ID_CONST = "gym-template-1"; // default fallback for API lookups
 
 /* ---------------- Inline Template Chooser Card ---------------- */
 function TemplateChooserCard({ onOpenEditor }) {
@@ -713,7 +671,9 @@ function TemplateChooserCard({ onOpenEditor }) {
         const sel = await api.selectedTemplateForUser(userId);
         if (off) return;
         setTemplates(list?.data || []);
-        setSelected(sel?.data?.templateId || null);
+        // support both {data:{templateId}} and {templateId}
+        const activeTpl = sel?.data?.templateId ?? sel?.templateId ?? null;
+        setSelected(activeTpl);
       } catch (e) {
         if (!off) setError(e.message || "Failed to load templates");
       } finally {
@@ -731,18 +691,14 @@ function TemplateChooserCard({ onOpenEditor }) {
       await api.selectTemplate(templateId, userId);
       setSelected(templateId);
 
-      // 1) set cross-subdomain cookie (helps if dashboard is on same eTLD)
+      // 1) keep browser cookie in sync across subdomains
       setTemplateCookie(templateId);
 
-      // 2) ping the public host so its index.php sets cookie server-side, too
-      //    (no-cors so it works cross-origin; credentials include for good measure)
+      // 2) ping public host so its index.php updates cookie/server state too
       fetch(`${PUBLIC_HOST}/?templateId=${encodeURIComponent(templateId)}&r=${Date.now()}`, {
         mode: "no-cors",
         credentials: "include",
       });
-
-      // Optional: open public site in a new tab for instant confirmation
-      // window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank");
     } catch (e) {
       alert(e.message || "Failed to select template");
     } finally {
@@ -870,47 +826,10 @@ export default function DashboardHome() {
     (async () => {
       setFetchErr(null);
       try {
-        const primary = await http.get("/api/sections", {
-          params: {
-            userId: USER_ID_CONST,
-            templateId: TEMPLATE_ID_CONST,
-            type: "page",
-            slug: "home",
-          },
-          timeout: 15000,
-        });
-
-        const pRows = Array.isArray(primary.data)
-          ? primary.data
-          : primary.data?.data || [];
-
-        let page =
-          pRows.find(
-            (r) =>
-              r?.type === "page" &&
-              (r?.slug?.toLowerCase() === "home" ||
-                r?.title?.toLowerCase() === "home")
-          ) || null;
-
-        if (!page) {
-          const fallback = await http.get(
-            `/api/sections/${USER_ID_CONST}/${TEMPLATE_ID_CONST}`,
-            { timeout: 15000 }
-          );
-          const fRows = Array.isArray(fallback.data)
-            ? fallback.data
-            : fallback.data?.data || [];
-          page =
-            fRows.find(
-              (r) =>
-                r?.type === "page" &&
-                (r?.slug?.toLowerCase() === "home" ||
-                  r?.title?.toLowerCase() === "home")
-            ) || null;
-        }
-
-        if (!cancelled) setHomePageId(page?._id || null);
-        if (!page) setFetchErr("Could not locate a 'home' page in API response.");
+        // Prefer using your API wrapper to resolve the Home page id
+        const pageId = await api.getHomePageId(USER_ID_CONST, TEMPLATE_ID_CONST);
+        if (!cancelled) setHomePageId(pageId || null);
+        if (!pageId) setFetchErr("Could not locate a 'home' page in API response.");
       } catch (err) {
         if (!cancelled) {
           setHomePageId(null);
