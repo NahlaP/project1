@@ -659,14 +659,17 @@ const PUBLIC_HOST =
 const http = axios.create({ baseURL: "" });
 
 /* ---------------- Cookie helpers (prod + localhost safe) ---------------- */
-function getBaseDomain(hostname = (typeof location !== "undefined" ? location.hostname : "")) {
+function getBaseDomain(
+  hostname = (typeof location !== "undefined" ? location.hostname : "")
+) {
   // If localhost or an IP, don't set Domain attr
   if (
     !hostname ||
     hostname === "localhost" ||
     /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) ||
     hostname.split(".").length < 2
-  ) return "";
+  )
+    return "";
 
   const parts = hostname.split(".");
   const tld = parts[parts.length - 1];
@@ -717,7 +720,9 @@ function TemplateChooserCard({ onOpenEditor }) {
         if (!off) setLoading(false);
       }
     })();
-    return () => { off = true; };
+    return () => {
+      off = true;
+    };
   }, [userId]);
 
   async function choose(templateId) {
@@ -731,13 +736,13 @@ function TemplateChooserCard({ onOpenEditor }) {
 
       // 2) ping the public host so its index.php sets cookie server-side, too
       //    (no-cors so it works cross-origin; credentials include for good measure)
-      fetch(`${PUBLIC_HOST}/?templateId=${encodeURIComponent(templateId)}`, {
+      fetch(`${PUBLIC_HOST}/?templateId=${encodeURIComponent(templateId)}&r=${Date.now()}`, {
         mode: "no-cors",
-        credentials: "include"
+        credentials: "include",
       });
 
-      // Optional: open public site in a new tab if you want instant visual confirmation
-      // window.open(`${PUBLIC_HOST}/`, "_blank");
+      // Optional: open public site in a new tab for instant confirmation
+      // window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank");
     } catch (e) {
       alert(e.message || "Failed to select template");
     } finally {
@@ -746,13 +751,16 @@ function TemplateChooserCard({ onOpenEditor }) {
   }
 
   return (
-    <Card className="border-0 ion-card h-100" style={{
-      background:"rgba(255,255,255,0.28)",
-      backdropFilter:"blur(50px)",
-      WebkitBackdropFilter:"blur(50px)",
-      borderRadius:20,
-      border:"1px solid rgba(255,255,255,0.3)"
-    }}>
+    <Card
+      className="border-0 ion-card h-100"
+      style={{
+        background: "rgba(255,255,255,0.28)",
+        backdropFilter: "blur(50px)",
+        WebkitBackdropFilter: "blur(50px)",
+        borderRadius: 20,
+        border: "1px solid rgba(255,255,255,0.3)",
+      }}
+    >
       <Card.Body className="px-4 pt-4 pb-3">
         <div className="d-flex justify-content-between align-items-start mb-2">
           <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
@@ -765,33 +773,50 @@ function TemplateChooserCard({ onOpenEditor }) {
         {error && <div className="text-danger">{error}</div>}
 
         {!loading && !error && (
-          <div className="d-grid" style={{
-            gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
-            gap: 12
-          }}>
-            {templates.map(t => (
-              <div key={t.templateId} className={`p-3 rounded-3 border ${selected === t.templateId ? "border-primary shadow-sm" : "border-light"}`} style={{ background:"#fff" }}>
-                <div style={{ height: 110, borderRadius: 10, background:"linear-gradient(135deg,#f5f7fa,#e4ecf7)" }} />
+          <div
+            className="d-grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
+              gap: 12,
+            }}
+          >
+            {templates.map((t) => (
+              <div
+                key={t.templateId}
+                className={`p-3 rounded-3 border ${
+                  selected === t.templateId ? "border-primary shadow-sm" : "border-light"
+                }`}
+                style={{ background: "#fff" }}
+              >
+                <div
+                  style={{
+                    height: 110,
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg,#f5f7fa,#e4ecf7)",
+                  }}
+                />
                 <div className="mt-2 d-flex align-items-center justify-content-between">
                   <div>
                     <div className="fw-semibold">{t.name}</div>
-                    <div className="text-muted" style={{ fontSize:12 }}>ID: {t.templateId}</div>
+                    <div className="text-muted" style={{ fontSize: 12 }}>
+                      ID: {t.templateId}
+                    </div>
                   </div>
                   <button
                     className="btn btn-sm"
-                    style={{ background:"#111827", color:"#fff", borderRadius:8 }}
+                    style={{ background: "#111827", color: "#fff", borderRadius: 8 }}
                     disabled={saving || selected === t.templateId}
                     onClick={() => choose(t.templateId)}
                     title={selected === t.templateId ? "Already selected" : "Select this template"}
                   >
-                    {selected === t.templateId ? "Selected ✓" : (saving ? "Saving…" : "Select")}
+                    {selected === t.templateId ? "Selected ✓" : saving ? "Saving…" : "Select"}
                   </button>
                 </div>
                 <div className="mt-2 d-flex gap-2">
                   <button
                     className="btn btn-sm btn-outline-secondary"
                     onClick={() => router.push(`/templates/preview/${t.templateId}`)}
-                    style={{ borderRadius:8 }}
+                    style={{ borderRadius: 8 }}
                   >
                     Preview
                   </button>
@@ -799,7 +824,7 @@ function TemplateChooserCard({ onOpenEditor }) {
                     className="btn btn-sm btn-primary"
                     onClick={onOpenEditor}
                     disabled={!selected || selected !== t.templateId}
-                    style={{ borderRadius:8 }}
+                    style={{ borderRadius: 8 }}
                   >
                     Edit
                   </button>
@@ -901,7 +926,9 @@ export default function DashboardHome() {
   return (
     <>
       <style jsx global>{`
-        #page-content { background-color: transparent !important; }
+        #page-content {
+          background-color: transparent !important;
+        }
       `}</style>
 
       <div className="bg-wrapper-custom">
@@ -1050,6 +1077,7 @@ export default function DashboardHome() {
                         type="button"
                         className="btn fw-medium rounded-3 w-50"
                         style={{ padding: "6px 0", backgroundColor: "#FF3C3C", color: "#fff", border: "none" }}
+                        onClick={() => window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank")}
                       >
                         View Site
                       </button>
