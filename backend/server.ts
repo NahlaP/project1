@@ -284,6 +284,7 @@ safeMount("/api/brands",     () => require("./routes/brands.routes"));
 safeMount("/api/blogs", () => require("./routes/blogs.routes"));
 safeMount("/api/footer", () => require("./routes/footer.routes"));
 
+
 safeMount("/api",             () => require("./routes/page.routes"));
 // ----------------------------------
 
