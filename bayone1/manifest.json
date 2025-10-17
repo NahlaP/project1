@@ -1,0 +1,15 @@
+{
+  "templateId": "sir-template-1",
+  "version": "v1",
+  "entry": "landing.html",
+  "assetsBase": "https://ion7-templates.s3.ap-south-1.amazonaws.com/sir-template-1/v1/",
+  "css": [
+    "assets/css/base.css",
+    "assets/css/style.css"
+  ],
+  "js": [
+    "assets/js/plugins.js",
+    "assets/js/scripts.js",
+    "template-render.js"
+  ]
+}

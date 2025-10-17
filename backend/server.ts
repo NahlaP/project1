@@ -172,7 +172,7 @@
 
 
 
-
+// og one
 // cpanel and aws
 // server.ts
 import "dotenv/config";
@@ -328,6 +328,15 @@ mongoose
     });
   });
 // ---------------------------------
+
+
+
+
+
+
+
+
+
 
 
 
