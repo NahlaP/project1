@@ -9,14 +9,18 @@ import axios from "axios";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faCheck} from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
+import NavbarTop from '../../layouts/navbars/NavbarTop';
 
 
 import { api, getUserId } from "../../lib/api";
 
 const USER_ID_CONST = "demo-user";
 const TEMPLATE_ID_CONST = "gym-template-1";
+
+const NAVBAR_H = 48;            // top bar height
+const BREAKPOINT = 1120;         // ≤ 993px => compact
 
 const http = axios.create({ baseURL: "" });
 
@@ -30,6 +34,7 @@ function TemplateChooserCard({ onOpenEditor }) {
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
 
   useEffect(() => {
     let off = false;
@@ -72,12 +77,14 @@ function TemplateChooserCard({ onOpenEditor }) {
       <Card.Body className="px-4 pt-4 pb-3">
         <div className="d-flex justify-content-between align-items-start mb-2">
           <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
-            Choose Your Template
+            Your Website Themes
           </h5>
-          <img src="/icons/layout-icon.png" alt="" width={30} height={30} />
+          <div className="card-icon">
+            <img src="/icons/layout.png" alt="Template Chooser" />
+          </div>
         </div>
 
-        {loading && <div className="text-muted">Loading templates…</div>}
+        {loading && <div className="text-muted">Loading theme…</div>}
         {error && <div className="text-danger">{error}</div>}
 
         {!loading && !error && (
@@ -136,18 +143,38 @@ export default function DashboardHome() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isBelowLg, setIsBelowLg] = useState(false); // < 992px
   const router = useRouter();
+  const [showMenu, setShowMenu] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+  // const [isOpen, setIsOpen] = useState(true);
 
-  const cardGlass = {
-    background: "rgba(255,255,255,0.28)",
-    backdropFilter: "blur(50px)",
-    WebkitBackdropFilter: "blur(50px)",
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.3)",
-  };
+  const toggleMenu = () => setShowMenu(prev => !prev);
+  useEffect(() => {
+      const handleResize = () => {
+        const compact = window.innerWidth <= BREAKPOINT;
+        setIsCompact(compact);
+        if (!compact) setShowMenu(false);
+      };
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
+  
+    useEffect(() => {
+      if (typeof document === 'undefined') return;
+      document.body.classList.toggle('sidebar-open', isCompact && showMenu);
+    }, [isCompact, showMenu]);
+
+  // const cardGlass = {
+  //   background: "rgba(255,255,255,0.28)",
+  //   backdropFilter: "blur(50px)",
+  //   WebkitBackdropFilter: "blur(50px)",
+  //   borderRadius: 20,
+  //   border: "1px solid rgba(255,255,255,0.3)",
+  // };
 
   useEffect(() => {
     const onResize = () => {
-      const below = window.innerWidth < 992;
+      const below = window.innerWidth < 1120;
       setIsBelowLg(below);
       setSidebarOpen(!below);
     };
@@ -217,6 +244,24 @@ export default function DashboardHome() {
 
   return (
     <>
+      {isCompact && (
+        <button
+          className="btn btn-outline-secondary position-fixed navbar-button"
+          setSidebarOpen
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          {/* <FontAwesomeIcon icon={faBars} /> */}
+          <img src={`/icons/${sidebarOpen ? "menu-close.png" : "002-app.png"}`} alt="Pro Plan" />
+        </button>
+      )}
+      <div className="header">
+        <NavbarTop
+          isMobile={isCompact}
+          toggleMenu={toggleMenu}
+          sidebarVisible={!isCompact}
+        />
+      </div>
       <style jsx global>{`
         #page-content { background-color: transparent !important; }
       `}</style>
@@ -231,9 +276,8 @@ export default function DashboardHome() {
       </div>
 
       <div style={{ display: "flex", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
-
-        <button
+        <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isCompact={isCompact} setIsCompact={setIsCompact} isMobile={isBelowLg} />
+        {/* <button
           type="button"
           onClick={() => setSidebarOpen((s) => !s)}
           className="btn btn-link d-lg-none position-fixed top-0 start-0 m-3 p-2 z-3"
@@ -241,7 +285,7 @@ export default function DashboardHome() {
           style={{ background: "#fff", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,.12)" }}
         >
           <FontAwesomeIcon icon={faBars} />
-        </button>
+        </button> */}
 
         <main
           className="main-wrapper"
@@ -259,35 +303,21 @@ export default function DashboardHome() {
             <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
               Welcome back, Marco!
             </h5>
-            <br />
             <p className="text-dark">
               Here&apos;s your website overview and next steps to complete your setup.
             </p>
 
-            {/* ---------- NEW ROW: TEMPLATE CHOOSER ---------- */}
-            <Row className="g-4 mt-2">
-              <Col xs={12}>
-                <TemplateChooserCard
-                  onOpenEditor={() =>
-                    homePageId
-                      ? router.push(`/editorpages/page/${homePageId}`)
-                      : alert("Home page not found yet.")
-                  }
-                />
-              </Col>
-            </Row>
-
             {/* ---------- your existing dashboard cards below ---------- */}
             <Row className="g-4 mt-2">
               <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 ion-card h-100" style={cardGlass}>
+                <Card className="border-0 ion-card h-100 box-card">
                   <Card.Body className="position-relative px-4 pt-5 pb-4">
                     <div className="d-flex justify-content-between align-items-start mb-3">
                       <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>
                         Current Subscription
                       </h5>
                       <div className="card-icon">
-                        <img src="/icons/crown.png" alt="Pro Plan" />
+                        <img src="/icons/crown.svg" alt="Pro Plan" />
                       </div>
                     </div>
                     <div className="d-flex flex-wrap gap-2 mb-3">
@@ -302,16 +332,16 @@ export default function DashboardHome() {
 
                       <div className="d-flex justify-content-between text-dark small mb-1">
                         <span>Next billing date</span>
-                        <span className="fw-semibold text-dark">Feb 15, 2024</span>
+                        <span className="fw-semibold text-dark">Nov 01, 2025</span>
                       </div>
                       <div className="d-flex justify-content-between text-dark small mb-3">
-                        <span>Storage used</span>
-                        <span className="fw-semibold text-dark">8.2GB / 50GB</span>
+                        <span>Days Remaining</span>
+                        <span className="fw-semibold text-dark">6 Days</span>
                       </div>
 
                       <div className="mb-3 progress thin">
-                        <div className="progress-bar bg-mavsketch" style={{ width: `${(8.2 / 50) * 100}%` }}>
-                          {8.2 > 8 ? <div>8.2GB</div> : ""}
+                        <div className="progress-bar bg-mavsketch" style={{ width: `${(24 / 30) * 100}%` }}>
+                          {8.2 > 8 ? <div>24 Days</div> : ""}
                         </div>
                       </div>
                     </div>
@@ -328,7 +358,7 @@ export default function DashboardHome() {
               </Col>
 
               <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 ion-card h-100" style={cardGlass}>
+                <Card className="border-0 ion-card h-100 box-card">
                   <Card.Body className="position-relative px-4 pt-4 pb-3">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
@@ -345,7 +375,7 @@ export default function DashboardHome() {
                       </h6>
 
                       <div className="d-flex flex-wrap gap-2 mb-3">
-                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">✔ Connected</span>
+                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">Connected</span>
                         <span className="px-2 py-1 rounded-pill fw-bold badge-soft-gray">SSL Active</span>
                       </div>
                     </div>
@@ -382,14 +412,17 @@ export default function DashboardHome() {
                 </Card>
               </Col>
 
-              <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 ion-card h-100" style={cardGlass}>
+              <Col xs={12} md={12} lg={4}>
+                <Card className="border-0 ion-card h-100 box-card">
                   <Card.Body className="position-relative px-4 pt-4 pb-3">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h5 className="fw-bold mb-0" style={{ fontSize: "1.05rem" }}>
                         Edit My Website
                       </h5>
-                      <img src="/icons/edit-icon.png" alt="Edit" width={30} height={30} />
+                      <div className="card-icon">
+                        <img src="/icons/edit-icon.png" alt="Pro Plan" />
+                      </div>
+                      
                     </div>
 
                     <div className="card_wrapper-custom">
@@ -411,7 +444,7 @@ export default function DashboardHome() {
                       </div>
                     </div>
 
-                    <div className="d-flex flex-column gap-2">
+                    <div className={`d-flex flex-column gap-2 ${isCompact ? 'dir-inline' : ''}`}>
                       {homePageId ? (
                         <button
                           type="button"
@@ -455,21 +488,27 @@ export default function DashboardHome() {
             </Row>
 
             <Row className="g-4 mt-3">
-              <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 metric-card h-100" style={cardGlass}>
+              <Col xs={12} md={12} lg={4}>
+                <Card className="border-0 metric-card h-100 box-card">
                   <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                     <div className="d-flex justify-content-end">
-                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">+12.5%</span>
+                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">{`${((8.2/50)*100).toFixed(2)}%` }</span>
                     </div>
                     <div>
-                      <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
-                        Subscribers
+                      <h6 className="card-title text-uppercase fw-semibold mb-1">
+                        Storage Used
                       </h6>
                       <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-                        2,548
+                        {`${50-8.2}`}
+                        <small className="text-dark fs-6 fw-normal align-middle"> /GB Remaining</small>
                       </h3>
+                      <div className="mb-3 progress thin">
+                        <div className="progress-bar bg-mavsketch" style={{ width: `${((8.2 / 50) * 100).toFixed(2)}%` }}>
+                          {8.2 > 8 ? <div>8.2GB</div> : ""}
+                        </div>
+                      </div>
                       <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-                        Compared to 2,267 last month
+                        {`8.2GB used of 50GB total`}
                       </p>
                     </div>
                   </Card.Body>
@@ -477,20 +516,26 @@ export default function DashboardHome() {
               </Col>
 
               <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 metric-card h-100" style={cardGlass}>
+                <Card className="border-0 metric-card h-100 box-card">
                   <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                     <div className="d-flex justify-content-end">
-                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">+8.2%</span>
+                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">{`${((13/14)*100).toFixed(2)}%` }</span>
                     </div>
                     <div>
-                      <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
-                        Page Views
+                      <h6 className="card-title text-uppercase fw-semibold mb-1">
+                        Email Capacity
                       </h6>
                       <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-                        42.5k
+                        1
+                        <small className="text-dark fs-6 fw-normal align-middle"> /14 Email Account Available</small>
                       </h3>
+                      <div className="mb-3 progress thin">
+                        <div className="progress-bar bg-mavsketch" style={{ width: `${((13 / 14) * 100).toFixed(2)}%` }}>
+                          {8.2 > 8 ? <div>13 Accounts</div> : ""}
+                        </div>
+                      </div>
                       <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-                        Compared to 39.3k last month
+                        Email capacity and quota
                       </p>
                     </div>
                   </Card.Body>
@@ -498,15 +543,18 @@ export default function DashboardHome() {
               </Col>
 
               <Col xs={12} md={6} lg={4}>
-                <Card className="custom-card-shadow border-0 metric-card h-100" style={cardGlass}>
+                <Card className="custom-card-shadow border-0 metric-card h-100 box-card">
                   <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
                     <div className="d-flex justify-content-end">
-                      <span className="px-2 py-1 rounded-pill fw-bold" style={{ background: "#FF3B30", color: "#fff" }}>
+                      {/* <span className="px-2 py-1 rounded-pill fw-bold" style={{ background: "#FF3B30", color: "#fff" }}>
                         +2.1%
-                      </span>
+                      </span> */}
+                      <div className="d-flex justify-content-end">
+                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">+2.1%</span>
+                      </div>
                     </div>
                     <div>
-                      <h6 className="text-uppercase text-muted fw-semibold mb-1" style={{ fontSize: "0.75rem" }}>
+                      <h6 className="card-title text-uppercase fw-semibold mb-1">
                         Bounce Rate
                       </h6>
                       <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
@@ -519,9 +567,84 @@ export default function DashboardHome() {
                   </Card.Body>
                 </Card>
               </Col>
+
+              <Col xs={12} md={6} lg={4}>
+                <div className="anim-card-wrapper primary-bg cap-xl">
+                  <div className="anim-card">
+                    <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
+                      {/* <div className="d-flex justify-content-end">
+                        <div className="d-flex justify-content-end">
+                          <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">+2.1%</span>
+                        </div>
+                      </div> */}
+                      <div>
+                        <h6 className="card-title mb-1">
+                          Bounce Rate
+                        </h6>
+                        <h3 className="fw-bold mb-1 highlight" style={{ fontSize: "2rem" }}>
+                          28.3%
+                        </h3>
+                        <p className="mb-0">
+                          Compared to 26.2% last month
+                        </p>
+                      </div>
+                    </Card.Body>
+                  </div>
+                  <figcaption>
+                    <span>2.1%</span>
+                  </figcaption>
+                </div>
+              </Col>
+
+              <Col xs={12} md={6} lg={4}>
+                <div className="anim-card-wrapper light-bg cap-xl">
+                  <div className="anim-card">
+                    <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
+                      <div className="d-flex justify-content-end">
+                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">{`${((8.2/50)*100).toFixed(2)}%` }</span>
+                      </div>
+                      <div>
+                        <h6 className="card-title mb-1">
+                          Storage Used
+                        </h6>
+                        <h3 className="fw-bold mb-1 highlight" style={{ fontSize: "2rem" }}>
+                          {`${50-8.2}`}
+                          <small className="text-dark fs-6 fw-normal align-middle"> /GB Remaining</small>
+                        </h3>
+                        <div className="mb-3 progress thin">
+                          <div className="progress-bar bg-mavsketch" style={{ width: `${((8.2 / 50) * 100).toFixed(2)}%` }}>
+                            {8.2 > 8 ? <div>8.2GB</div> : ""}
+                          </div>
+                        </div>
+                        <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+                          {`8.2GB used of 50GB total`}
+                        </p>
+                      </div>
+                    </Card.Body>
+                  </div>
+                  <figcaption>
+                    <span>{`${((8.2/50)*100).toFixed(2)}%`}</span>
+                  </figcaption>
+                </div>
+              </Col>
+
+
             </Row>
 
-            <Row className="mt-4">
+            {/* ---------- NEW ROW: TEMPLATE CHOOSER ---------- */}
+            <Row className="g-4 mt-2">
+              <Col xs={12}>
+                <TemplateChooserCard
+                  onOpenEditor={() =>
+                    homePageId
+                      ? router.push(`/editorpages/page/${homePageId}`)
+                      : alert("Home page not found yet.")
+                  }
+                />
+              </Col>
+            </Row>
+
+            {/* <Row className="mt-4">
               <Col xs={12}>
                 <Card className="custom-card-shadow border-0 rounded-4" style={cardGlass}>
                   <Card.Body className="p-4">
@@ -575,10 +698,13 @@ export default function DashboardHome() {
                   </Card.Body>
                 </Card>
               </Col>
-            </Row>
+            </Row> */}
           </Container>
         </main>
       </div>
+      {isCompact && showMenu && (
+        <div className="mobile-backdrop" onClick={() => setShowMenu(false)} />
+      )}
     </>
   );
 }

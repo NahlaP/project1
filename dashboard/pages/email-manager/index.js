@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import SidebarDashly from "../../layouts/navbars/NavbarVertical";
+import NavbarTop from '../../layouts/navbars/NavbarTop';
 
 const CPANEL_USER = "mavsketc";
 const CPANEL_WEBMAIL = process.env.NEXT_PUBLIC_CPANEL_WEBMAIL || "https://mavsketch.com:2096";
@@ -28,6 +29,9 @@ const makeDefaultCreateForm = (domain) => ({
   stayAfterCreate: false,
 });
 
+const NAVBAR_H = 48;            // top bar height
+const BREAKPOINT = 1120;         // ≤ 993px => compact
+
 
 const EMAILS_API = "/next-api/emails";
 
@@ -37,18 +41,40 @@ export default function EmailManager() {
   // sidebar
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isBelowLg, setIsBelowLg] = useState(false);
+
+  const [showMenu, setShowMenu] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+
+  const toggleMenu = () => setShowMenu(prev => !prev);
+  useEffect(() => {
+    const handleResize = () => {
+      const compact = window.innerWidth <= BREAKPOINT;
+      setIsCompact(compact);
+      if (!compact) setShowMenu(false);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.classList.toggle('sidebar-open', isCompact && showMenu);
+  }, [isCompact, showMenu]);
+
+  
   useEffect(() => {
     const onResize = () => {
-      const below = typeof window !== "undefined" ? window.innerWidth < 992 : false;
+      const below = window.innerWidth < 1120;
       setIsBelowLg(below);
       setSidebarOpen(!below);
     };
     onResize();
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", onResize);
-      return () => window.removeEventListener("resize", onResize);
-    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  
 
   // data + state
   const [loading, setLoading] = useState(false);
@@ -348,394 +374,422 @@ export default function EmailManager() {
     (createForm.mode === "invite" ? isEmail(createForm.alternateEmail) : (createForm.password || createForm.sendWelcome));
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
+    <>
+      {isCompact && (
+        <button
+          className="btn btn-outline-secondary position-fixed navbar-button"
+          setSidebarOpen
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          {/* <FontAwesomeIcon icon={faBars} /> */}
+          <img src={`/icons/${sidebarOpen ? "menu-close.png" : "002-app.png"}`} alt="Pro Plan" />
+        </button>
+      )}
+      <div className="header">
+        <NavbarTop
+          isMobile={isCompact}
+          toggleMenu={toggleMenu}
+          sidebarVisible={!isCompact}
+        />
+      </div>
 
-      {/* top-right toast */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {/* <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} /> */}
+        <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isCompact={isCompact} setIsCompact={setIsCompact} isMobile={isBelowLg} />
 
-      <main
-        style={{
-          flexGrow: 1,
-          padding: 20,
-          marginLeft: !isBelowLg && sidebarOpen ? 256 : 0,
-          transition: "margin-left .25s ease",
-          width: "100%",
-        }}
-      >
-        <h1 style={{ marginBottom: 8 }}>Email Accounts</h1>
-        <p style={{ color: "#667", marginTop: 0 }}>Create, list, and manage email accounts.</p>
+        {/* top-right toast */}
+        <Toast toast={toast} onClose={() => setToast(null)} />
 
-        {/* header stats + Create button */}
-        <div style={{ display: "flex", gap: 16, alignItems: "center", margin: "12px 0 18px" }}>
-          <Stat label="Available" value={data.header.available} />
-          <Stat label="Used" value={data.header.used} />
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            onClick={openCreate}
-            disabled={currentCount >= MAX_EMAIL_ACCOUNTS}
-            title={currentCount >= MAX_EMAIL_ACCOUNTS ? "Creation limit reached" : "+ Create"}
-            style={{ ...btn, borderColor: "#22a06b", color: "#167a4f", opacity: currentCount >= MAX_EMAIL_ACCOUNTS ? 0.6 : 1 }}
-          >
-            + Create
-          </button>
-        </div>
+        <main
+          style={{
+            flexGrow: 1,
+            // padding: 20,
+            padding: "2rem",
+            paddingTop: "6rem",
+            marginLeft: !isBelowLg && sidebarOpen ? 256 : 0,
+            transition: "margin-left .25s ease",
+            width: "100%",
+          }}
+        >
+          <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
+              Email Accounts
+            </h5>
+            <p className="text-dark">
+              Create, list, and manage email accounts.
+            </p>
 
-        {/* search + filters */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 10, maxWidth: 680 }}>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search"
-            style={{ flex: 1, height: 38, padding: "0 12px", borderRadius: 6, border: "1px solid #d6dbe1" }}
-          />
-          <button type="button" onClick={() => {}} style={{ ...btn, height: 38 }}>
-            Search
-          </button>
-        </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-          <span style={{ color: "#667", fontSize: 13 }}>Filter:</span>
-          {["all", "restricted", "system", "exceeded"].map((f) => (
+          {/* header stats + Create button */}
+          <div style={{ display: "flex", gap: 16, alignItems: "center", margin: "12px 0 18px" }}>
+            <Stat label="Available" value={data.header.available} />
+            <Stat label="Used" value={data.header.used} />
+            <div style={{ flex: 1 }} />
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              type="button"
+              onClick={openCreate}
+              disabled={currentCount >= MAX_EMAIL_ACCOUNTS}
+              title={currentCount >= MAX_EMAIL_ACCOUNTS ? "Creation limit reached" : "+ Create"}
+              style={{ ...btn, borderColor: "#22a06b", color: "#167a4f", opacity: currentCount >= MAX_EMAIL_ACCOUNTS ? 0.6 : 1 }}
+            >
+              + Create
+            </button>
+          </div>
+
+          {/* search + filters */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, maxWidth: 680 }}>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search"
+              style={{ flex: 1, height: 38, padding: "0 12px", borderRadius: 6, border: "1px solid #d6dbe1" }}
+            />
+            <button type="button" onClick={() => {}} style={{ ...btn, height: 38 }}>
+              Search
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+            <span style={{ color: "#667", fontSize: 13 }}>Filter:</span>
+            {["all", "restricted", "system", "exceeded"].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #d6dbe1",
+                  background: filter === f ? "#1e66d0" : "#f6f8fc",
+                  color: filter === f ? "#fff" : "#334",
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                }}
+              >
+                {f[0].toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+            <div style={{ color: "#667", marginLeft: "auto", fontSize: 13 }}>
+              {loading ? "Loading..." : `Selected: ${selectedEmails.length}`}
+            </div>
+          </div>
+
+          {/* page banner (load/delete) */}
+          {error && (
+            <div style={{ background: "#ffecec", border: "1px solid #f3b1b1", color: "#a42828", padding: 10, borderRadius: 6, marginBottom: 12 }}>
+              {error}
+            </div>
+          )}
+
+          {/* confirm delete bar */}
+          {showConfirm && (
+            <div
               style={{
-                padding: "4px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 14px",
+                marginBottom: 12,
+                background: "#fff7d6",
+                border: "1px solid #f1d488",
                 borderRadius: 6,
-                border: "1px solid #d6dbe1",
-                background: filter === f ? "#1e66d0" : "#f6f8fc",
-                color: filter === f ? "#fff" : "#334",
-                fontWeight: 700,
-                fontSize: 12.5,
               }}
             >
-              {f[0].toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-          <div style={{ color: "#667", marginLeft: "auto", fontSize: 13 }}>
-            {loading ? "Loading..." : `Selected: ${selectedEmails.length}`}
-          </div>
-        </div>
-
-        {/* page banner (load/delete) */}
-        {error && (
-          <div style={{ background: "#ffecec", border: "1px solid #f3b1b1", color: "#a42828", padding: 10, borderRadius: 6, marginBottom: 12 }}>
-            {error}
-          </div>
-        )}
-
-        {/* confirm delete bar */}
-        {showConfirm && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 14px",
-              marginBottom: 12,
-              background: "#fff7d6",
-              border: "1px solid #f1d488",
-              borderRadius: 6,
-            }}
-          >
-            <div style={{ fontSize: 15, color: "#6b5200", fontWeight: 600 }}>
-              {selectedCountVisible === 1
-                ? `Delete “${visibleSelectable.find(v => selected[v.email])?.email}”?`
-                : `Delete ${selectedCountVisible} email account(s)?`}
+              <div style={{ fontSize: 15, color: "#6b5200", fontWeight: 600 }}>
+                {selectedCountVisible === 1
+                  ? `Delete “${visibleSelectable.find(v => selected[v.email])?.email}”?`
+                  : `Delete ${selectedCountVisible} email account(s)?`}
+              </div>
+              <label style={{ marginLeft: 8, color: "#6b5200", display: "flex", alignItems: "center", gap: 6 }}>
+                <input type="checkbox" checked={destroyMail} onChange={(e) => setDestroyMail(e.target.checked)} />
+                Also delete mailbox files on disk
+              </label>
+              <div style={{ flex: 1 }} />
+              <button type="button" onClick={handleDelete} style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00" }} disabled={deleting}>
+                {deleting ? "Deleting…" : `Delete (${selectedCountVisible})`}
+              </button>
+              <button type="button" onClick={() => { setShowConfirm(false); setDestroyMail(false); }} style={btn} disabled={deleting}>
+                Cancel
+              </button>
             </div>
-            <label style={{ marginLeft: 8, color: "#6b5200", display: "flex", alignItems: "center", gap: 6 }}>
-              <input type="checkbox" checked={destroyMail} onChange={(e) => setDestroyMail(e.target.checked)} />
-              Also delete mailbox files on disk
-            </label>
-            <div style={{ flex: 1 }} />
-            <button type="button" onClick={handleDelete} style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00" }} disabled={deleting}>
-              {deleting ? "Deleting…" : `Delete (${selectedCountVisible})`}
-            </button>
-            <button type="button" onClick={() => { setShowConfirm(false); setDestroyMail(false); }} style={btn} disabled={deleting}>
-              Cancel
+          )}
+
+          {/* mini actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <input
+              ref={miniAllRef}
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleAllVisible}
+              title="Select all on this list"
+              style={{ width: 18, height: 18 }}
+            />
+            <button
+              type="button"
+              onClick={askDelete}
+              style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00", margin: 0 }}
+              disabled={selectedCountVisible === 0 || deleting}
+            >
+              Delete
             </button>
           </div>
-        )}
 
-        {/* mini actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <input
-            ref={miniAllRef}
-            type="checkbox"
-            checked={allVisibleSelected}
-            onChange={toggleAllVisible}
-            title="Select all on this list"
-            style={{ width: 18, height: 18 }}
-          />
-          <button
-            type="button"
-            onClick={askDelete}
-            style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00", margin: 0 }}
-            disabled={selectedCountVisible === 0 || deleting}
-          >
-            Delete
-          </button>
-        </div>
-
-        {/* table */}
-        <div style={{ border: "1px solid #cfd5df", borderRadius: 4, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#fff" }}>
-                <th style={{ ...th, width: 42 }}>
-                  <input ref={headAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="select all" />
-                </th>
-                <th style={th}>Account @ Domain</th>
-                <th style={th}>Restrictions</th>
-                <th style={th}>Storage: Used / Allocated / %</th>
-                <th style={th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                const pct = r.unlimited ? null : (r.percent ?? 0);
-                const checked = !!selected[r.email];
-                return (
-                  <tr key={r.email}>
-                    <td style={{ ...td, textAlign: "center" }}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleOne(r.email)}
-                        disabled={r.system}
-                        title={r.system ? "System account cannot be deleted" : ""}
-                      />
-                    </td>
-                    <td style={td}>
-                      <strong>{r.email}</strong> {r.system && <span style={badgeSystem}>System</span>}
-                    </td>
-                    <td style={td}>{r.restrictions === "Restricted" ? "⚠️ Restricted" : "✅ Unrestricted"}</td>
-                    <td style={td}>
-                      <div style={{ fontSize: 12 }}>
-                        {r.usedHuman} / {r.allocatedHuman} {r.unlimited ? "" : ` / ${pct.toFixed(2)}%`}
-                      </div>
-                      <div style={{ height: 8, background: "#eef1f5", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-                        <div
-                          style={{
-                            height: 8,
-                            width: r.unlimited ? "100%" : `${Math.min(100, pct).toFixed(2)}%`,
-                            background: r.exceeded ? "#e74c3c" : "#9fb6d9",
-                          }}
-                        />
-                      </div>
-                    </td>
-                    <td style={{ ...td, whiteSpace: "nowrap" }}>
-                      <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" style={btn}>Check Email</a>
-                      <a href={`/email-manager/${encodeURIComponent(r.email)}`} style={btn}>Manage</a>
-                      <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" style={btn}>Connect Devices</a>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && !loading && (
-                <tr>
-                  <td colSpan="5" style={{ ...td, textAlign: "center", color: "#667" }}>No results</td>
+          {/* table */}
+          <div style={{ border: "1px solid #cfd5df", borderRadius: 4, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#fff" }}>
+                  <th style={{ ...th, width: 42 }}>
+                    <input ref={headAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="select all" />
+                  </th>
+                  <th style={th}>Account @ Domain</th>
+                  <th style={th}>Restrictions</th>
+                  <th style={th}>Storage: Used / Allocated / %</th>
+                  <th style={th}></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-          <div style={{ padding: "10px 12px", color: "#667", fontSize: 13 }}>
-            {loading ? "Loading…" : `1 – ${filtered.length} of ${rows.length}`}
+              </thead>
+              <tbody>
+                {filtered.map((r) => {
+                  const pct = r.unlimited ? null : (r.percent ?? 0);
+                  const checked = !!selected[r.email];
+                  return (
+                    <tr key={r.email}>
+                      <td style={{ ...td, textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleOne(r.email)}
+                          disabled={r.system}
+                          title={r.system ? "System account cannot be deleted" : ""}
+                        />
+                      </td>
+                      <td style={td}>
+                        <strong>{r.email}</strong> {r.system && <span style={badgeSystem}>System</span>}
+                      </td>
+                      <td style={td}>{r.restrictions === "Restricted" ? "⚠️ Restricted" : "✅ Unrestricted"}</td>
+                      <td style={td}>
+                        <div style={{ fontSize: 12 }}>
+                          {r.usedHuman} / {r.allocatedHuman} {r.unlimited ? "" : ` / ${pct.toFixed(2)}%`}
+                        </div>
+                        <div style={{ height: 8, background: "#eef1f5", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
+                          <div
+                            style={{
+                              height: 8,
+                              width: r.unlimited ? "100%" : `${Math.min(100, pct).toFixed(2)}%`,
+                              background: r.exceeded ? "#e74c3c" : "#9fb6d9",
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>
+                        <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" style={btn}>Check Email</a>
+                        <a href={`/email-manager/${encodeURIComponent(r.email)}`} style={btn}>Manage</a>
+                        <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" style={btn}>Connect Devices</a>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan="5" style={{ ...td, textAlign: "center", color: "#667" }}>No results</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            <div style={{ padding: "10px 12px", color: "#667", fontSize: 13 }}>
+              {loading ? "Loading…" : `1 – ${filtered.length} of ${rows.length}`}
+            </div>
           </div>
-        </div>
 
-        {/* CREATE MODAL */}
-        {showCreate && (
-          <div
-            onClick={() => !creating && closeCreate()}
-            style={{
-              position: "fixed", inset: 0, background: "rgba(0,0,0,.35)",
-              display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
-            }}
-          >
-            <div onClick={(e) => e.stopPropagation()} style={{ width: 560, background: "#fff", borderRadius: 8, padding: 16 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 12 }}>Create an Email Account</h3>
+          {/* CREATE MODAL */}
+          {showCreate && (
+            <div
+              onClick={() => !creating && closeCreate()}
+              style={{
+                position: "fixed", inset: 0, background: "rgba(0,0,0,.35)",
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+              }}
+            >
+              <div onClick={(e) => e.stopPropagation()} style={{ width: 560, background: "#fff", borderRadius: 8, padding: 16 }}>
+                <h3 style={{ marginTop: 0, marginBottom: 12 }}>Create an Email Account</h3>
 
-              <div style={{ display: "grid", gap: 10 }}>
-                <label style={label}>
-                  Domain
-                  {domainOptions.length > 0 ? (
-                    <select
-                      value={createForm.domain}
-                      onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value }))}
-                      style={input}
-                    >
-                      {domainOptions.map((d) => (<option key={d} value={d}>{d}</option>))}
-                    </select>
-                  ) : (
-                    <input
-                      value={createForm.domain}
-                      onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value.trim() }))}
-                      placeholder="example.com"
-                      style={input}
-                    />
-                  )}
-                </label>
-
-                <label style={label}>
-                  Username
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <input
-                      value={createForm.user}
-                      onChange={(e) => setCreateForm(f => ({ ...f, user: e.target.value.trim() }))}
-                      placeholder="e.g. support"
-                      style={{ ...input, flex: 1 }}
-                    />
-                    <div style={{ fontSize: 13, color: "#667" }}>@{createForm.domain || "domain"}</div>
-                  </div>
-                </label>
-
-                {/* Mode selector */}
-                <div style={{ display: "grid", gap: 6, marginTop: 4 }}>
-                  <div style={{ fontSize: 13, color: "#2d3748", fontWeight: 600 }}>Password Options</div>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#2d3748" }}>
-                    <input
-                      type="radio"
-                      name="mode"
-                      checked={createForm.mode === "password"}
-                      onChange={() => setCreateForm(f => ({ ...f, mode: "password" }))}
-                    />
-                    Set password now
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#2d3748" }}>
-                    <input
-                      type="radio"
-                      name="mode"
-                      checked={createForm.mode === "invite"}
-                      onChange={() => setCreateForm(f => ({ ...f, mode: "invite", password: "" }))}
-                    />
-                    Send login link to alternate email
-                  </label>
-                </div>
-
-                {/* Password (only when mode=password) */}
-                {createForm.mode === "password" && (
+                <div style={{ display: "grid", gap: 10 }}>
                   <label style={label}>
-                    Password
-                    <div style={{ display: "flex", gap: 8 }}>
+                    Domain
+                    {domainOptions.length > 0 ? (
+                      <select
+                        value={createForm.domain}
+                        onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value }))}
+                        style={input}
+                      >
+                        {domainOptions.map((d) => (<option key={d} value={d}>{d}</option>))}
+                      </select>
+                    ) : (
                       <input
-                        type="text"
-                        value={createForm.password}
-                        onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                        placeholder="Enter password"
+                        value={createForm.domain}
+                        onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value.trim() }))}
+                        placeholder="example.com"
+                        style={input}
+                      />
+                    )}
+                  </label>
+
+                  <label style={label}>
+                    Username
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input
+                        value={createForm.user}
+                        onChange={(e) => setCreateForm(f => ({ ...f, user: e.target.value.trim() }))}
+                        placeholder="e.g. support"
                         style={{ ...input, flex: 1 }}
                       />
-                      <button type="button" onClick={genStrongPass} style={btn}>Generate</button>
+                      <div style={{ fontSize: 13, color: "#667" }}>@{createForm.domain || "domain"}</div>
                     </div>
                   </label>
-                )}
 
-               
-                {createForm.mode === "invite" && (
-                  <label style={label}>
-                    Alternate email (where we send the login link)
-                    <input
-                      type="email"
-                      value={createForm.alternateEmail}
-                      onChange={(e) => setCreateForm(f => ({ ...f, alternateEmail: e.target.value.trim() }))}
-                      placeholder="user@example.com"
-                      style={input}
-                    />
-                  </label>
-                )}
+                  {/* Mode selector */}
+                  <div style={{ display: "grid", gap: 6, marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: "#2d3748", fontWeight: 600 }}>Password Options</div>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#2d3748" }}>
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={createForm.mode === "password"}
+                        onChange={() => setCreateForm(f => ({ ...f, mode: "password" }))}
+                      />
+                      Set password now
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#2d3748" }}>
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={createForm.mode === "invite"}
+                        onChange={() => setCreateForm(f => ({ ...f, mode: "invite", password: "" }))}
+                      />
+                      Send login link to alternate email
+                    </label>
+                  </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
-                  <label style={label}>
-                    Quota (MB)
-                    <input
-                      type="number"
-                      min="0"
-                      disabled={createForm.unlimited}
-                      value={createForm.unlimited ? 0 : createForm.quotaMB}
-                      onChange={(e) => setCreateForm(f => ({ ...f, quotaMB: e.target.value }))}
-                      style={input}
-                    />
-                  </label>
-                  <label style={{ ...label, alignSelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* Password (only when mode=password) */}
+                  {createForm.mode === "password" && (
+                    <label style={label}>
+                      Password
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          type="text"
+                          value={createForm.password}
+                          onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                          placeholder="Enter password"
+                          style={{ ...input, flex: 1 }}
+                        />
+                        <button type="button" onClick={genStrongPass} style={btn}>Generate</button>
+                      </div>
+                    </label>
+                  )}
+
+                
+                  {createForm.mode === "invite" && (
+                    <label style={label}>
+                      Alternate email (where we send the login link)
+                      <input
+                        type="email"
+                        value={createForm.alternateEmail}
+                        onChange={(e) => setCreateForm(f => ({ ...f, alternateEmail: e.target.value.trim() }))}
+                        placeholder="user@example.com"
+                        style={input}
+                      />
+                    </label>
+                  )}
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+                    <label style={label}>
+                      Quota (MB)
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={createForm.unlimited}
+                        value={createForm.unlimited ? 0 : createForm.quotaMB}
+                        onChange={(e) => setCreateForm(f => ({ ...f, quotaMB: e.target.value }))}
+                        style={input}
+                      />
+                    </label>
+                    <label style={{ ...label, alignSelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={createForm.unlimited}
+                        onChange={(e) => setCreateForm(f => ({ ...f, unlimited: e.target.checked }))}
+                      />
+                      Unlimited
+                    </label>
+                  </div>
+
+                  <label style={{ ...label, flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <input
                       type="checkbox"
-                      checked={createForm.unlimited}
-                      onChange={(e) => setCreateForm(f => ({ ...f, unlimited: e.target.checked }))}
+                      checked={createForm.sendWelcome}
+                      onChange={(e) => setCreateForm(f => ({ ...f, sendWelcome: e.target.checked }))}
                     />
-                    Unlimited
+                    Send welcome email to the new mailbox
                   </label>
+
+                  <details>
+                    <summary style={{ cursor: "pointer", color: "#334", fontWeight: 600 }}>Optional Settings</summary>
+                    <label style={{ ...label, flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={createForm.stayAfterCreate}
+                        onChange={(e) => setCreateForm(f => ({ ...f, stayAfterCreate: e.target.checked }))}
+                      />
+                      Stay on this dialog after Create (add multiple)
+                    </label>
+                  </details>
                 </div>
 
-                <label style={{ ...label, flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={createForm.sendWelcome}
-                    onChange={(e) => setCreateForm(f => ({ ...f, sendWelcome: e.target.checked }))}
-                  />
-                  Send welcome email to the new mailbox
-                </label>
-
-                <details>
-                  <summary style={{ cursor: "pointer", color: "#334", fontWeight: 600 }}>Optional Settings</summary>
-                  <label style={{ ...label, flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
-                    <input
-                      type="checkbox"
-                      checked={createForm.stayAfterCreate}
-                      onChange={(e) => setCreateForm(f => ({ ...f, stayAfterCreate: e.target.checked }))}
-                    />
-                    Stay on this dialog after Create (add multiple)
-                  </label>
-                </details>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-                <button type="button" onClick={closeCreate} style={btn} disabled={creating}>Cancel</button>
-                <button
-                  type="button"
-                  onClick={submitCreate}
-                  style={{ ...btn, borderColor: "#22a06b", color: "#167a4f" }}
-                  disabled={creating || !canCreate}
-                >
-                  {creating ? "Creating…" : "Create"}
-                </button>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+                  <button type="button" onClick={closeCreate} style={btn} disabled={creating}>Cancel</button>
+                  <button
+                    type="button"
+                    onClick={submitCreate}
+                    style={{ ...btn, borderColor: "#22a06b", color: "#167a4f" }}
+                    disabled={creating || !canCreate}
+                  >
+                    {creating ? "Creating…" : "Create"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* QUOTA MODAL */}
-        {showQuota && (
-          <div
-            onClick={() => setShowQuota(false)}
-            style={{
-              position: "fixed", inset: 0, background: "rgba(0,0,0,.35)",
-              display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60,
-            }}
-          >
+          {/* QUOTA MODAL */}
+          {showQuota && (
             <div
-              onClick={(e) => e.stopPropagation()}
-              style={{ width: 520, background: "#fff", borderRadius: 10, padding: 18, boxShadow: "0 12px 28px rgba(0,0,0,.18)" }}
-              role="dialog" aria-modal="true" aria-labelledby="quotaTitle"
+              onClick={() => setShowQuota(false)}
+              style={{
+                position: "fixed", inset: 0, background: "rgba(0,0,0,.35)",
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60,
+              }}
             >
-              <h3 id="quotaTitle" style={{ margin: 0, marginBottom: 10 }}>Creation Limit Reached</h3>
-              <p style={{ marginTop: 6, color: "#334", lineHeight: 1.45 }}>
-                You can create up to <strong>{MAX_EMAIL_ACCOUNTS}</strong> email accounts. You currently have{" "}
-                <strong>{currentCount}</strong>. Please delete an existing account or increase your plan limit before creating a new one.
-              </p>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-                <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" style={btn}>
-                  Manage in cPanel
-                </a>
-                <button type="button" onClick={() => setShowQuota(false)} style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00" }}>
-                  Close
-                </button>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{ width: 520, background: "#fff", borderRadius: 10, padding: 18, boxShadow: "0 12px 28px rgba(0,0,0,.18)" }}
+                role="dialog" aria-modal="true" aria-labelledby="quotaTitle"
+              >
+                <h3 id="quotaTitle" style={{ margin: 0, marginBottom: 10 }}>Creation Limit Reached</h3>
+                <p style={{ marginTop: 6, color: "#334", lineHeight: 1.45 }}>
+                  You can create up to <strong>{MAX_EMAIL_ACCOUNTS}</strong> email accounts. You currently have{" "}
+                  <strong>{currentCount}</strong>. Please delete an existing account or increase your plan limit before creating a new one.
+                </p>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+                  <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" style={btn}>
+                    Manage in cPanel
+                  </a>
+                  <button type="button" onClick={() => setShowQuota(false)} style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00" }}>
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </main>
-    </div>
+          )}
+        </main>
+      </div>
+    </>
   );
 }
 

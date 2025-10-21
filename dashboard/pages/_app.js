@@ -25,6 +25,8 @@ import DefaultDashboardLayout from 'layouts/DefaultDashboardLayout';
 const PROD_BACKEND = 'https://project1backend-2xvq.onrender.com';
 
 function MyApp({ Component, pageProps }) {
+
+  
   const router = useRouter();
 
   // ---- Analytics toggle ----

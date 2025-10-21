@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBell } from '@fortawesome/free-regular-svg-icons';
-import { faEllipsisVertical, faRightFromBracket, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faEllipsisVertical, faRightFromBracket, faSearch, faPowerOff } from '@fortawesome/free-solid-svg-icons';
 
 const TINY_BP = 438;
 
@@ -53,7 +53,8 @@ const NavbarTop = ({ isMobile }) => {
       <div className="d-flex justify-content-between align-items-center w-100 gap-2">
         <div style={{ width: 44, flex: '0 0 auto' }} />
 
-        {!isTiny && (
+        {/* ------Search input */}
+        {/* {!isTiny && (
           <div
             className="pe-3"
             style={{
@@ -75,7 +76,7 @@ const NavbarTop = ({ isMobile }) => {
               }}
             />
           </div>
-        )}
+        )} */}
 
         {/* Right Side */}
         <Nav className="d-flex align-items-center gap-3 flex-nowrap" style={{ flex: '0 0 auto' }}>
@@ -112,7 +113,7 @@ const NavbarTop = ({ isMobile }) => {
                         width: '100%',
                       }}
                     />
-                    {/* keep the icon only inside the tiny dropdown search */}
+                    
                     <FontAwesomeIcon
                       icon={faSearch}
                       style={{
@@ -162,19 +163,18 @@ const NavbarTop = ({ isMobile }) => {
 
                 <div className="mt-2">
                   <button
-                    className="btn btn-outline-secondary w-100"
+                    className="logout-button"
                     onClick={handleLogout}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                   >
-                    <FontAwesomeIcon icon={faRightFromBracket} />
-                    Logout
+                    {/* <FontAwesomeIcon icon={faRightFromBracket} /> */}
+                    <FontAwesomeIcon icon={faPowerOff} />
                   </button>
                 </div>
               </Dropdown.Menu>
             </Dropdown>
           ) : (
             <>
-              <div
+              {/* <div
                 className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
                 style={{ width: 32, height: 32, padding: 8, border: '1px solid #e0e0e0' }}
               >
@@ -183,23 +183,21 @@ const NavbarTop = ({ isMobile }) => {
                   className="position-absolute bg-danger rounded-circle"
                   style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
                 />
-              </div>
+              </div> */}
 
-              <div className="d-flex align-items-center gap-2">
-                <img src="https://i.pravatar.cc/40" alt="Profile" className="rounded-circle" width="30" height="30" />
-                <div className="d-none d-sm-flex flex-column">
+              <div className="navbar-profile">
+                <img src="https://i.pravatar.cc/40" alt="Profile" className="rounded-circle"/>
+                <div className="user-info">
                   <strong className="fs-6">Marco Botton</strong>
                   <small className="text-muted">Admin</small>
                 </div>
               </div>
 
               <button
-                className="btn btn-outline-secondary btn-sm"
+                className="logout-button"
                 onClick={handleLogout}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <FontAwesomeIcon icon={faRightFromBracket} />
-                Logout
+                <FontAwesomeIcon icon={faPowerOff} />
               </button>
             </>
           )}

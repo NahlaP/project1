@@ -23,7 +23,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
 
-const BREAKPOINT = 993;
+const BREAKPOINT = 1120;
 const NAVBAR_H = 68;
 
 const iconMap = {
@@ -42,26 +42,39 @@ const SidebarItem = ({ icon, label, href }) => {
   const router = useRouter();
   const faIcon = iconMap[icon] || faFile;
 
+  // normalize path (strip query/hash) to avoid false negatives
+  const currentPath = router.asPath ? router.asPath.split(/[?#]/)[0] : '';
+  const isActive = currentPath === href || currentPath.startsWith(`${href}/`);
 
-  const isActive = router.pathname === href || router.pathname.startsWith(`${href}/`);
+  // If already on the same page, render a non-<Link> to avoid navigation attempts
+  if (isActive) {
+    return (
+      <div
+        className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 active-nav-custom rounded-pill fw-semibold`}
+        style={{ textDecoration: 'none', cursor: 'default' }}
+        aria-current="page"
+      >
+        <FontAwesomeIcon icon={faIcon} className="fs-5" />
+        <span>{label}</span>
+      </div>
+    );
+  }
 
   return (
-    <Link
-      href={href}
-      className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 ${
-        isActive ? 'active-nav-custom rounded-pill fw-semibold' : 'text-dark'
-      }`}
-      style={{ textDecoration: 'none' }}
-    >
-      <FontAwesomeIcon icon={faIcon} className="fs-5" />
-      <span>{label}</span>
+    <Link href={href} prefetch={false} legacyBehavior>
+      <a
+        className="d-flex align-items-center gap-3 px-4 py-2 mb-1 text-dark"
+        style={{ textDecoration: 'none' }}
+      >
+        <FontAwesomeIcon icon={faIcon} className="fs-5" />
+        <span>{label}</span>
+      </a>
     </Link>
   );
 };
 
-const SidebarDashly = () => {
-  const [isCompact, setIsCompact] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
+  
 
   useEffect(() => {
     const handleResize = () => {
@@ -100,33 +113,16 @@ const SidebarDashly = () => {
         <div className="bg-inner-custom"></div>
       </div>
 
-      {isCompact && (
-        <button
-          className="btn btn-outline-secondary position-fixed"
-          style={{
-            top: 16,
-            left: 16,
-            zIndex: 2000,
-            borderRadius: 8,
-            background: '#fff',
-            border: '1px solid #e0e0e0'
-          }}
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle sidebar"
-        >
-          <FontAwesomeIcon icon={faBars} />
-        </button>
-      )}
 
       {/* Sidebar */}
       <aside
-        className="side-nav-custom d-flex flex-column position-fixed"
-        style={{
-          top: isCompact ? NAVBAR_H : 0,
-          left: isCompact ? (isOpen ? 0 : -256) : 0,
-          height: isCompact ? `calc(100vh - ${NAVBAR_H}px)` : '100vh',
-          boxShadow: isCompact && isOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none',
-        }}
+        className={`side-nav-custom d-flex flex-column position-fixed ${isCompact ? "side-nav-compact" : ""} ${isOpen ? "open" : ""}`}
+        // style={{
+        //   top: isCompact ? NAVBAR_H : 0,
+        //   left: isCompact ? (isOpen ? 0 : -256) : 0,
+        //   height: isCompact ? `calc(100vh - ${NAVBAR_H}px)` : '100vh',
+        //   boxShadow: isCompact && isOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none',
+        // }}
       >
         <SimpleBar style={{ height: '100%' }}>
           {/* Logo */}

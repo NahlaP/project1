@@ -1,0 +1,43 @@
+// -----variables
+$light: rgb(255, 255, 255);
+$dark: rgba(0, 0, 0, 1);
+$light_grey: #E1E1E1;
+$grey: #a9a9a9;
+$primary: #d5ff40;
+$primary_dark: #495916;
+$small_screen: 991px;
+$neon_orange: #FF6431;
+$mavsketch_color: #ff3130;
+
+
+$primary_gradient: linear-gradient(135deg, $primary, #86d705);
+$light_gradient: linear-gradient(135deg, $light, darken($light, 20%));
+
+
+
+
+// ------FONT
+@font-face {
+  font-family: 'Cal Sans';
+  src: url('./CalSans-Regular.woff2') format('woff2'),
+      url('./CalSans-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+$primary-font: 'Cal Sans';
+$font-family-base: 'Inter', 'Roboto', sans-serif;
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+$font-size-xs: 0.75rem;   // 12px
+$font-size-sm: 0.875rem;  // 14px
+$font-size-md: 1rem;      // 16px
+$font-size-lg: 1.25rem;   // 20px
+$font-size-xl: 1.5rem;    // 24px
+$font-size-xls: 1.7rem;    
+$font-size-xxl: 2rem;     // 32px
+$font-size-super: 3rem;     

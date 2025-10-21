@@ -7,7 +7,7 @@ import NavbarTop from './navbars/NavbarTop';
 import { Row, Col } from 'react-bootstrap';
 
 const NAVBAR_H = 48;            // top bar height
-const BREAKPOINT = 993;         // ≤ 993px => compact
+const BREAKPOINT = 1120;         // ≤ 993px => compact
 
 const ION7DashboardLayout = (props) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -56,24 +56,14 @@ const ION7DashboardLayout = (props) => {
       <div
         id="page-content"
         style={{
-          paddingTop: isCompact ? NAVBAR_H : 0,
+          paddingTop: isCompact ? 0 : 0,
           position: 'relative',  // ensure stacking above bg
           zIndex: 1
         }}
       >
-        <div className="header" style={{ position: 'sticky', top: 0, zIndex: 2 }}>
-          <NavbarTop
-            isMobile={isCompact}
-            toggleMenu={toggleMenu}
-            sidebarVisible={!isCompact}
-          />
-        </div>
 
         {props.children}
 
-        {isCompact && showMenu && (
-          <div className="mobile-backdrop" onClick={() => setShowMenu(false)} />
-        )}
 
         <div className="px-6 py-3 footer-custom">
           <Row>

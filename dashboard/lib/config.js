@@ -7,7 +7,8 @@ export const backendBaseUrl =
 
 export const userId = 'demo-user';
 
-
+export const templateId = 'gym-template-1';
+export const defaultTemplateId = templateId;
 
 export const s3Bucket = 'project1-uploads-uae-12345';
 export const s3Region = 'me-central-1';
