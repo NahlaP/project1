@@ -1,6 +1,6 @@
 
 
-
+// og
 
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\page\[id].js
 "use client";
@@ -587,3 +587,31 @@ export default function HomepagePreview() {
 }
 
 HomepagePreview.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

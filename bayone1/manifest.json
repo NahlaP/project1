@@ -4,11 +4,22 @@
   "entry": "landing.html",
   "assetsBase": "https://ion7-templates.s3.ap-south-1.amazonaws.com/sir-template-1/v1/",
   "css": [
+    "assets/css/plugins.css",
     "assets/css/base.css",
     "assets/css/style.css"
   ],
   "js": [
+    "assets/js/jquery-3.6.0.min.js",
+    "assets/js/jquery-migrate-3.4.0.min.js",
     "assets/js/plugins.js",
+    "assets/js/gsap.min.js",
+    "assets/js/ScrollSmoother.min.js",
+    "assets/js/ScrollTrigger.min.js",
+    "assets/js/smoother-script.js",
+    "assets/js/hscroll.js",
+    "assets/js/charming.min.js",
+    "assets/js/demo.js",
+    "assets/js/animsition.min.js",
     "assets/js/scripts.js",
     "template-render.js"
   ]

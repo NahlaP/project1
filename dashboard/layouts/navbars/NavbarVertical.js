@@ -148,7 +148,7 @@ const SidebarDashly = () => {
             <SidebarItem icon="image" label="Media" href="/media" />
             <SidebarItem icon="user" label="Users" href="/users" />
             <SidebarItem icon="message-circle" label="Comments" href="/comments" />
-
+<SidebarItem icon="login" label="login" href="/logino" />
             {/* NEW MENU ITEM */}
             <SidebarItem icon="envelope" label="Email Manager" href="/email-manager" />
           </div>
@@ -213,3 +213,18 @@ const SidebarDashly = () => {
 };
 
 export default SidebarDashly;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

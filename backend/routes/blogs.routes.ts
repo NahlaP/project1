@@ -1,3 +1,5 @@
+
+
 // import express from "express";
 // import {
 //   getBlogs,
@@ -12,7 +14,7 @@
 
 // const router = express.Router();
 
-// // put images under: sections/blogs/<postId>/...
+// // store images under: sections/blogs/<postId>/...
 // const blogImageUpload = (req: any, res: any, next: any) => {
 //   const { postId } = req.params;
 //   const folder = `sections/blogs/${postId || "misc"}`;
@@ -40,7 +42,7 @@
 
 
 
-
+// C:\Users\97158\Desktop\project1 dev\project1\backend\routes\blogs.routes.ts
 import express from "express";
 import {
   getBlogs,
@@ -50,6 +52,7 @@ import {
   deleteBlog,
   uploadBlogImage,
   deleteBlogImage,
+  resetBlogs,
 } from "../controllers/blogs.controller";
 import { upload } from "../middleware/upload";
 
@@ -69,6 +72,9 @@ router.put("/:userId/:templateId", upsertBlogs);
 router.post("/:userId/:templateId", addBlog);
 router.put("/:userId/:templateId/:postId", updateBlog);
 router.delete("/:userId/:templateId/:postId", deleteBlog);
+
+// Reset like Projects
+router.post("/:userId/:templateId/reset", resetBlogs);
 
 // Images
 router.post("/:userId/:templateId/:postId/image", blogImageUpload, uploadBlogImage);

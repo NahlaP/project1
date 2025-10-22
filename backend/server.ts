@@ -283,7 +283,7 @@ safeMount("/api/marquee", () => require("./routes/marquee.routes"));
 safeMount("/api/brands",     () => require("./routes/brands.routes"));
 safeMount("/api/blogs", () => require("./routes/blogs.routes"));
 safeMount("/api/footer", () => require("./routes/footer.routes"));
-
+safeMount("/api/template-reset", () => require("./routes/templatereset.routes"));
 
 safeMount("/api",             () => require("./routes/page.routes"));
 // ----------------------------------

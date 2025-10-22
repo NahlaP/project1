@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="zxx">
 <head>
+  <!-- IMPORTANT: make ALL relative URLs (assets/..., imgs, js, video) come from S3 -->
+  <base href="https://ion7-templates.s3.ap-south-1.amazonaws.com/sir-template-1/v1/">
+
   <!-- Metas -->
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -14,7 +17,7 @@
   <!-- Favicon -->
   <link rel="shortcut icon" href="assets/imgs/favicon.ico" />
 
-  <!-- Google Fonts (fix broken relative link) -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -246,7 +249,7 @@
             </section>
             <!-- ==================== End about ==================== -->
 
-            <!-- ==================== Start works ==================== -->
+<!-- ==================== Start works ==================== -->
             <section class="works thecontainer ontop sub-bg">
               <div class="panel">
                 <div class="item">
@@ -300,7 +303,7 @@
                     <div class="ml-auto"><h6>2023</h6></div>
                   </div>
                   <a href="project1.html" class="link-overlay animsition-link"></a>
-                </div>
+                </div>            
               </div>
 
               <div class="panel">
@@ -616,94 +619,65 @@
   <!-- custom scripts -->
   <script src="assets/js/scripts.js"></script>
 
-  <!-- Ion7 dynamic renderer (inline) -->
+  <!-- ============ ION7: HERO ONLY DYNAMIC UPDATE ============ -->
   <script>
-    // IMPORTANT: use HTTPS to avoid mixed-content when your page is on HTTPS (S3/CloudFront).
-    window.API_BASE = "https://3.109.207.179/api";      // your backend reverse-proxied by Nginx
-    window.ION7     = { userId: "demo-user", templateId: "sir-template-1" };
+  const API_PROXY = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
 
-    (async function () {
-      const base = window.API_BASE;
-      const { userId, templateId } = window.ION7;
+  const urlp = new URLSearchParams(location.search);
+  const userId     = urlp.get("uid") || "demo-user";        // make sure this matches your real user
+  const templateId = urlp.get("tpl") || "sir-template-1";
+  const version    = urlp.get("ver") || "v1";
 
-      async function get(path) {
-        try {
-          const res = await fetch(`${base}${path}`, { credentials: "include" });
-          if (!res.ok) throw new Error(res.status + " " + res.statusText);
-          return await res.json();
-        } catch (e) {
-          console.warn("Fetch failed:", path, e);
-          return null;
-        }
+  // CHANGE THIS to your real uploads bucket if different:
+  const UPLOADS_BUCKET = "project1-uploads-12345";
+  const UPLOADS_REGION = "ap-south-1";
+
+  const absFromKey = (k) =>
+    k ? `https://${UPLOADS_BUCKET}.s3.${UPLOADS_REGION}.amazonaws.com/${String(k).replace(/^\/+/, "")}` : "";
+
+  const api = (p) => `${API_PROXY}?path=/api${p}`;
+
+  (async () => {
+    const getJSON = async (u) => {
+      const sep = u.includes("?") ? "&" : "?";
+      const r   = await fetch(u + sep + "t=" + Date.now(), { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    };
+
+    try {
+      const heroUrl = api(`/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`);
+      const hero = await getJSON(heroUrl);
+      console.log("ION7 hero JSON:", hero); // <-- helps verify fields
+
+      // Headline
+      const headline =
+        typeof hero?.content === "string" ? hero.content :
+        hero?.content?.headline || hero?.headline || "";
+
+      const h1 = document.querySelector(".land-header .caption h1");
+      if (h1 && headline) h1.textContent = headline;
+
+      // Video
+      const videoUrl =
+        hero?.videoUrl ||
+        (hero?.videoKey ? absFromKey(hero.videoKey) : "") ||
+        hero?.content?.videoUrl || "";
+
+      if (videoUrl) {
+        const src = document.querySelector('section.about source[type="video/mp4"]') ||
+                    document.querySelector('section.about video source');
+        const v = src ? src.closest("video") : document.querySelector("section.about video");
+        if (src) src.src = videoUrl;
+        else if (v) v.src = videoUrl;
+        if (v) v.load();
       }
+    } catch (e) {
+      console.warn("Hero fetch failed:", e);
+    }
+  })();
+</script>
 
-      // HERO
-      const hero = await get(`/hero/${userId}/${templateId}`);
-      if (hero) {
-        const head = hero.headline || hero?.content?.headline;
-        const vid  = hero.videoUrl || hero?.content?.videoUrl;
-        const h1 = document.querySelector(".land-header .caption h1");
-        if (h1 && head) h1.textContent = head;
-        if (vid) {
-          const source = document.querySelector('section.about source[type="video/mp4"]');
-          if (source) {
-            source.src = vid;
-            const v = source.closest("video");
-            if (v) v.load();
-          }
-        }
-      }
-
-      // MARQUEE
-      const marquee = await get(`/marquee/${userId}/${templateId}`);
-      if (marquee && Array.isArray(marquee.items)) {
-        document.querySelectorAll(".marquee .box.non-strok").forEach(box => {
-          box.innerHTML = marquee.items.map(t =>
-            `<div class="item"><h4 class="d-flex align-items-center"><span>${t}</span><span class="ml-50 stroke icon">*</span></h4></div>`
-          ).join("");
-        });
-      }
-
-      // BRANDS
-      const brands = await get(`/brands/${userId}/${templateId}`);
-      if (brands && Array.isArray(brands.items)) {
-        const wrap = document.querySelector("#content-carousel-container-unq-clients .swiper-wrapper");
-        if (wrap) {
-          wrap.innerHTML = brands.items.map(b => `
-            <div class="swiper-slide">
-              <div class="item">
-                <div class="img icon-img-100">
-                  <a href="${b.href || '#0'}"><img src="${b.url || b.logo || ""}" alt="${b.name || ""}"></a>
-                </div>
-              </div>
-            </div>
-          `).join("");
-        }
-      }
-
-      // BLOGS
-      const blogs = await get(`/blogs/${userId}/${templateId}`);
-      if (blogs && Array.isArray(blogs.items)) {
-        const blocks = document.querySelectorAll(".blog-list .item.block");
-        blogs.items.slice(0, blocks.length).forEach((b, i) => {
-          const block = blocks[i];
-          block.querySelector(".block__link")?.setAttribute("data-img", b.image || b.cover || "");
-          block.querySelector(".tag")?.textContent = b.tag || b.category || "";
-          block.querySelector(".date")?.textContent = b.date || "";
-          block.querySelector("h3")?.textContent = b.title || "";
-          block.querySelectorAll("a.animsition-link, a.more").forEach(a => a.href = b.url || b.href || "#");
-        });
-      }
-
-      // SERVICES (optional sample)
-      const services = await get(`/services/${userId}/${templateId}`);
-      if (services && Array.isArray(services.items)) {
-        const items = document.querySelectorAll(".serv-inline .item");
-        services.items.slice(0, items.length).forEach((s, i) => {
-          items[i].querySelector("h5")?.replaceChildren(document.createTextNode(s.title || "Service"));
-        });
-      }
-    })();
-  </script>
+  <!-- ======================================================== -->
 </body>
 </html>

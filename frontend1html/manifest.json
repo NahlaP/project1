@@ -1,0 +1,6 @@
+{
+  "templateId": "gym-template",
+  "version": "v1",
+  "entry": "index.html",
+  "assetsBase": "https://ion7-templates.s3.ap-south-1.amazonaws.com/gym-template/v1/"
+}
