@@ -710,7 +710,8 @@ const ids = (req: Request) => ({
   templateId: (req.params as any).templateId,
 });
 
-const HIDE_WORKS = true;
+const HIDE_WORKS = false;
+
 
 /**
  * Canonicalizes section type names to the ones your editor expects.
