@@ -17,24 +17,6 @@ import { resetTemplateOverrides } from "../controllers/templateReset.controller"
 
 const router = express.Router();
 
-/**
- * POST /api/template-reset/:userId/:templateId
- *
- * Query params supported and forwarded to the controller:
- *  - ver     (e.g. "v1") -> choose which version's defaults to use
- *  - only    (e.g. "layout") -> order-only reset (keeps user content)
- *  - skipLayout=1            -> clear data overrides only; don't reseed layout
- *
- * Examples:
- *  - Full reset from currentTag (content + order):
- *      POST /api/template-reset/demo-user/sir-template-1
- *
- *  - Full reset from v1:
- *      POST /api/template-reset/demo-user/sir-template-1?ver=v1
- *
- *  - Order-only (keep content), use v1 order:
- *      POST /api/template-reset/demo-user/sir-template-1?ver=v1&only=layout
- */
 router.post("/:userId/:templateId", (req, res) => {
   return resetTemplateOverrides(req, res);
 });
