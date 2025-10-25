@@ -1209,46 +1209,169 @@ try {
     }
   } catch(e) { console.warn("testimonials hydrate error:", e); }
 
-  /* -------------------- FOOTER (office + socials + hours) -------------------- */
-  try {
-    const data = await fetchFirst(["footer","site","settings","contact-info"]);
-    if (data) {
-      const office = document.querySelector(".footer h5.text-uppercase.text-light.mb-4");
-      if (office && data.officeTitle) office.textContent = data.officeTitle;
+/* -------------------- FOOTER (office + socials + hours) -------------------- */
+(async () => {
+  const API = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+  const qs = new URLSearchParams(location.search);
+  const uid = qs.get("uid") || "demo-user";
+  const tpl = qs.get("tpl") || "gym-template-1";
 
-      const addr  = document.querySelector(".footer .fa-map-marker-alt")?.parentElement;
-      const phone = document.querySelector(".footer .fa-phone-alt")?.parentElement;
-      const email = document.querySelector(".footer .fa-envelope")?.parentElement;
-      if (addr && (data.officeAddress || data.address)) addr.lastChild.nodeValue = " " + (data.officeAddress || data.address);
-      if (phone && (data.officePhone || data.phone))    phone.lastChild.nodeValue = " " + (data.officePhone || data.phone);
-      if (email && (data.email))                         email.lastChild.nodeValue = " " + data.email;
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const log  = (...a)=>console.log("%c[CONTACT]", "color:#08a", ...a);
+  const warn = (...a)=>console.warn("%c[CONTACT]", "color:#c80", ...a);
 
-      const socials = Array.isArray(data.social) ? data.social
-                    : Array.isArray(data.socials) ? data.socials : [];
-      if (socials.length) {
-        const map = socials.reduce((m,s)=>{ m[(s.label||s.name||"").toLowerCase()] = s.href||s.url||"#"; return m; },{});
-        document.querySelectorAll(".footer .btn.btn-square").forEach(a=>{
-          const i = a.querySelector("i")?.className || "";
-          const key = /fa-facebook/i.test(i) ? "facebook"
-                   : /fa-twitter/i.test(i)  ? "twitter"
-                   : /fa-linkedin/i.test(i) ? "linkedin"
-                   : /fa-youtube/i.test(i)  ? "youtube" : "";
-          if (key && map[key]) a.href = map[key];
-        });
-      }
-
-      const hours = data.hours || data.businessHours;
-      if (hours) {
-        const wrap = document.querySelectorAll(".footer .col-lg-3.col-md-6")[1];
-        if (wrap) {
-          const ps = wrap.querySelectorAll("p");
-          if (hours.monfri && ps[1]) ps[1].textContent = hours.monfri;
-          if (hours.sat    && ps[3]) ps[3].textContent = hours.sat;
-          if (hours.sun    && ps[5]) ps[5].textContent = hours.sun;
-        }
-      }
+  async function hit(path) {
+    const url =
+      `${API}?path=/api/${path}/${encodeURIComponent(uid)}/${encodeURIComponent(tpl)}&t=${Date.now()}`;
+    try {
+      const r = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+      if (!r.ok) return null;
+      const j = await r.json().catch(() => null);
+      if (!j || j.error) return null;
+      return { path, data: j };
+    } catch {
+      return null;
     }
-  } catch(e) { console.warn("footer hydrate error:", e); }
+  }
+
+  // try a bunch; merge objects we find
+  const paths = [
+    "footer","contactFooter","contact-footer",
+    "contact-info","contactinfo","contactus","contact",
+    "site","settings"
+  ];
+  const hits = [];
+  for (const p of paths) {
+    const r = await hit(p);
+    if (r) { hits.push(r); log("found", "/api/" + r.path); }
+  }
+
+  if (!hits.length) { warn("no contact endpoints responded"); return; }
+
+  // reduce into one flat object
+  const flat = (o)=> (Array.isArray(o?.items) ? o.items[0] : (o?.data || o)) || {};
+  const merged = hits.map(h => flat(h.data)).reduce((acc, o) => Object.assign(acc, o), {});
+  log("merged keys:", Object.keys(merged));
+
+  // map many aliases
+  const pick = (...keys)=> keys.map(k=>merged?.[k]).find(v => v!=null && v!=="") || "";
+  const contact = {
+    address:  pick("address","officeAddress","location","addressLine"),
+    phone:    pick("phone","phoneNo","phoneNumber","contactPhone"),
+    email:    pick("email","emailAddress","contactEmail","mail"),
+    siteName: pick("siteName","brand","company","site"),
+    title:    pick("title","heading","sectionTitle"),
+    subtitle: pick("subtitle","description","tagline"),
+    socials:  pick("socials","social","socialLinks","links") || {},
+    hoursRaw: pick("hours","businessHours","timings","openingHours")
+  };
+
+  // normalize socials into {label->url}
+  let smap = {};
+  if (Array.isArray(contact.socials)) {
+    smap = Object.fromEntries(
+      contact.socials.map(s => [String(s.label||s.name||"").toLowerCase(), String(s.href||s.url||"")])
+    );
+  } else if (typeof contact.socials === "object" && contact.socials) {
+    smap = Object.fromEntries(Object.entries(contact.socials).map(([k,v]) => [k.toLowerCase(), String(v)]));
+  }
+
+  // normalize hours (accept object, array, or multiline string)
+  function normHours(h) {
+    const M = { weekdays:"", saturday:"", sunday:"" };
+    if (!h) return M;
+    if (typeof h === "string") {
+      const lines = h.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      [M.weekdays, M.saturday, M.sunday] = [lines[0]||"", lines[1]||"", lines[2]||""];
+      return M;
+    }
+    if (Array.isArray(h)) {
+      for (const it of h) {
+        const label = String(it.label||it.day||"").toLowerCase();
+        const val   = it.value || it.time || it.hours || "";
+        if (/mon|fri|week/.test(label)) M.weekdays = val;
+        else if (/sat/.test(label))     M.saturday = val;
+        else if (/sun/.test(label))     M.sunday   = val;
+      }
+      return M;
+    }
+    if (typeof h === "object") {
+      M.weekdays = h.weekdays || h.monFri || h.mondayToFriday || "";
+      M.saturday = h.saturday || h.sat || "";
+      M.sunday   = h.sunday   || h.sun || "";
+      return M;
+    }
+    return M;
+  }
+  const hours = normHours(contact.hoursRaw);
+
+  // --- write into this template's footer ---
+  const root = $(".container-fluid.bg-dark") || $("footer") || document;
+
+  function writeLine(iconSel, value) {
+    if (!value) return false;
+    const ic = $(iconSel, root);
+    if (!ic) return false;
+    const p  = ic.closest("p") || ic.parentElement;
+    if (!p) return false;
+    const a  = $("a", p);
+    if (a) {
+      if (/@/.test(value)) a.href = `mailto:${value}`;
+      if (/^\+?[0-9()\s-]+$/.test(value)) a.href = `tel:${value.replace(/\s+/g,"")}`;
+      a.textContent = value;
+    } else {
+      // replace trailing text node
+      const tn = [...p.childNodes].reverse().find(n => n.nodeType === 3);
+      if (tn) tn.nodeValue = " " + value;
+      else p.append(" ", value);
+    }
+    return true;
+  }
+
+  const okA = writeLine(".fa-map-marker, .fa-map-marker-alt, .fa-location-dot, .bi-geo-alt", contact.address);
+  const okP = writeLine(".fa-phone, .fa-phone-alt, .bi-telephone",                             contact.phone);
+  const okE = writeLine(".fa-envelope, .fa-envelope-open, .bi-envelope",                       contact.email);
+  if (!(okA && okP && okE)) warn("some contact lines not matched—verify icon classes in footer");
+
+  // hours column (this theme: 3 <p> rows under “BUSINESS HOURS”)
+  const hoursBox = $$("h5,h4,h3", root).find(h => /business\s*hours/i.test(h.textContent||""))?.closest(".col,div");
+  if (hoursBox) {
+    const rows = $$("p", hoursBox);
+    if (rows[0] && hours.weekdays) rows[0].lastChild.nodeType===3 ? rows[0].lastChild.nodeValue = " " + hours.weekdays : rows[0].append(" ", hours.weekdays);
+    if (rows[1] && hours.saturday) rows[1].lastChild.nodeType===3 ? rows[1].lastChild.nodeValue = " " + hours.saturday : rows[1].append(" ", hours.saturday);
+    if (rows[2] && hours.sunday)   rows[2].lastChild.nodeType===3 ? rows[2].lastChild.nodeValue = " " + hours.sunday   : rows[2].append(" ", hours.sunday);
+  } else {
+    warn("hours box not found");
+  }
+
+  // socials
+  const keyFor = (cls) =>
+    /facebook/i.test(cls) ? "facebook" :
+    /twitter|x-twitter/i.test(cls) ? "twitter" :
+    /linkedin/i.test(cls) ? "linkedin" :
+    /youtube/i.test(cls) ? "youtube" :
+    /instagram/i.test(cls) ? "instagram" : "";
+  $$(".bg-dark a", root).forEach(a=>{
+    const i = $("i,svg", a) || a;
+    const key = keyFor((i.className||"")+" "+(a.className||""));
+    if (key && smap[key]) { a.href = smap[key]; a.target = "_blank"; }
+  });
+
+  // replace "Your Site Name" if present
+  const copyHost = $$("small, p, span", root).find(n => /copyright|all rights/i.test(n.textContent||""));
+  if (copyHost && contact.siteName) {
+    copyHost.innerHTML = copyHost.innerHTML.replace(/Your Site Name|Site Name|Company/gi, contact.siteName);
+  }
+
+  // debug
+  const empties = Object.fromEntries(Object.entries({
+    address:contact.address, phone:contact.phone, email:contact.email,
+    weekdays:hours.weekdays, saturday:hours.saturday, sunday:hours.sunday
+  }).filter(([_,v]) => !v));
+  if (Object.keys(empties).length) warn("still empty after merge:", empties);
+  log("done.");
+})();
 
   /* -------------------- REORDER (optional) -------------------- */
   try {
