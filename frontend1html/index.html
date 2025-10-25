@@ -711,6 +711,618 @@
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-</body>
 
+    <!-- ============ ION7: DYNAMIC CONTENT (GYM TEMPLATE) ============ -->
+    <script>
+(async () => {
+  /* -------------------- config -------------------- */
+  const QS = new URLSearchParams(location.search);
+  const API_PROXY   = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+  const userId      = QS.get("uid") || "demo-user";
+  const templateId  = QS.get("tpl") || "gym-template-1";     // <- keep in sync with backend
+  const uploadsBucket = "project1-uploads-12345";
+  const uploadsRegion = "ap-south-1";
+  const fromKey = (k) => k ? `https://${uploadsBucket}.s3.${uploadsRegion}.amazonaws.com/${String(k).replace(/^\/+/, "")}` : "";
+  const esc = (s) => String(s ?? "").replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+
+  const api = (p) => `${API_PROXY}?path=/api/${p}/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}&t=${Date.now()}`;
+  async function fetchFirst(paths){
+    for (const p of paths){
+      try{
+        const r = await fetch(api(p), { cache:"no-store", headers:{Accept:"application/json"} });
+        if (!r.ok) continue;
+        const j = await r.json();
+        if (j && !j.error) return j;
+      }catch(e){}
+    }
+    return null;
+  }
+
+  /* ---- guard: prevent empty links navigating to S3 base folder ---- */
+  (function preventEmptyLinkNav() {
+    const BASE = (document.querySelector('base') || {}).href || '';
+    function isFolderUrl(u){ try{ const x=new URL(u, location.href); return BASE && x.href === BASE; }catch{ return false; } }
+    addEventListener('click', function (e) {
+      const a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      const href = (a.getAttribute('href') || '').trim();
+      if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) { e.preventDefault(); return; }
+      const dest = new URL(href, BASE || location.href);
+      if (isFolderUrl(dest.href)) e.preventDefault();
+    }, true);
+  })();
+
+  /* -------------------- HERO (carousel) -------------------- */
+  try {
+    const hero = await fetchFirst(["hero","homeHero","landingHero","carousel"]);
+    if (hero) {
+      const captionTitle = hero.title || hero.headline || hero.content || "";
+      const ctaText      = hero.ctaText || "Explore More";
+      const ctaHref      = hero.ctaHref || "#";
+      const singleImgUrl = hero.imageUrl || hero.posterUrl || hero.videoUrl || fromKey(hero.imageKey) || "";
+
+      const inner      = document.querySelector("#header-carousel .carousel-inner");
+      const indicators = document.querySelector("#header-carousel .carousel-indicators");
+
+      const slides = Array.isArray(hero.slides) ? hero.slides
+                   : Array.isArray(hero.items)  ? hero.items : [];
+
+      if (slides.length && inner && indicators) {
+        inner.innerHTML = "";
+        indicators.innerHTML = "";
+        slides.forEach((s, i) => {
+          const img = s.imageUrl || fromKey(s.imageKey) || s.src || singleImgUrl || "img/carousel-1.jpg";
+          const title = s.title || s.headline || captionTitle || "";
+          const btnText = s.buttonText || s.cta || ctaText;
+          const href = s.href || s.url || ctaHref || "#";
+          const isActive = i === 0 ? "active" : "";
+          indicators.insertAdjacentHTML("beforeend",
+            `<button type="button" data-bs-target="#header-carousel" data-bs-slide-to="${i}" class="${isActive}" aria-label="Slide ${i+1}">
+               <img class="img-fluid" src="${esc(img)}" alt="Slide ${i+1}">
+             </button>`);
+          inner.insertAdjacentHTML("beforeend",
+            `<div class="carousel-item ${isActive}">
+               <img class="w-100" src="${esc(img)}" alt="Slide ${i+1}">
+               <div class="carousel-caption">
+                 ${title ? `<h1 class="display-1 text-uppercase text-white mb-4">${esc(title)}</h1>` : ""}
+                 <a href="${esc(href)}" class="btn btn-primary py-3 px-4">${esc(btnText)}</a>
+               </div>
+             </div>`);
+        });
+      } else {
+        // no slides array: hydrate the existing first slide (title, cta, image)
+        const h1  = document.querySelector("#header-carousel .carousel-item.active .carousel-caption h1");
+        const btn = document.querySelector("#header-carousel .carousel-item.active .carousel-caption a.btn");
+        const img = document.querySelector("#header-carousel .carousel-item.active img.w-100");
+        const thumb = document.querySelector("#header-carousel .carousel-indicators button.active img");
+        if (h1 && captionTitle) h1.textContent = captionTitle;
+        if (btn) { btn.textContent = ctaText; btn.setAttribute("href", ctaHref || "#"); }
+        if (img && singleImgUrl) img.src = singleImgUrl;
+        if (thumb && singleImgUrl) thumb.src = singleImgUrl;
+      }
+    }
+  } catch (e) { console.warn("hero hydrate error:", e); }
+
+  /* -------------------- ABOUT -------------------- */
+ /* ---------- ABOUT: hydrate from dashboard (robust, no DOM structure changes) ---------- */
+try {
+  const about = await fetchFirst(["about","aboutUs","intro"]);
+  if (!about) throw new Error("no about JSON");
+
+  // helpers (use existing fromKey if you already defined it above)
+  const toText = (x) =>
+    typeof x === "string"
+      ? x.trim()
+      : (x && (x.text ?? x.label ?? x.title ?? x.name ?? x.value ?? "") + "").trim();
+
+  const normIcon = (icn) => {
+    if (!icn) return "";
+    // allow "fa-users-cog", "users-cog", "fa fa-users-cog"
+    const base = icn.replace(/^fa\s+/, "");
+    return /^fa-/.test(base) ? base : `fa-${base}`;
+  };
+
+  const wrapSel = ".container-fluid.pt-6.pb-6";
+  const wrap    = document.querySelector(wrapSel);
+  if (!wrap) throw new Error("about wrapper not found");
+
+  /* image */
+  (()=>{
+    const img = wrap.querySelector(".about-img img");
+    const url = about.imageUrl || (typeof fromKey === "function" ? fromKey(about.imageKey) : "") || "";
+    if (img && url) img.src = url;
+  })();
+
+  /* title */
+  (()=>{
+    const el = wrap.querySelector("h1.display-6");
+    const title = about.title || about.headline || about.content || "";
+    if (el && title) el.textContent = title;
+  })();
+
+  /* description */
+  (()=>{
+    const el = wrap.querySelector("p.mb-4");
+    const desc = about.description || about.text || about.body || about.subtitle || about.subheading || "";
+    if (el && desc) el.textContent = desc;
+  })();
+
+  /* features (two items: icon + title) */
+  (()=>{
+    let feats = Array.isArray(about.features) ? about.features
+             : Array.isArray(about.items)    ? about.items
+             : [];
+    if (!feats.length) {
+      const f1 = { title: about.feature1Title, icon: about.feature1Icon };
+      const f2 = { title: about.feature2Title, icon: about.feature2Icon };
+      feats = [f1, f2].filter(f => f && (f.title || f.icon));
+    }
+    if (!feats.length) return;
+
+    const slots = wrap.querySelectorAll(".row.g-5.mb-4 .col-sm-6");
+    [0,1].forEach(i => {
+      const f = feats[i], col = slots[i];
+      if (!f || !col) return;
+      const iconEl = col.querySelector("i");
+      const titleEl= col.querySelector("h5");
+      if (iconEl && f.icon) iconEl.className = `fa ${normIcon(f.icon)} fa-2x text-primary`;
+      if (titleEl && (f.title || f.name)) titleEl.textContent = f.title || f.name;
+    });
+  })();
+
+  /* bullets (checks) */
+  (()=>{
+    let checks = [];
+    if (Array.isArray(about.bullets)) checks = about.bullets.map(toText).filter(Boolean);
+    else if (Array.isArray(about.checks)) checks = about.checks.map(toText).filter(Boolean);
+    else if (Array.isArray(about.points)) checks = about.points.map(toText).filter(Boolean);
+    else if (Array.isArray(about.list))   checks = about.list.map(toText).filter(Boolean);
+
+    if (!checks.length) {
+      const numbered = [
+        about.check1, about.check2, about.check3,
+        about.point1, about.point2, about.point3,
+        about.bullet1, about.bullet2, about.bullet3,
+        about.list1, about.list2, about.list3
+      ].map(toText).filter(Boolean);
+      if (numbered.length) checks = numbered;
+    }
+
+    if (!checks.length) {
+      const s = (about.checksText || about.pointsText || about.bulletsText || "").trim();
+      if (s) checks = s.split(/\r?\n|,/).map(v => v.trim()).filter(Boolean);
+    }
+
+    if (!checks.length) return;
+
+    const icoEls = wrap.querySelectorAll(".col-lg-6 p i.fa-check-square");
+    icoEls.forEach((ico, i) => {
+      const p = ico?.parentElement;
+      const val = checks[i] || "";
+      if (!p || !val) return;
+      // ensure we set/replace the trailing text node only
+      if (!p.lastChild || p.lastChild.nodeType !== Node.TEXT_NODE) {
+        p.appendChild(document.createTextNode(" " + val));
+      } else {
+        p.lastChild.nodeValue = " " + val;
+      }
+    });
+  })();
+
+  /* bottom banner */
+  (()=>{
+    const msg = about.bottomText || about.highlight || "";
+    const h4  = wrap.querySelector(".border h4");
+    if (h4 && msg) h4.textContent = msg;
+  })();
+
+} catch(e) {
+  console.warn("about hydrate error:", e);
+}
+  /* -------------------- WHY CHOOSE US (features) -------------------- */
+  try {
+  const why = await fetchFirst(["whychoose","features","whyChooseUs"]);
+  if (why) {
+    const sec   = document.querySelector(".feature");
+    const title = document.querySelector(".feature h1.display-6");
+    const desc  = document.querySelector(".feature p.text-light.mb-4");
+
+    /* title + description */
+    if (title && (why.title || why.titleRich))
+      title.innerHTML = why.titleRich || esc(why.title);
+    if (desc && (why.description || why.text))
+      desc.textContent = why.description || why.text;
+
+    /* background image + overlay (supports new keys) */
+    if (sec) {
+      const bgUrl =
+        why.bgImageUrl || fromKey(why.bgImageKey) ||      // new dashboard
+        why.imageUrl   || fromKey(why.imageKey)   || "";  // legacy
+      const overlay =
+        typeof why.bgOverlay === "number" ? why.bgOverlay : null;
+
+      if (bgUrl) {
+        sec.style.backgroundImage = overlay != null
+          ? `linear-gradient(rgba(0,0,0,${overlay}),rgba(0,0,0,${overlay})), url("${bgUrl}")`
+          : `url("${bgUrl}")`;
+        sec.style.backgroundSize = "cover";
+        sec.style.backgroundPosition = "center";
+      }
+    }
+
+    /* stats cards */
+    const stats = Array.isArray(why.stats) ? why.stats : [];
+    const s1Val = document.querySelectorAll(".feature [data-toggle='counter-up']")[0];
+    const s1Lbl = document.querySelectorAll(".feature .text-uppercase.mb-0")[0];
+    const s2Val = document.querySelectorAll(".feature [data-toggle='counter-up']")[1];
+    const s2Lbl = document.querySelectorAll(".feature .text-uppercase.mb-0")[1];
+    if (stats[0]) {
+      if (s1Val) s1Val.textContent = stats[0].value ?? s1Val.textContent;
+      if (s1Lbl) s1Lbl.textContent = stats[0].label ?? s1Lbl.textContent;
+    }
+    if (stats[1]) {
+      if (s2Val) s2Val.textContent = stats[1].value ?? s2Val.textContent;
+      if (s2Lbl) s2Lbl.textContent = stats[1].label ?? s2Lbl.textContent;
+    }
+
+    /* progress bars (Experience / Work Done) */
+    const bars = Array.isArray(why.progressBars) ? why.progressBars
+               : Array.isArray(why.bars)        ? why.bars : [];
+    const barEls = document.querySelectorAll(".feature .experience");
+
+    bars.slice(0, 2).forEach((b, i) => {
+      const box = barEls[i]; if (!box) return;
+      const labels = box.querySelectorAll(".d-flex.justify-content-between span");
+      const pct = Number(b.percent ?? b.value ?? NaN);
+
+      if (labels[0] && b.label) labels[0].textContent = b.label;
+      if (labels[1] && !Number.isNaN(pct)) labels[1].textContent = `${pct}%`;
+
+      const pb = box.querySelector(".progress-bar");
+      if (pb && !Number.isNaN(pct)) {
+        pb.setAttribute("aria-valuenow", String(pct));
+        pb.style.width = `${pct}%`;
+      }
+    });
+
+    console.log("[WHY] Done.");
+  }
+} catch (e) {
+  console.warn("why-choose hydrate error:", e);
+}
+
+  /* -------------------- SERVICES -------------------- */
+  try {
+    const services = await fetchFirst(["services","serviceList","whatwedo"]);
+    if (services) {
+      const items = Array.isArray(services.items) ? services.items
+                  : Array.isArray(services.services) ? services.services : [];
+      if (items.length) {
+        const grid = document.querySelector(".container-fluid.service .row.g-4");
+        if (grid) {
+          const cols = grid.querySelectorAll(".col-lg-3.col-md-6");
+          cols.forEach((col, i) => {
+            const it = items[i]; if (!it) return;
+            const img = col.querySelector("img");
+            const h5  = col.querySelector(".service-text h5");
+            const p   = col.querySelector(".service-text p");
+            const a   = col.querySelector("a.btn");
+            if (img) img.src = it.imageUrl || fromKey(it.imageKey) || img.src;
+            if (h5)  h5.textContent = it.title || it.name || h5.textContent;
+            if (p)   p.textContent  = it.description || it.text || p.textContent;
+            if (a)   a.href = it.href || it.url || a.getAttribute("href") || "#";
+          });
+        }
+      }
+    }
+  } catch(e) { console.warn("services hydrate error:", e); }
+
+  /* -------------------- APPOINTMENT (contact-like) -------------------- */
+  try {
+  const app = await fetchFirst(["appointment","appoinment","contact-info","site","settings"]);
+  if (!app) return;
+
+  // ---- text (left column) ----
+  const title = document.querySelector(".appoinment h1.display-6");
+  const desc  = document.querySelector(".appoinment p.text-white.mb-5");
+  if (title && (app.title || app.headline))   title.textContent = app.title || app.headline;
+  if (desc  && (app.subtitle || app.description || app.text)) {
+    desc.textContent = app.subtitle || app.description || app.text;
+  }
+
+  // ---- address & hours ----
+  const addr  = document.querySelector(".appoinment .bi-geo-alt")?.closest(".d-flex")?.querySelector("span.text-white");
+  const hours = document.querySelector(".appoinment .bi-clock")?.closest(".d-flex")?.querySelector("span.text-white");
+  if (addr  && (app.officeAddress || app.address)) addr.textContent  = app.officeAddress || app.address;
+  if (hours && (app.officeTime   || app.hours))    hours.textContent = app.officeTime   || app.hours;
+
+  // ---- background image + overlay (supports: bgImageUrl/bgImageKey/backgroundImage/imageKey) ----
+  const leftCol = document.querySelector(".container-fluid.appoinment .col-lg-6.pe-lg-5") || document.querySelector(".container-fluid.appoinment");
+  if (leftCol) {
+    const imgUrl =
+      app.bgImageUrl || app.backgroundImageUrl ||
+      (app.bgImageKey && fromKey(app.bgImageKey)) ||
+      (app.backgroundImage && /^https?:\/\//i.test(app.backgroundImage) ? app.backgroundImage : app.backgroundImage && fromKey(app.backgroundImage)) ||
+      app.imageUrl || fromKey(app.imageKey) || "";
+
+    const overlay = (typeof app.bgOverlay === "number") ? app.bgOverlay : null;
+
+    if (imgUrl) {
+      leftCol.style.backgroundImage = overlay != null
+        ? `linear-gradient(rgba(0,0,0,${overlay}),rgba(0,0,0,${overlay})), url("${imgUrl}")`
+        : `url("${imgUrl}")`;
+      leftCol.style.backgroundSize = "cover";
+      leftCol.style.backgroundPosition = "center";
+      leftCol.style.backgroundRepeat = "no-repeat";
+    }
+  }
+
+  // ---- form action + submit text ----
+  const formWrap  = document.querySelector(".appoinment .bg-white");
+  const form      = formWrap?.querySelector("form") || formWrap;
+  const submitBtn = formWrap?.querySelector("button[type='submit']");
+  if (form && app.form && app.form.action)      form.setAttribute("action", app.form.action);
+  if (submitBtn && app.form && app.form.submitText) submitBtn.textContent = app.form.submitText;
+
+  // ---- form fields (placeholder/name/required/type) ----
+  const fields = Array.isArray(app.form?.fields) ? app.form.fields : [];
+  const by = (n) => fields.find(f => (f.name||"").toLowerCase() === n);
+  const applyField = (el, f) => {
+    if (!el || !f) return;
+    if (f.placeholder) el.placeholder = f.placeholder;
+    if (typeof f.required === "boolean") el.required = !!f.required;
+    if (f.name) el.name = f.name;
+    if (f.type && el.tagName === "INPUT") el.type = f.type;
+  };
+  applyField(document.getElementById("name"),    by("name"));
+  applyField(document.getElementById("mail"),    by("email"));
+  applyField(document.getElementById("mobile"),  by("mobile"));
+  applyField(document.getElementById("message"), by("message"));
+
+  // ---- services select ----
+  const sel = document.getElementById("service");
+  if (sel && Array.isArray(app.services)) {
+    sel.innerHTML = app.services.map((s,i) => {
+      const label = (typeof s === "string") ? s : (s.label || s.value || "");
+      const value = (typeof s === "string") ? s : (s.value || s.label || "");
+      return `<option ${i===0?"selected":""} value="${esc(value)}">${esc(label)}</option>`;
+    }).join("");
+  }
+
+  // ---- include uid/tpl as hidden (for submissions) ----
+  if (form && !form.querySelector('input[name="uid"]')) {
+    const hid = document.createElement("input");
+    hid.type = "hidden"; hid.name = "uid"; hid.value = userId;
+    form.appendChild(hid);
+  }
+  if (form && !form.querySelector('input[name="tpl"]')) {
+    const hid = document.createElement("input");
+    hid.type = "hidden"; hid.name = "tpl"; hid.value = templateId;
+    form.appendChild(hid);
+  }
+} catch (e) {
+  console.warn("appointment hydrate error:", e);
+}
+
+    /* -------------------- TEAM -------------------- */
+ try {
+  // get data from any of these endpoints via your existing fetchFirst()
+  const team = await fetchFirst(["team", "teams", "members"]);
+
+  // normalize list
+  const list = Array.isArray(team)              ? team
+            : Array.isArray(team?.items)       ? team.items
+            : Array.isArray(team?.members)     ? team.members
+            : [];
+
+  const cards = document.querySelectorAll(".container-fluid.team .row.g-4 .col-lg-3.col-md-6");
+  if (!cards.length) { console.warn("[TEAM] cards not found"); return; }
+
+  // unhide everything first (important if we hid extras previously)
+  cards.forEach(c => c.classList.remove("d-none"));
+
+  // fill first N
+  cards.forEach((col, i) => {
+    const m = list[i];
+    if (!m) return;
+
+    const img  = col.querySelector("img");
+    const name = col.querySelector("h5");
+    const role = col.querySelector("span");
+
+    // resolve image
+    const explicit  = m.image || m.photo || "";
+    const imgUrl =
+      (explicit && /^https?:\/\//i.test(explicit) && explicit) ||
+      m.imageUrl ||
+      (m.imageKey && fromKey(m.imageKey)) ||
+      (img ? img.src : "");
+
+    if (img && imgUrl) { img.src = imgUrl; img.removeAttribute("srcset"); }
+    if (name) name.textContent = m.name || m.title || name.textContent;
+    if (role) role.textContent = m.role || m.position || role.textContent;
+
+    // socials (array or object)
+    const socWrap = col.querySelector(".team-social");
+    if (socWrap) {
+      const socials = m.socials || m.socialLinks || m.social || {};
+      const map = Array.isArray(socials)
+        ? socials.reduce((a, s) => {
+            a[String(s.label || s.name || "").toLowerCase()] = s.href || s.url || "#";
+            return a;
+          }, {})
+        : Object.fromEntries(Object.entries(socials).map(([k, v]) => [k.toLowerCase(), v]));
+
+      socWrap.querySelectorAll("a").forEach(a => {
+        const cls = a.querySelector("i")?.className || "";
+        const key = /fa-facebook/i.test(cls) ? "facebook"
+                 : /fa-twitter/i.test(cls)  ? "twitter"
+                 : /fa-linkedin/i.test(cls) ? "linkedin"
+                 : /fa-youtube/i.test(cls)  ? "youtube"
+                 : "";
+        if (key && map[key]) a.href = map[key];
+      });
+    }
+  });
+
+  // hide leftovers beyond current list length
+  for (let i = list.length; i < cards.length; i++) {
+    cards[i].classList.add("d-none"); // or: cards[i].remove();
+  }
+
+  console.log("[TEAM] Done. Extras hidden:", Math.max(0, cards.length - list.length));
+} catch (e) {
+  console.warn("team hydrate error:", e);
+}
+
+  /* -------------------- TESTIMONIALS -------------------- */
+  try {
+    const t = await fetchFirst(["testimonials","testimonial","reviews"]);
+    const items = Array.isArray(t?.items) ? t.items
+                : Array.isArray(t) ? t : [];
+    if (items.length) {
+      const owl = document.querySelector(".owl-carousel.testimonial-carousel");
+      if (owl) {
+        owl.innerHTML = items.map(it => `
+          <div class="testimonial-item">
+            <div class="d-flex align-items-center mb-4">
+              <img class="img-fluid" src="${esc(it.imageUrl || fromKey(it.imageKey) || 'img/testimonial-1.jpg')}" alt="">
+              <div class="ms-3">
+                <div class="mb-2">
+                  ${'<i class="far fa-star text-primary"></i>'.repeat(Math.max(0, Math.min(5, Number(it.stars ?? 5))))}
+                </div>
+                <h5 class="text-uppercase">${esc(it.name || 'Client')}</h5>
+                <span>${esc(it.title || it.role || '')}</span>
+              </div>
+            </div>
+            <p class="fs-5">${esc(it.text || it.body || '')}</p>
+          </div>
+        `).join("");
+
+        if (typeof jQuery !== "undefined" && jQuery(owl).owlCarousel) {
+          jQuery(owl).owlCarousel("destroy");
+          jQuery(owl).owlCarousel({ items:1, autoplay:true, smartSpeed:800, dots:true, loop:true });
+        }
+      }
+      const leftImgs = document.querySelectorAll(".testimonial-img .animated.flip img");
+      items.slice(0, leftImgs.length).forEach((it, i) => { leftImgs[i].src = it.imageUrl || fromKey(it.imageKey) || leftImgs[i].src; });
+    }
+  } catch(e) { console.warn("testimonials hydrate error:", e); }
+
+  /* -------------------- FOOTER (office + socials + hours) -------------------- */
+  try {
+    const data = await fetchFirst(["footer","site","settings","contact-info"]);
+    if (data) {
+      const office = document.querySelector(".footer h5.text-uppercase.text-light.mb-4");
+      if (office && data.officeTitle) office.textContent = data.officeTitle;
+
+      const addr  = document.querySelector(".footer .fa-map-marker-alt")?.parentElement;
+      const phone = document.querySelector(".footer .fa-phone-alt")?.parentElement;
+      const email = document.querySelector(".footer .fa-envelope")?.parentElement;
+      if (addr && (data.officeAddress || data.address)) addr.lastChild.nodeValue = " " + (data.officeAddress || data.address);
+      if (phone && (data.officePhone || data.phone))    phone.lastChild.nodeValue = " " + (data.officePhone || data.phone);
+      if (email && (data.email))                         email.lastChild.nodeValue = " " + data.email;
+
+      const socials = Array.isArray(data.social) ? data.social
+                    : Array.isArray(data.socials) ? data.socials : [];
+      if (socials.length) {
+        const map = socials.reduce((m,s)=>{ m[(s.label||s.name||"").toLowerCase()] = s.href||s.url||"#"; return m; },{});
+        document.querySelectorAll(".footer .btn.btn-square").forEach(a=>{
+          const i = a.querySelector("i")?.className || "";
+          const key = /fa-facebook/i.test(i) ? "facebook"
+                   : /fa-twitter/i.test(i)  ? "twitter"
+                   : /fa-linkedin/i.test(i) ? "linkedin"
+                   : /fa-youtube/i.test(i)  ? "youtube" : "";
+          if (key && map[key]) a.href = map[key];
+        });
+      }
+
+      const hours = data.hours || data.businessHours;
+      if (hours) {
+        const wrap = document.querySelectorAll(".footer .col-lg-3.col-md-6")[1];
+        if (wrap) {
+          const ps = wrap.querySelectorAll("p");
+          if (hours.monfri && ps[1]) ps[1].textContent = hours.monfri;
+          if (hours.sat    && ps[3]) ps[3].textContent = hours.sat;
+          if (hours.sun    && ps[5]) ps[5].textContent = hours.sun;
+        }
+      }
+    }
+  } catch(e) { console.warn("footer hydrate error:", e); }
+
+  /* -------------------- REORDER (optional) -------------------- */
+  try {
+    async function fetchOrder() {
+      const paths = [
+        `/pages/home/sections-order/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
+        `/sections-order/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}?page=home`,
+        `/sections/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}?assigned=home`,
+        `/sections/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
+      ];
+      for (const p of paths) {
+        try {
+          const url = `${API_PROXY}?path=/api${p}&t=${Date.now()}`;
+          const r = await fetch(url, { cache:"no-store", headers:{Accept:"application/json"} });
+          if (!r.ok) continue;
+          const j = await r.json();
+          if (Array.isArray(j?.order)) return j.order;
+          if (Array.isArray(j)) {
+            return j
+              .filter(s => s && (s.type || s.slug))
+              .map(s => ({ type: (s.type || s.slug || "").toLowerCase(), order: Number.isFinite(+s.order) ? +s.order : 9999, visible: s.visible !== false }))
+              .sort((a,b)=>(a.order??9999)-(b.order??9999));
+          }
+        } catch {}
+      }
+      return null;
+    }
+
+    function nodes() {
+      return {
+        hero: document.querySelector(".container-fluid.p-0.mb-6"),
+        about: document.querySelector(".container-fluid.pt-6.pb-6"),
+        features: document.querySelector(".container-fluid.feature"),
+        services: document.querySelector(".container-fluid.service"),
+        appointment: document.querySelector(".container-fluid.appoinment"),
+        team: document.querySelector(".container-fluid.team"),
+        testimonials: document.querySelectorAll(".container-fluid.pt-6.pb-6")[1],
+        footer: document.querySelector(".container-fluid.bg-dark.footer")
+      };
+    }
+
+    function applyOrder(orderItems){
+      const map = { hero:"hero", about:"about", whychooseus:"features", features:"features", services:"services",
+                    appointment:"appointment", appoinment:"appointment", team:"team",
+                    testimonials:"testimonials", testimonial:"testimonials", footer:"footer" };
+      const ns = nodes();
+      const hero = ns.hero; const main = document.body; if (!hero || !main) return;
+
+      const desired = [];
+      (orderItems||[]).forEach(it=>{
+        if (!it || it.visible === false) return;
+        const key = map[(it.type||"").toLowerCase()];
+        if (!key || !ns[key]) return;
+        if (!desired.includes(key)) desired.push(key);
+      });
+
+      const before = [], after = [];
+      let passedHero = false;
+      for (const k of desired) { if (k === "hero") { passedHero = true; continue; } (passedHero ? after : before).push(k); }
+
+      for (const k of before) { const el = ns[k]; if (el && el.parentElement) hero.parentElement.insertBefore(el, hero); }
+      let anchor = hero.nextSibling;
+      for (const k of after) { const el = ns[k]; if (!el || !el.parentElement) continue; if (anchor) { hero.parentElement.insertBefore(el, anchor); anchor = el.nextSibling; } else { hero.parentElement.appendChild(el); } }
+
+      try { if (window.WOW) new WOW().init(); } catch {}
+    }
+
+    const order = await fetchOrder();
+    if (Array.isArray(order) && order.length) applyOrder(order);
+  } catch(e) { console.warn("reorder skipped:", e); }
+
+  console.log("✅ ION7 Gym renderer finished");
+})();
+</script>
+
+</body>
 </html>

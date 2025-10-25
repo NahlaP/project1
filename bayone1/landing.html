@@ -11,7 +11,6 @@
   <meta name="keywords" content="HTML5 Template Bayone Multi-Purpose themeforest" />
   <meta name="description" content="Bayone - Multi-Purpose HTML5 Template" />
   <meta name="author" content="" />
-
   <title>Bayone</title>
 
   <!-- Favicon -->
@@ -29,6 +28,40 @@
   <link rel="stylesheet" href="assets/css/plugins.css" />
   <link rel="stylesheet" href="assets/css/base.css" />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <style id="hero-compact-css">
+  /* Make hero behave like a normal section */
+  header.land-header{
+    height:auto !important;
+    min-height:auto !important;
+  }
+  /* reuse the same vertical rhythm as other sections */
+  header.land-header.section-padding{
+    padding-top:120px;
+    padding-bottom:120px;
+  }
+  @media (max-width: 991.98px){
+    header.land-header.section-padding{ padding-top:90px; padding-bottom:90px; }
+  }
+  @media (max-width: 767.98px){
+    header.land-header.section-padding{ padding-top:70px; padding-bottom:70px; }
+  }
+
+  /* (Optional) keep the stacked video tidy + short under the caption */
+  header.land-header.has-hero-stacked .hero-video-stacked{
+    position:relative; margin:24px auto 0; width:100%; max-width:1200px; border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.12);
+  }
+  header.land-header.has-hero-stacked .hero-video-stacked::before{
+    content:""; display:block; width:100%; aspect-ratio:16/9; max-height:420px;
+  }
+  header.land-header.has-hero-stacked .hero-video-stacked.is-portrait::before{
+    aspect-ratio:9/16; max-height:520px;
+  }
+  header.land-header.has-hero-stacked .hero-video-stacked > video{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+  }
+</style>
+
 </head>
 
 <body class="landing">
@@ -156,7 +189,8 @@
         <main class="main-bg">
           <div class="main-box main-bg ontop">
             <!-- ==================== Start header ==================== -->
-            <header class="land-header valign">
+           <header class="land-header section-padding valign">
+
               <div class="container">
                 <div class="row justify-content-center">
                   <div class="col-lg-11">
@@ -249,7 +283,7 @@
             </section>
             <!-- ==================== End about ==================== -->
 
-<!-- ==================== Start works ==================== -->
+            <!-- ==================== Start works ==================== -->
             <section class="works thecontainer ontop sub-bg">
               <div class="panel">
                 <div class="item">
@@ -303,7 +337,7 @@
                     <div class="ml-auto"><h6>2023</h6></div>
                   </div>
                   <a href="project1.html" class="link-overlay animsition-link"></a>
-                </div>            
+                </div>
               </div>
 
               <div class="panel">
@@ -492,7 +526,7 @@
                           <span>Continue Read
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M13.922 4.5V11.8125C13.922 11.9244 13.8776 12.0317 13.7985 12.1108C13.7193 12.1899 13.612 12.2344 13.5002 12.2344C13.3883 12.2344 13.281 12.1899 13.2018 12.1108C13.1227 12.0317 13.0783 11.9244 13.0783 11.8125V5.51953L4.79547 13.7953C4.71715 13.8736 4.61092 13.9176 4.50015 13.9176C4.38939 13.9176 4.28316 13.8736 4.20484 13.7953C4.12652 13.717 4.08252 13.6108 4.08252 13.5C4.08252 13.3892 4.12652 13.283 4.20484 13.2047L12.4806 4.92188H6.18765C6.07577 4.92188 5.96846 4.87743 5.88934 4.79831C5.81023 4.71919 5.76578 4.61189 5.76578 4.5C5.76578 4.38811 5.81023 4.28081 5.88934 4.20169C5.96846 4.12257 6.07577 4.07813 6.18765 4.07812H13.5002C13.612 4.07813 13.7193 4.12257 13.7985 4.20169C13.8776 4.28081 13.922 4.38811 13.922 4.5Z" fill="currentColor"></path>
-                            </svg>
+                          </svg>
                           </span>
                         </a>
                       </div>
@@ -619,65 +653,602 @@
   <!-- custom scripts -->
   <script src="assets/js/scripts.js"></script>
 
-  <!-- ============ ION7: HERO ONLY DYNAMIC UPDATE ============ -->
+  <!-- ============ ION7: DYNAMIC CONTENT (ALL SECTIONS) ============ -->
   <script>
-  const API_PROXY = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
-
-  const urlp = new URLSearchParams(location.search);
-  const userId     = urlp.get("uid") || "demo-user";        // make sure this matches your real user
-  const templateId = urlp.get("tpl") || "sir-template-1";
-  const version    = urlp.get("ver") || "v1";
-
-  // CHANGE THIS to your real uploads bucket if different:
-  const UPLOADS_BUCKET = "project1-uploads-12345";
-  const UPLOADS_REGION = "ap-south-1";
-
-  const absFromKey = (k) =>
-    k ? `https://${UPLOADS_BUCKET}.s3.${UPLOADS_REGION}.amazonaws.com/${String(k).replace(/^\/+/, "")}` : "";
-
-  const api = (p) => `${API_PROXY}?path=/api${p}`;
-
   (async () => {
-    const getJSON = async (u) => {
-      const sep = u.includes("?") ? "&" : "?";
-      const r   = await fetch(u + sep + "t=" + Date.now(), { headers: { Accept: "application/json" }, cache: "no-store" });
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    };
+    /* config */
+    const QS = new URLSearchParams(location.search);
+    const API_PROXY   = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+    const userId      = QS.get("uid") || "demo-user";
+    const templateId  = QS.get("tpl") || "sir-template-1";
+    const uploadsBucket = "project1-uploads-12345";
+    const uploadsRegion = "ap-south-1";
+    const fromKey = (k) => k ? `https://${uploadsBucket}.s3.${uploadsRegion}.amazonaws.com/${String(k).replace(/^\/+/, "")}` : "";
+    document.querySelectorAll('a.animsition-link').forEach(a=>a.classList.remove('animsition-link'));
 
+    /* helpers */
+    const api = (p) => `${API_PROXY}?path=/api/${p}/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}&t=${Date.now()}`;
+    async function fetchFirst(paths){
+      for (const p of paths){
+        try{
+          const r = await fetch(api(p), {cache:"no-store", headers:{Accept:"application/json"}});
+          if (!r.ok) { continue; }
+          const j = await r.json();
+          if (j && !j.error) return j;
+        }catch(e){}
+      }
+      return null;
+    }
+
+    /* ====== HERO (headline only; capture hero video url) ====== */
     try {
-      const heroUrl = api(`/hero/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`);
-      const hero = await getJSON(heroUrl);
-      console.log("ION7 hero JSON:", hero); // <-- helps verify fields
+      const hero = await fetchFirst(["hero","homeHero","landingHero"]);
+      if (hero) {
+        const headline =
+          hero.headline ||
+          hero.title ||
+          (typeof hero.content === "string" ? hero.content : hero?.content?.headline) || "";
 
-      // Headline
-      const headline =
-        typeof hero?.content === "string" ? hero.content :
-        hero?.content?.headline || hero?.headline || "";
+        const h1 = document.querySelector("header.land-header .caption h1");
+        if (h1 && headline) h1.textContent = headline;
 
-      const h1 = document.querySelector(".land-header .caption h1");
-      if (h1 && headline) h1.textContent = headline;
+        // expose the hero video url to be used by the reorder helper
+        window._ion7_heroVideoUrl =
+          hero.videoUrl || fromKey(hero.videoKey) || hero?.content?.videoUrl || "";
 
-      // Video
-      const videoUrl =
-        hero?.videoUrl ||
-        (hero?.videoKey ? absFromKey(hero.videoKey) : "") ||
-        hero?.content?.videoUrl || "";
-
-      if (videoUrl) {
-        const src = document.querySelector('section.about source[type="video/mp4"]') ||
-                    document.querySelector('section.about video source');
-        const v = src ? src.closest("video") : document.querySelector("section.about video");
-        if (src) src.src = videoUrl;
-        else if (v) v.src = videoUrl;
-        if (v) v.load();
+        // ensure no background video remains inside the hero
+        document.querySelector("header.land-header .hero-video")?.remove();
       }
     } catch (e) {
-      console.warn("Hero fetch failed:", e);
+      console.warn("hero hydrate error:", e);
     }
+
+    /* ====== ABOUT ====== */
+    try {
+      const about = await fetchFirst(["about","aboutUs","intro"]);
+      if (!about) throw new Error("no about data");
+
+      const esc = s => String(s ?? "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+      // 1) Subtitle
+      const sub = document.querySelector(".about .sec-head .sub-title");
+      if (sub && (about.subtitle || about.subTitle)) {
+        sub.textContent = about.subtitle || about.subTitle;
+      }
+
+      // 2) Intro lines
+      const wrap = document.querySelector(".about .intro .text-reval");
+      const lines =
+          (Array.isArray(about.lines)   && about.lines)
+        || (Array.isArray(about.points)  && about.points)
+        || (typeof about.content === "string" && [about.content])
+        || [];
+      if (wrap && lines.length) {
+        wrap.innerHTML = lines.map(t => `<span class="text">${esc(t)}</span>`).join("");
+      }
+
+      // 3) Inline items
+      const items =
+          (Array.isArray(about.items)     && about.items)
+        || (Array.isArray(about.services)  && about.services)
+        || (Array.isArray(about.rows)      && about.rows)
+        || (Array.isArray(about.features)  && about.features)
+        || [];
+
+      const col = document.querySelector(".about .serv-inline .col-lg-8");
+      if (col && items.length) {
+        col.innerHTML = items.map((it, i, arr) => {
+          const n     = it.number ?? (i + 1);
+          const cat   = it.category || it.tag || it.label || "";
+          const title = it.title || it.heading || it.name || `Item ${i+1}`;
+          const href  = it.href || it.url || "about.html";
+          const delay = it.delay ? String(it.delay).replace(/[^0-9.]/g,"") : (0.2 + i*0.2);
+          const topCls = i === 0 ? "pt-30 bord-thin-top" : "";
+          const botCls = i < arr.length - 1 ? "mb-30 bord-thin-bottom" : "";
+
+          return `
+            <div class="item pb-30 ${topCls} ${botCls} wow fadeInUp" data-wow-delay=".${Math.round(delay*10)}s">
+              <div class="d-flex align-items-center">
+                <div>
+                  <span class="mb-10 opacity-8">${String(n).padStart(2,"0")} / <span class="text-u ml-5">${esc(cat)}</span></span>
+                  <h5>${esc(title)}</h5>
+                </div>
+                <div class="ml-auto">
+                  <div class="d-flex align-items-center">
+                    <a href="${esc(href)}" class="">View Details</a>
+                    <span class="fz-30 pe-7s-angle-right"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    } catch(e) {
+      console.warn("about hydrate error:", e);
+    }
+
+    /* ====== PROJECTS / WORKS ====== */
+    try {
+      const data = await fetchFirst(["projects","works","portfolio","projectList","workList"]);
+      const list = Array.isArray(data?.items) ? data.items
+                 : Array.isArray(data?.projects) ? data.projects
+                 : Array.isArray(data) ? data : [];
+      if (list.length) {
+        const section = document.querySelector("section.works");
+        if (section) {
+          section.innerHTML = list.map(p => `
+            <div class="panel">
+              <div class="item">
+                <div class="img">
+                  <img src="${p.imageUrl || fromKey(p.imageKey) || ''}" alt="${p.imageAlt || ''}">
+                </div>
+                <div class="cont d-flex align-items-center">
+                  <div>
+                    <span>${p.tag || p.category || ''}</span>
+                    <h5>${p.title || ''}</h5>
+                  </div>
+                  <div class="ml-auto"><h6>${p.year || ''}</h6></div>
+                </div>
+                <a href="${p.href || '#0'}" class="link-overlay"></a>
+              </div>
+            </div>
+          `).join("");
+        }
+      }
+    } catch (e) {}
+
+    /* ====== MARQUEE ====== */
+    try {
+      const data = await fetchFirst(["marquee","ticker","highlights"]);
+      const raw = (Array.isArray(data?.items) && data.items)
+               || (Array.isArray(data?.rows)  && data.rows)
+               || (Array.isArray(data)        && data)
+               || [];
+      const rows = raw.map(x => typeof x === "string" ? x : (x?.label || x?.text || "")).filter(Boolean);
+      if (rows.length) {
+        const boxes = document.querySelectorAll(".marquee .main-marq .box, .marquee .box");
+        const html = rows.map(label => `
+          <div class="item">
+            <h4 class="d-flex align-items-center">
+              <span>${label}</span><span class="ml-50 stroke icon">*</span>
+            </h4>
+          </div>
+        `).join("");
+        boxes.forEach(box => { box.innerHTML = html; });
+      }
+    } catch (e) {}
+
+    /* ====== BRANDS ====== */
+    try {
+      const brands = await fetchFirst(["brands","clients","partners","logos"]);
+      const list = (Array.isArray(brands?.items) && brands.items)
+                || (Array.isArray(brands?.logos) && brands.logos)
+                || (Array.isArray(brands)        && brands)
+                || [];
+      const wrap = document.querySelector("#content-carousel-container-unq-clients .swiper-wrapper");
+      if (wrap && list.length) {
+        wrap.innerHTML = list.map((b, i) => `
+          <div class="swiper-slide" data-i="${i}">
+            <div class="item">
+              <div class="img icon-img-100">
+                <a href="${(b.href || b.url || "#").toString()}">
+                  <img src="${b.imageUrl || b.src || fromKey(b.imageKey) || ""}" alt="${(b.alt || b.name || "logo").toString().replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}">
+                </a>
+              </div>
+            </div>
+          </div>
+        `).join("");
+        if (typeof window.initSwiper5 === "function") window.initSwiper5();
+        else { window.dispatchEvent(new Event("resize")); }
+      }
+    } catch (e) {}
+
+    /* ====== SERVICES / ACCORDION ====== */
+    try {
+      const services = await fetchFirst(["services","servicesAccordion","accordion","whatwedo","serviceList"]);
+      if (services) {
+        const subEl   = document.querySelector(".section-padding .sec-head .sub-title");
+        const titleEl = document.querySelector(".section-padding .sec-head h3");
+        const yearsEl = document.querySelector(".section-padding .exp h2");
+        if (subEl && (services.subtitle || services.subTitle)) subEl.textContent = services.subtitle || services.subTitle;
+        if (titleEl && (services.titleRich || services.title)) titleEl.innerHTML = services.titleRich || services.title;
+        const years = services.leftStat?.value ?? services.years ?? services.experience;
+        if (yearsEl && years != null) yearsEl.textContent = /\+$/.test(String(years)) ? String(years) : `${years}+`;
+        const items = (Array.isArray(services.items) && services.items)
+                   || (Array.isArray(services.accordion) && services.accordion)
+                   || (Array.isArray(services.list) && services.list)
+                   || (Array.isArray(services.services) && services.services)
+                   || [];
+        const acc = document.querySelector(".accordion.bord.full-width");
+        if (acc && items.length) {
+          acc.querySelectorAll(".item").forEach(n => n.remove());
+          const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+          const normDelay = (d,i) => {
+            if (d == null || d === "") return `.${(0.1*(i+1)).toFixed(1)}s`;
+            const str = String(d).trim().toLowerCase();
+            if (/^-?\d*\.?\d+\s*s$/.test(str)) return str;
+            const num = parseFloat(str.replace(/[^\d.]+/g,"")); return isFinite(num) ? `${num}s` : `.${(0.1*(i+1)).toFixed(1)}s`;
+          };
+          const html = items.map((s,i)=>{
+            const title = s.title ?? s.name ?? `Service ${i+1}`;
+            const desc  = s.description ?? s.text ?? s.body ?? "";
+            const href  = s.href ?? s.url ?? "";
+            const icon  = s.icon ?? "";
+            const delay = normDelay(s.delay,i);
+            const titleInner = href ? `<a href="${esc(href)}">${esc(title)}</a>` : esc(title);
+            const ico = icon ? `<span class="ico ${esc(icon)}"></span>` : `<span class="ico"></span>`;
+            return `
+              <div class="item mb-20 wow fadeInUp" data-wow-delay="${delay}">
+                <div class="title"><h4>${titleInner}</h4>${ico}</div>
+                <div class="accordion-info"><p>${esc(desc)}</p></div>
+              </div>
+            `;
+          }).join("");
+          acc.insertAdjacentHTML("beforeend", html);
+          const rows = acc.querySelectorAll(".item");
+          rows.forEach(row=>{
+            const header=row.querySelector(".title"); const panel=row.querySelector(".accordion-info");
+            if (!header || !panel) return;
+            panel.style.overflow="hidden"; panel.style.maxHeight="0px"; row.classList.remove("active");
+            header.addEventListener("click", ()=>{
+              const open=row.classList.contains("active");
+              rows.forEach(r=>{ r.classList.remove("active"); const p=r.querySelector(".accordion-info"); if(p)p.style.maxHeight="0px"; });
+              if(!open){ row.classList.add("active"); panel.style.maxHeight=panel.scrollHeight+"px"; }
+            });
+          });
+        }
+      }
+    } catch (e) {}
+
+    /* ====== BLOG LIST (kept) ====== */
+    try{
+      const blog  = await fetchFirst(["blogs","blog","blogList","posts"]);
+      const posts = Array.isArray(blog?.items) ? blog.items
+                  : Array.isArray(blog?.posts) ? blog.posts
+                  : Array.isArray(blog)        ? blog : [];
+      if (posts.length){
+        const cont = document.querySelector("section.blog-list .container");
+        if (cont){
+          cont.querySelectorAll(".item.block").forEach(n=>n.remove());
+          cont.insertAdjacentHTML("beforeend", posts.map((b)=>`
+            <div class="item block" data-fx="3">
+              <a href="${b.href || '#'}" class="block__link" data-img="${b.imageUrl || fromKey(b.imageKey) || ''}"></a>
+              <div class="row">
+                <div class="col-lg-6 cont">
+                  <div class="info"><span class="tag">${b.tag || ""}</span><span class="date">${b.date || ""}</span></div>
+                  <h3 class="text-u">${b.title || "Untitled"}</h3>
+                </div>
+                <div class="col-lg-3 offset-lg-3 d-flex align-items-center justify-end">
+                  <div class="ml-auto"><a href="${b.href || '#'}" class="more mt-15"><span>Continue Read</span></a></div>
+                </div>
+              </div>
+            </div>
+          `).join(""));
+        }
+      }
+    }catch(e){}
+
+    /* ===================== CONTACT (ONLY) ===================== */
+    try {
+      async function fetchContactInfo() {
+        const QS = new URLSearchParams(location.search);
+        const API_PROXY  = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+        const userId     = QS.get("uid") || "demo-user";
+        const templateId = QS.get("tpl") || "sir-template-1";
+        const url = `${API_PROXY}?path=/api/contact-info/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}&t=${Date.now()}`;
+        const r = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+        if (!r.ok) throw new Error("contact-info 404");
+        return r.json();
+      }
+
+      const data =
+        await fetchContactInfo().catch(() => null)
+        || await fetchFirst(["contact","site","settings"]);
+      if (!data) throw new Error("no contact data");
+
+      if (data.contactSubtitle || data.contactSubTitle || data.subtitle) {
+        const el = document.querySelector(".contact .sec-head .sub-title");
+        if (el) el.textContent = data.contactSubtitle || data.contactSubTitle || data.subtitle;
+      }
+      if (data.contactTitle || data.titleStrong || data.titleLight) {
+        const h = document.querySelector(".contact .sec-head h3");
+        if (h) {
+          const strong = data.contactTitle || data.titleStrong || h.textContent || "Get In";
+          const light  = data.titleLight || (strong.includes("<span") ? "" : "Touch");
+          h.innerHTML = light ? `${strong} <span class="f-ultra-light">${light}</span>.` : strong;
+        }
+      }
+
+      const form = document.getElementById("contact-form");
+      const action = data.formAction || data.form?.action;
+      if (form && action) form.setAttribute("action", action);
+
+      const fields = (data.form && Array.isArray(data.form.fields) && data.form.fields) || [];
+      const by = (n) => fields.find(f => (f.name||"").toLowerCase() === n);
+      const apply = (el, f) => {
+        if (!el || !f) return;
+        if (f.placeholder) el.placeholder = f.placeholder;
+        if (typeof f.required === "boolean") el.required = !!f.required;
+        if (f.type && el.tagName === "INPUT") el.type = f.type;
+        if (f.name) el.name = f.name;
+      };
+      apply(document.getElementById("form_name"),    by("name"));
+      apply(document.getElementById("form_email"),   by("email"));
+      apply(document.getElementById("form_message"), by("message"));
+
+      const btnSpan = document.querySelector("#contact-form button .text") || document.querySelector("#contact-form button span.text");
+      const btnText = data.form?.submitText || data.buttonText;
+      if (btnSpan && btnText) btnSpan.textContent = btnText;
+
+      if (form && !form.querySelector('input[name="uid"]')) {
+        const hid = document.createElement("input"); hid.type = "hidden"; hid.name = "uid"; hid.value = (window._ion7_ctx?.userId || new URLSearchParams(location.search).get("uid") || ""); form.appendChild(hid);
+      }
+      if (form && !form.querySelector('input[name="tpl"]')) {
+        const hid = document.createElement("input"); hid.type = "hidden"; hid.name = "tpl"; hid.value = (window._ion7_ctx?.templateId || new URLSearchParams(location.search).get("tpl") || ""); form.appendChild(hid);
+      }
+    } catch (e) {
+      console.warn("contact only:", e);
+    }
+
+    /* ===================== FOOTER (ONLY) ===================== */
+    try {
+      const data = await fetchFirst(["footer","site","settings"]);
+      if (!data) throw new Error("no footer data");
+
+      if (data.topSubtitle) {
+        const s = document.querySelector('footer .eml .sub-title');
+        if (s) s.textContent = data.topSubtitle;
+      }
+      if (data.emailHref || data.emailLabel || data.email) {
+        const a = document.querySelector('footer .eml h2 a');
+        if (a) {
+          a.setAttribute('href', data.emailHref || `mailto:${data.email || data.emailLabel || ""}`);
+          a.textContent = data.emailLabel || data.email || (data.emailHref||"").replace(/^mailto:/,"");
+        }
+      }
+
+      if (data.officeAddress || data.address) {
+        const p = document.querySelector('footer .column p');
+        if (p) p.textContent = data.officeAddress || data.address;
+      }
+      if (data.officePhone || data.phone) {
+        const link = document.querySelector('footer .column h5 a');
+        if (link) {
+          const tel = data.officePhoneHref || (data.officePhone || data.phone ? `tel:${String(data.officePhone||data.phone).replace(/\s+/g,'')}` : "#");
+          link.setAttribute('href', tel);
+          link.textContent = data.officePhone || data.phone;
+        }
+      }
+
+      if (data.logoUrl) {
+        const img = document.querySelector('footer .logo img');
+        if (img) img.setAttribute('src', data.logoUrl + (data.logoUrl.includes('?') ? '&' : '?') + 'v=' + Date.now());
+      }
+
+      (()=>{
+        const raw = Array.isArray(data.social) ? data.social : Array.isArray(data.socials) ? data.socials : [];
+        const map = raw.reduce((m,s)=>{const k=(s.label||s.name||"").trim().toLowerCase(); if(k) m[k]=s.href||s.url||"#"; return m; },{});
+        document.querySelectorAll('footer .column ul a').forEach(a=>{
+          const k=(a.textContent||"").trim().toLowerCase();
+          if (map[k]) a.setAttribute('href', map[k]);
+        });
+      })();
+
+      if (Array.isArray(data.links) && data.links.length) {
+        const list = document.querySelector('footer .links ul.rest');
+        if (list) list.innerHTML = data.links.map(l => `<li><a href="${l.href || '#'}">${l.label || ''}</a></li>`).join('');
+      }
+
+      if (data.copyrightHtml) {
+        const slot = document.querySelector('footer .copyright .ml-auto');
+        if (slot) slot.innerHTML = `<p class="fz-13">${data.copyrightHtml}</p>`;
+      }
+    } catch(e) {
+      console.warn("footer only:", e);
+    }
+
+    console.log("✅ ION7 inline renderer finished");
   })();
+  </script>
+<script>
+/* ===================== REORDER SECTIONS TO MATCH DASHBOARD (hero = anchor) ===================== */
+(async () => {
+  /* ---------------- helper: move About video under Hero caption ---------------- */
+  function ensureHeroStackCSS() {
+    if (document.getElementById("hero-video-stacked-css")) return;
+    const s = document.createElement("style");
+    s.id = "hero-video-stacked-css";
+    s.textContent = `
+      header.land-header.has-hero-stacked .hero-video-stacked{position:relative;margin-top:24px}
+      header.land-header.has-hero-stacked .hero-video-stacked video{width:100%;height:auto;display:block;object-fit:cover}
+    `;
+    document.head.appendChild(s);
+  }
+
+  function moveAboutVideoUnderHero() {
+    const hdr  = document.querySelector("header.land-header");
+    const cap  = hdr?.querySelector(".caption");
+    // grab the first video we find in About’s .vid-intro
+    const aboutVideo = document.querySelector("section.about .vid-intro video");
+    if (!hdr || !cap || !aboutVideo) return;
+
+    ensureHeroStackCSS();
+
+    // holder directly under caption
+    let holder = hdr.querySelector(".hero-video-stacked");
+    if (!holder) {
+      holder = document.createElement("div");
+      holder.className = "hero-video-stacked";
+      cap.after(holder);
+    }
+
+    // move (not clone) the <video> into hero
+    holder.innerHTML = "";
+    holder.appendChild(aboutVideo);
+
+    // cleanup the old About video block (it will now be empty)
+    const aboutIntro = document.querySelector("section.about .vid-intro");
+    if (aboutIntro) aboutIntro.remove();
+
+    // autoplay hygiene
+    aboutVideo.muted = true;
+    aboutVideo.autoplay = true;
+    aboutVideo.playsInline = true;
+    aboutVideo.setAttribute("muted", "");
+    aboutVideo.setAttribute("playsinline", "");
+    aboutVideo.setAttribute("webkit-playsinline", "");
+    const tryPlay = () => aboutVideo.play().catch(()=>{});
+    aboutVideo.addEventListener("canplay", tryPlay, { once: true });
+    if (aboutVideo.querySelector("source")) aboutVideo.load(); else tryPlay();
+
+    // mark header for css
+    hdr.classList.add("has-hero-stacked");
+
+    // refresh scroll/animations
+    try { window.ScrollTrigger?.refresh?.(true); } catch {}
+    window.dispatchEvent(new Event("resize"));
+    console.log("✅ Moved About video under hero heading");
+  }
+  /* ----------------------------------------------------------------------------- */
+
+  const QS = new URLSearchParams(location.search);
+  const API_PROXY  = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+  const userId     = QS.get("uid") || "demo-user";
+  const templateId = QS.get("tpl") || "sir-template-1";
+
+  async function fetchOrder() {
+    const paths = [
+      `/pages/landing/sections-order/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
+      `/sections-order/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}?page=landing`,
+      `/sections/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}?assigned=landing`,
+      `/sections/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
+    ];
+    for (const p of paths) {
+      try {
+        const url = `${API_PROXY}?path=/api${p}&t=${Date.now()}`;
+        const r = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+        if (!r.ok) continue;
+        const j = await r.json();
+        if (Array.isArray(j?.order)) return j.order;
+        if (Array.isArray(j)) {
+          return j
+            .filter(s => s && (s.type || s.slug))
+            .map(s => ({
+              type: (s.type || s.slug || "").toLowerCase(),
+              order: Number.isFinite(+s.order) ? +s.order : 9999,
+              visible: s.visible !== false
+            }))
+            .sort((a,b)=>(a.order??9999)-(b.order??9999));
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  function selectNodes() {
+    const heroHdr     = document.querySelector("header.land-header");
+    const aboutSec    = document.querySelector("section.about");
+    const worksSec    = document.querySelector("section.works");
+    const marqueeSec  = document.querySelector("section.marquee");
+    const brandsWrap  = document.querySelector(".clients-carso");
+    const servicesSec = (() => {
+      const acc = document.querySelector("section.section-padding .accordion.bord");
+      return acc ? acc.closest("section.section-padding") : null;
+    })();
+    const blogSec     = document.querySelector("section.blog-list");
+    const contactSec  = document.querySelector("section.contact");
+    const footerEl    = document.querySelector("footer");
+    return {
+      hero: heroHdr,
+      about: aboutSec,
+      works: worksSec, projects: worksSec, portfolio: worksSec,
+      marquee: marqueeSec, highlights: marqueeSec,
+      brands: brandsWrap,
+      services: servicesSec, accordion: servicesSec,
+      blog: blogSec, blogs: blogSec,
+      contact: contactSec,
+      footer: footerEl
+    };
+  }
+
+  function applyOrder(orderItems) {
+    const nodes = selectNodes();
+    const hero = nodes.hero;
+    const mainEl =
+      document.querySelector("#smooth-content > main") ||
+      document.querySelector("main");
+    if (!hero || !mainEl) return;
+
+    const MANAGED = [
+      "about","works","projects","portfolio",
+      "marquee","highlights","brands",
+      "services","accordion","blog","blogs",
+      "contact","footer","hero"
+    ];
+    const known = new Set(MANAGED);
+
+    const desired = [];
+    for (const it of (orderItems || [])) {
+      if (!it || it.visible === false) continue;
+      const t = String(it.type || "").toLowerCase();
+      if (!known.has(t)) continue;
+      if (!selectNodes()[t]) continue;
+      if (!desired.includes(t)) desired.push(t);
+    }
+
+    const beforeHero = [];
+    const afterHero  = [];
+    let passedHero = false;
+    for (const key of desired) {
+      if (key === "hero") { passedHero = true; continue; }
+      (passedHero ? afterHero : beforeHero).push(key);
+    }
+
+    for (const k of beforeHero) {
+      const el = selectNodes()[k];
+      if (el && el.parentElement) hero.parentElement.insertBefore(el, hero);
+    }
+
+    let anchor = hero.nextSibling;
+    for (const k of afterHero) {
+      const el = selectNodes()[k];
+      if (!el || !el.parentElement) continue;
+      if (anchor) {
+        hero.parentElement.insertBefore(el, anchor);
+        anchor = el.nextSibling;
+      } else {
+        hero.parentElement.appendChild(el);
+      }
+    }
+
+    console.log("✅ Applied order around hero:", { beforeHero, afterHero });
+  }
+
+  try {
+    const order = await fetchOrder();
+    if (Array.isArray(order) && order.length) {
+      applyOrder(order);
+
+      // Always place the About video under the hero caption (independent of order)
+      moveAboutVideoUnderHero();
+
+      console.log("✅ Reordered sections to match dashboard:", order.map(o => o.type));
+    } else {
+      // No order from API: still move the video so hero looks right
+      moveAboutVideoUnderHero();
+      console.log("ℹ️ No order from API; keeping theme order.");
+    }
+  } catch (e) {
+    console.warn("reorder failed:", e);
+    // Make sure UX is still OK if reorder fails
+    moveAboutVideoUnderHero();
+  }
+})();
 </script>
 
   <!-- ======================================================== -->
+
 </body>
 </html>
