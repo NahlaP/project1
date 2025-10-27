@@ -888,7 +888,7 @@ import { backendBaseUrl } from "../../lib/config";
 
 const USER_ID_CONST = "demo-user";                // replace if you have auth
 const FALLBACK_TEMPLATE_ID = "sir-template-1";    // safe default
-const ALLOWED_TEMPLATES = ["sir-template-1", "gym-template"]; // ✅ hide/remove 3rd template
+const ALLOWED_TEMPLATES = ["sir-template-1", "gym-template-1"]; // ✅ hide/remove 3rd template
 
 /* ---------------- Inline Template Chooser Card ---------------- */
 function TemplateChooserCard() {
