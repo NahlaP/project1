@@ -45,6 +45,8 @@ export const backendBaseUrl =
 export const userId = 'demo-user';
 // ⛔️ do NOT hardcode templateId here anymore (we resolve it from backend/local)
 // export const templateId = 'gym-template-1';
+// dashboard/lib/config.js
+export const PUBLIC_HOST = "https://ion7devtemplate.mavsketch.com";
 
 // Optional (if you use absFromKey somewhere)
 export const s3Bucket = 'project1-uploads-12345';
