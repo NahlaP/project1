@@ -451,6 +451,7 @@ const BASE = (
   process.env.BACKEND_ORIGIN ||
   "http://127.0.0.1:5000"
 ).replace(/\/$/, "");
+export { PUBLIC_HOST } from "./config";
 
 // ✅ Export the resolved backend base (useful for debugging)
 export const BACKEND = BASE;
