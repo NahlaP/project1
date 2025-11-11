@@ -1,25 +1,48 @@
-// import mongoose from 'mongoose';
+// og
 
-// const userSchema = new mongoose.Schema({
-//   fullName: { type: String, required: true },
-//   email: { type: String, required: true, unique: true },
-//   password: { type: String, required: true },
-// });
+import mongoose, { Schema, Document, Types } from "mongoose";
 
-// export default mongoose.model('User', userSchema);
+export interface IUser extends Document<Types.ObjectId> {
+  fullName: string;
+  company?: string | null;
+  country?: string | null;
+  email: string;
+  password: string;
+  subscriptionStatus?: "active" | "incomplete" | "past_due" | null;
+  priceId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  loginCount: number;
+  lastLoginAt: Date | null;
+}
 
-
-
-import mongoose from "mongoose";
-
-const userSchema = new mongoose.Schema(
+const userSchema = new Schema<IUser>(
   {
-    fullName: { type: String, required: false, default: "" },
-    email:    { type: String, required: false, default: "" },
-    password: { type: String, required: false, default: "" },
-    selectedTemplateId: { type: String, default: null }, // ← NEW
+    fullName: { type: String, required: true },
+    company: { type: String, default: null },
+    country: { type: String, default: null },
+    email: { type: String, required: true, index: { unique: true } },
+    password: { type: String, required: true },
+    subscriptionStatus: { type: String, default: null },
+    priceId: { type: String, default: null },
+    stripeCustomerId: { type: String, default: null },
+    stripeSubscriptionId: { type: String, default: null },
+    loginCount: { type: Number, default: 0 },
+    lastLoginAt: { type: Date, default: null }
   },
   { timestamps: true }
 );
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model<IUser>("User", userSchema);
+
+
+
+
+
+
+
+
+
+
+
+

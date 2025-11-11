@@ -2,10 +2,8 @@
 
 
 
-// // og
-// // dashboard/pages/dashboard/index.js
-// // working fine for sir-template — now also opens Home editor for Gym from the chooser
-
+// // original
+// // // dashboard/pages/dashboard/index.js
 // import { useEffect, useMemo, useState } from "react";
 // import { useRouter } from "next/router";
 // import {
@@ -23,20 +21,38 @@
 // import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 // import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 // import { faBars } from "@fortawesome/free-solid-svg-icons";
-// import Image from "next/image";
 
-// import { api, getUserId, PUBLIC_HOST } from "../../lib/api";
+// import { api, getUserId, PUBLIC_HOST, setToken } from "../../lib/api";
 // import { setTemplateCookie } from "../../lib/templateCookie";
 // import { backendBaseUrl } from "../../lib/config";
 
-// const USER_ID_CONST = "demo-user";                // replace if you have auth
-// const FALLBACK_TEMPLATE_ID = "sir-template-1";    // safe default
-// const ALLOWED_TEMPLATES = ["sir-template-1", "gym-template-1"]; // ✅ hide/remove 3rd template
+// /* -------------------------------------------------------------------------- */
+// /* Helpers                                                                    */
+// /* -------------------------------------------------------------------------- */
 
-// /* ---------------- Inline Template Chooser Card ---------------- */
-// function TemplateChooserCard() {
+// const ALLOWED_TEMPLATES = ["sir-template-1", "gym-template-1"]; // shown in chooser
+
+// function getTokenFromCookie() {
+//   if (typeof document === "undefined") return null;
+//   const cname =
+//     (process.env.NEXT_PUBLIC_COOKIE_NAME ||
+//       process.env.COOKIE_NAME ||
+//       "auth_token").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+//   const m = document.cookie.match(new RegExp("(^| )" + cname + "=([^;]+)"));
+//   return m ? decodeURIComponent(m[2]) : null;
+// }
+
+// function defaultVersionFor(tplObj) {
+//   const versions = Array.isArray(tplObj?.versions) ? tplObj.versions : [];
+//   return tplObj?.currentTag || versions?.[0]?.tag || "v1";
+// }
+
+// /* -------------------------------------------------------------------------- */
+// /* Template Chooser Card                                                      */
+// /* -------------------------------------------------------------------------- */
+
+// function TemplateChooserCard({ userId }) {
 //   const router = useRouter();
-//   const userId = getUserId();
 
 //   const [loading, setLoading] = useState(true);
 //   const [templates, setTemplates] = useState([]);
@@ -53,44 +69,33 @@
 //     versions: [],
 //   });
 //   const [resetting, setResetting] = useState(false);
-//   const [toast, setToast] = useState({
-//     show: false,
-//     msg: "",
-//     variant: "success",
-//   });
+//   const [toast, setToast] = useState({ show: false, msg: "", variant: "success" });
 
 //   useEffect(() => {
 //     let off = false;
 //     (async () => {
 //       try {
-//         // list contains your templates (with versions[])
+//         // 1) list all templates
 //         const list = await api.listTemplates();
-//         const sel = await api.selectedTemplateForUser(userId);
-//         if (off) return;
-
-//         const data = list?.data || [];
-
-//         // ✅ Only keep the two templates you want to show
-//         const filtered = data.filter((t) =>
+//         const data = (list?.data || []).filter((t) =>
 //           ALLOWED_TEMPLATES.includes(t.templateId)
 //         );
 
-//         setTemplates(filtered);
-
-//         // choose selected from filtered list (fall back to first allowed)
+//         // 2) fetch current selection for this user
+//         const sel = await api.selectedTemplateForUser(userId);
 //         let activeTpl =
-//           sel?.data?.templateId ??
-//           sel?.templateId ??
-//           filtered?.[0]?.templateId ??
-//           null;
+//           sel?.data?.templateId ?? sel?.templateId ?? data?.[0]?.templateId ?? null;
 
-//         if (!filtered.find((t) => t.templateId === activeTpl)) {
-//           activeTpl = filtered?.[0]?.templateId ?? null;
+//         if (!data.find((t) => t.templateId === activeTpl)) {
+//           activeTpl = data?.[0]?.templateId ?? null;
 //         }
-//         setSelected(activeTpl);
+
+//         if (!off) {
+//           setTemplates(data);
+//           setSelected(activeTpl);
+//         }
 //       } catch (e) {
-//         if (!off)
-//           setError(e?.message || "Failed to load templates / selected template");
+//         if (!off) setError(e?.message || "Failed to load templates");
 //       } finally {
 //         if (!off) setLoading(false);
 //       }
@@ -106,26 +111,32 @@
 //       await api.selectTemplate(templateId, userId);
 //       setSelected(templateId);
 
-//       // keep cookie in sync
-//       setTemplateCookie(templateId);
+//       // version tag cookie
+//       const tplObj = templates.find((t) => t.templateId === templateId) || null;
+//       const verTag = defaultVersionFor(tplObj);
 
-//       // ping public host to sync
-//       fetch(
-//         `${PUBLIC_HOST}/?templateId=${encodeURIComponent(templateId)}&r=${Date.now()}`,
-//         { mode: "no-cors", credentials: "include" }
-//       );
+//       // sync cookie
+//       setTemplateCookie(templateId, verTag, userId);
+
+//       // optional ping to static host (guarded)
+//       if (PUBLIC_HOST) {
+//         fetch(
+//           `${PUBLIC_HOST}/?templateId=${encodeURIComponent(
+//             templateId
+//           )}&v=${encodeURIComponent(verTag)}&r=${Date.now()}`,
+//           { mode: "no-cors", credentials: "include" }
+//         );
+//       }
 //     } catch (e) {
-//       alert(e.message || "Failed to select template");
+//       alert(e?.message || "Failed to select template");
 //     } finally {
 //       setSaving(false);
 //     }
 //   }
 
 //   function openReset(tpl) {
-//     // tpl is the object from listTemplates; it should have versions[]
 //     const versions = Array.isArray(tpl.versions) ? tpl.versions : [];
 //     const defaultTag = tpl.currentTag || versions?.[0]?.tag || "v1";
-
 //     setConfirmTpl({
 //       id: tpl.templateId,
 //       name: tpl.name || tpl.templateId,
@@ -140,41 +151,50 @@
 //     try {
 //       setResetting(true);
 
-//       // pass ?ver=<selectedTag> so backend pulls the correct version
+//       // POST /api/template-reset/:userId/:templateId?ver=<tag>
 //       const url = `${backendBaseUrl}/api/template-reset/${encodeURIComponent(
 //         userId
-//       )}/${encodeURIComponent(confirmTpl.id)}?ver=${encodeURIComponent(
-//         confirmTpl.tag
-//       )}`;
+//       )}/${encodeURIComponent(confirmTpl.id)}?ver=${encodeURIComponent(confirmTpl.tag)}`;
+
+//       const token = getTokenFromCookie();
 
 //       const res = await fetch(url, {
 //         method: "POST",
-//         headers: { Accept: "application/json" },
+//         headers: {
+//           Accept: "application/json",
+//           "Content-Type": "application/json",
+//           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+//         },
+//         body: JSON.stringify({ reason: "user_reset_to_default" }),
+//         credentials: "include",
 //       });
+
 //       const json = await res.json().catch(() => ({}));
 //       if (!res.ok || json?.ok === false) {
-//         throw new Error(json?.error || json?.message || "Reset failed");
+//         throw new Error(json?.error || json?.message || `Reset failed (${res.status})`);
 //       }
 
-//       // keep cookie & public site in sync if currently selected
+//       // keep cookie & (optionally) static host in sync
 //       if (selected === confirmTpl.id) {
-//         setTemplateCookie(confirmTpl.id);
-//         fetch(
-//           `${PUBLIC_HOST}/?templateId=${encodeURIComponent(
-//             confirmTpl.id
-//           )}&reset=1&r=${Date.now()}`,
-//           { mode: "no-cors", credentials: "include" }
-//         );
+//         setTemplateCookie(confirmTpl.id, confirmTpl.tag, userId);
+//         if (PUBLIC_HOST) {
+//           fetch(
+//             `${PUBLIC_HOST}/?templateId=${encodeURIComponent(
+//               confirmTpl.id
+//             )}&v=${encodeURIComponent(confirmTpl.tag)}&reset=1&r=${Date.now()}`,
+//             { mode: "no-cors", credentials: "include" }
+//           );
+//         }
 //       }
 
 //       setToast({
 //         show: true,
-//         msg: `Restored version defaults (${confirmTpl.tag}): content + order.`,
+//         msg: `Restored version defaults (${confirmTpl.tag})`,
 //         variant: "success",
 //       });
 //       setConfirmOpen(false);
 
-//       // optional: refresh current page data so editor/preview sees new order
+//       // refresh the page so cards & editors see the new order/content
 //       router.replace(router.asPath);
 //     } catch (e) {
 //       setToast({
@@ -187,15 +207,16 @@
 //     }
 //   }
 
-//   // ✅ NEW: Open Editor for the currently selected template (works for Gym and Sir)
+//   // Open the proper editor for the template that’s selected
 //   async function openEditorForSelected() {
 //     try {
-//       const tplId = selected || FALLBACK_TEMPLATE_ID;
+//       const tplId = selected;
+//       if (!tplId) return;
 //       const pageId = await api.getHomePageId(userId, tplId);
 //       if (pageId) {
-//         router.push(`/editorpages/page/${pageId}`);
+//         router.push(`/editorpages/page/${pageId}?templateId=${encodeURIComponent(tplId)}`);
 //       } else {
-//         alert("Home page not found yet.");
+//         alert("Home page not found for this template.");
 //       }
 //     } catch (e) {
 //       alert(e?.message || "Failed to open editor");
@@ -228,18 +249,13 @@
 //           {!loading && !error && (
 //             <div
 //               className="d-grid"
-//               style={{
-//                 gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
-//                 gap: 12,
-//               }}
+//               style={{ gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}
 //             >
 //               {templates.map((t) => {
 //                 const isActive = selected === t.templateId;
 //                 const versions = Array.isArray(t.versions) ? t.versions : [];
 //                 const verLabel =
-//                   t.currentTag ||
-//                   versions?.[0]?.tag ||
-//                   (versions.length ? versions[0].tag : "—");
+//                   t.currentTag || versions?.[0]?.tag || (versions.length ? versions[0].tag : "—");
 
 //                 return (
 //                   <div
@@ -286,7 +302,6 @@
 //                         Preview
 //                       </button>
 
-//                       {/* ✅ This Edit now opens the Home editor for the active template (Gym supported) */}
 //                       <button
 //                         className="btn btn-sm btn-primary"
 //                         onClick={openEditorForSelected}
@@ -318,7 +333,7 @@
 //         </Card.Body>
 //       </Card>
 
-//       {/* Confirm Reset Modal (versioned) */}
+//       {/* Confirm Reset Modal */}
 //       <Modal
 //         show={confirmOpen}
 //         onHide={() => (!resetting ? setConfirmOpen(false) : null)}
@@ -328,17 +343,15 @@
 //           <Modal.Title>Reset “{confirmTpl.name}” to default?</Modal.Title>
 //         </Modal.Header>
 //         <Modal.Body>
-//           This will remove all your overrides and restore the{" "}
-//           <b>version defaults</b> (content + section order) from S3 version{" "}
-//           <code>{confirmTpl.tag}</code>. Your uploads remain in S3.
+//           This will remove your overrides and restore the{" "}
+//           <b>version defaults</b> (content + section order) from{" "}
+//           <code>{confirmTpl.tag}</code>.
 //           <div className="mt-3">
 //             <Form.Label className="fw-semibold">Version</Form.Label>
 //             <Form.Select
 //               disabled={resetting}
 //               value={confirmTpl.tag}
-//               onChange={(e) =>
-//                 setConfirmTpl((s) => ({ ...s, tag: e.target.value }))
-//               }
+//               onChange={(e) => setConfirmTpl((s) => ({ ...s, tag: e.target.value }))}
 //             >
 //               {(confirmTpl.versions || []).map((v) => (
 //                 <option key={v.tag} value={v.tag}>
@@ -350,11 +363,7 @@
 //           </div>
 //         </Modal.Body>
 //         <Modal.Footer>
-//           <Button
-//             variant="secondary"
-//             onClick={() => setConfirmOpen(false)}
-//             disabled={resetting}
-//           >
+//           <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={resetting}>
 //             Cancel
 //           </Button>
 //           <Button variant="danger" onClick={doReset} disabled={resetting}>
@@ -385,12 +394,17 @@
 //   );
 // }
 
-// /* ------------------------------ MAIN DASHBOARD ------------------------------ */
+// /* -------------------------------------------------------------------------- */
+// /* Main Dashboard                                                             */
+// /* -------------------------------------------------------------------------- */
+
 // export default function DashboardHome() {
-//   const [homePageId, setHomePageId] = useState(null);
+//   const router = useRouter();
+
 //   const [sidebarOpen, setSidebarOpen] = useState(true);
 //   const [isBelowLg, setIsBelowLg] = useState(false);
-//   const router = useRouter();
+//   const [me, setMe] = useState(null); // { user, next, meta }
+//   const [homePageId, setHomePageId] = useState(null);
 
 //   const cardGlass = useMemo(
 //     () => ({
@@ -414,24 +428,33 @@
 //     return () => window.removeEventListener("resize", onResize);
 //   }, []);
 
-//   // This card still uses a static fallback; the chooser's Edit button now handles Gym/Sir correctly.
+//   // Load current user and initial homepage id (for the small quick "Open Editor" card)
 //   useEffect(() => {
 //     let cancelled = false;
 //     (async () => {
 //       try {
-//         const pageId = await api.getHomePageId(
-//           USER_ID_CONST,
-//           FALLBACK_TEMPLATE_ID
-//         );
-//         if (!cancelled) setHomePageId(pageId || null);
-//       } catch {
-//         if (!cancelled) setHomePageId(null);
+//         const profile = await api.me();
+//         if (cancelled) return;
+
+//         setMe(profile);
+//         const userId = getUserId();
+//         // use their currently selected template if present
+//         const sel = await api.selectedTemplateForUser(userId);
+//         const tplId = sel?.data?.templateId || sel?.templateId || "sir-template-1";
+//         const pId = await api.getHomePageId(userId, tplId);
+//         setHomePageId(pId || null);
+//       } catch (e) {
+//         // if not authed, send to sign in
+//         router.replace("/authentication/signin");
 //       }
 //     })();
 //     return () => {
 //       cancelled = true;
 //     };
-//   }, []);
+//   }, [router]);
+
+//   const userName = me?.user?.fullName || "there";
+//   const userId = getUserId();
 
 //   return (
 //     <>
@@ -450,14 +473,8 @@
 //         <div className="bg-inner-custom" />
 //       </div>
 
-//       <div
-//         style={{ display: "flex", minHeight: "100vh", position: "relative", zIndex: 1 }}
-//       >
-//         <SidebarDashly
-//           isOpen={sidebarOpen}
-//           setIsOpen={setSidebarOpen}
-//           isMobile={isBelowLg}
-//         />
+//       <div style={{ display: "flex", minHeight: "100vh", position: "relative", zIndex: 1 }}>
+//         <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
 
 //         <button
 //           type="button"
@@ -487,21 +504,21 @@
 //         >
 //           <Container fluid="xxl">
 //             <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
-//               Welcome back, Marco!
+//               Welcome back, {userName}!
 //             </h5>
 //             <br />
 //             <p className="text-dark">
 //               Here&apos;s your website overview and next steps to complete your setup.
 //             </p>
 
-//             {/* ---------- TEMPLATE CHOOSER (version-aware reset) ---------- */}
+//             {/* Template chooser */}
 //             <Row className="g-4 mt-2">
 //               <Col xs={12}>
-//                 <TemplateChooserCard />
+//                 {userId ? <TemplateChooserCard userId={userId} /> : <div />}
 //               </Col>
 //             </Row>
 
-//             {/* ---- Rest of cards kept the same (optional UI below) ---- */}
+//             {/* Quick “Open Editor” / other cards (unchanged visuals) */}
 //             <Row className="g-4 mt-2">
 //               <Col xs={12} md={6} lg={4}>
 //                 <Card className="border-0 ion-card h-100" style={cardGlass}>
@@ -514,24 +531,18 @@
 //                         <img src="/icons/crown.png" alt="Pro Plan" />
 //                       </div>
 //                     </div>
+
 //                     <div className="d-flex flex-wrap gap-2 mb-3">
 //                       <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">
 //                         Pro Plan
 //                       </span>
-//                       <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">
-//                         Monthly
-//                       </span>
+//                       <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">Monthly</span>
 //                     </div>
 
 //                     <div className="card_wrapper-custom">
-//                       <h4
-//                         className="fw-bold mb-3"
-//                         style={{ lineHeight: "1.5", fontSize: "1.7rem" }}
-//                       >
+//                       <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
 //                         $29.99{" "}
-//                         <small className="text-dark fs-6 fw-normal align-middle">
-//                           /month
-//                         </small>
+//                         <small className="text-dark fs-6 fw-normal align-middle">/month</small>
 //                       </h4>
 
 //                       <div className="d-flex justify-content-between text-dark small mb-1">
@@ -544,10 +555,7 @@
 //                       </div>
 
 //                       <div className="mb-3 progress thin">
-//                         <div
-//                           className="progress-bar bg-mavsketch"
-//                           style={{ width: `${(8.2 / 50) * 100}%` }}
-//                         >
+//                         <div className="progress-bar bg-mavsketch" style={{ width: `${(8.2 / 50) * 100}%` }}>
 //                           {8.2 > 8 ? <div>8.2GB</div> : ""}
 //                         </div>
 //                       </div>
@@ -578,16 +586,12 @@
 
 //                     <div className="card_wrapper-custom">
 //                       <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem" }}>
-//                         marcobotton.com
+//                         yourdomain.com
 //                       </h6>
 
 //                       <div className="d-flex flex-wrap gap-2 mb-3">
-//                         <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">
-//                           ✔ Connected
-//                         </span>
-//                         <span className="px-2 py-1 rounded-pill fw-bold badge-soft-gray">
-//                           SSL Active
-//                         </span>
+//                         <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">✔ Connected</span>
+//                         <span className="px-2 py-1 rounded-pill fw-bold badge-soft-gray">SSL Active</span>
 //                       </div>
 //                     </div>
 
@@ -601,9 +605,9 @@
 //                           color: "#fff",
 //                           border: "none",
 //                         }}
-//                         onClick={() =>
-//                           window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank")
-//                         }
+//                         onClick={() => {
+//                           if (PUBLIC_HOST) window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank");
+//                         }}
 //                       >
 //                         View Site
 //                       </button>
@@ -647,12 +651,7 @@
 //                           Open Editor
 //                         </button>
 //                       ) : (
-//                         <button
-//                           type="button"
-//                           className="btn button-dark"
-//                           disabled
-//                           style={{ color: "#fff" }}
-//                         >
+//                         <button type="button" className="btn button-dark" disabled style={{ color: "#fff" }}>
 //                           <div className="modern-loader">
 //                             <svg viewBox="0 0 120 120" className="infinity-loader">
 //                               <path
@@ -672,150 +671,6 @@
 //                         Preview Changes
 //                       </button>
 //                     </div>
-//                   </Card.Body>
-//                 </Card>
-//               </Col>
-//             </Row>
-
-//             {/* simple metrics / recent activity (unchanged UI) */}
-//             <Row className="g-4 mt-3">
-//               <Col xs={12} md={6} lg={4}>
-//                 <Card className="border-0 metric-card h-100" style={cardGlass}>
-//                   <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
-//                     <div className="d-flex justify-content-end">
-//                       <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-//                         +12.5%
-//                       </span>
-//                     </div>
-//                     <div>
-//                       <h6
-//                         className="text-uppercase text-muted fw-semibold mb-1"
-//                         style={{ fontSize: "0.75rem" }}
-//                       >
-//                         Subscribers
-//                       </h6>
-//                       <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//                         2,548
-//                       </h3>
-//                       <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//                         Compared to 2,267 last month
-//                       </p>
-//                     </div>
-//                   </Card.Body>
-//                 </Card>
-//               </Col>
-
-//               <Col xs={12} md={6} lg={4}>
-//                 <Card className="border-0 metric-card h-100" style={cardGlass}>
-//                   <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
-//                     <div className="d-flex justify-content-end">
-//                       <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-//                         +8.2%
-//                       </span>
-//                     </div>
-//                     <div>
-//                       <h6
-//                         className="text-uppercase text-muted fw-semibold mb-1"
-//                         style={{ fontSize: "0.75rem" }}
-//                       >
-//                         Page Views
-//                       </h6>
-//                       <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//                         42.5k
-//                       </h3>
-//                       <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//                         Compared to 39.3k last month
-//                       </p>
-//                     </div>
-//                   </Card.Body>
-//                 </Card>
-//               </Col>
-
-//               <Col xs={12} md={6} lg={4}>
-//                 <Card
-//                   className="custom-card-shadow border-0 metric-card h-100"
-//                   style={cardGlass}
-//                 >
-//                   <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
-//                     <div className="d-flex justify-content-end">
-//                       <span
-//                         className="px-2 py-1 rounded-pill fw-bold"
-//                         style={{ background: "#FF3B30", color: "#fff" }}
-//                       >
-//                         +2.1%
-//                       </span>
-//                     </div>
-//                     <div>
-//                       <h6
-//                         className="text-uppercase text-muted fw-semibold mb-1"
-//                         style={{ fontSize: "0.75rem" }}
-//                       >
-//                         Bounce Rate
-//                       </h6>
-//                       <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-//                         28.3%
-//                       </h3>
-//                       <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-//                         Compared to 26.2% last month
-//                       </p>
-//                     </div>
-//                   </Card.Body>
-//                 </Card>
-//               </Col>
-//             </Row>
-
-//             <Row className="mt-4">
-//               <Col xs={12}>
-//                 <Card className="custom-card-shadow border-0 rounded-4" style={cardGlass}>
-//                   <Card.Body className="p-4">
-//                     <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
-//                       Recent Activity
-//                     </h5>
-//                     <ul className="list-unstyled mb-0">
-//                       <li className="mb-3 d-flex align-items-start gap-3">
-//                         <Image
-//                           src="/images/user1.jpg"
-//                           alt=""
-//                           width={40}
-//                           height={40}
-//                           className="rounded-circle object-fit-cover"
-//                         />
-//                         <div>
-//                           <strong>Sarah Johnson</strong> published a new article “Design
-//                           Systems in 2023”
-//                           <br />
-//                           <small className="text-muted">2 hours ago</small>
-//                         </div>
-//                       </li>
-//                       <li className="mb-3 d-flex align-items-start gap-3">
-//                         <img
-//                           src="/images/user2.jpg"
-//                           alt=""
-//                           width="40"
-//                           height="40"
-//                           className="rounded-circle object-fit-cover"
-//                         />
-//                         <div>
-//                           <strong>Robert Chen</strong> updated the homepage banner
-//                           <br />
-//                           <small className="text-muted">4 hours ago</small>
-//                         </div>
-//                       </li>
-//                       <li className="d-flex align-items-start gap-3">
-//                         <img
-//                           src="/images/user3.jpg"
-//                           alt=""
-//                           width="40"
-//                           height="40"
-//                           className="rounded-circle object-fit-cover"
-//                         />
-//                         <div>
-//                           <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
-//                           <br />
-//                           <small className="text-muted">Yesterday at 2:45 PM</small>
-//                         </div>
-//                       </li>
-//                     </ul>
 //                   </Card.Body>
 //                 </Card>
 //               </Col>
@@ -860,9 +715,63 @@
 
 
 
-// dashboard/pages/dashboard/index.js
-// working fine for sir-template — now also opens Home editor for Gym from the chooser
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// dashboard/pages/dashboard/index.js
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import {
@@ -880,20 +789,82 @@ import {
 import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
-import Image from "next/image";
 
 import { api, getUserId, PUBLIC_HOST } from "../../lib/api";
 import { setTemplateCookie } from "../../lib/templateCookie";
 import { backendBaseUrl } from "../../lib/config";
 
-const USER_ID_CONST = "demo-user";                // replace if you have auth
-const FALLBACK_TEMPLATE_ID = "sir-template-1";    // safe default
-const ALLOWED_TEMPLATES = ["sir-template-1", "gym-template-1"]; // ✅ hide/remove 3rd template
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
 
-/* ---------------- Inline Template Chooser Card ---------------- */
-function TemplateChooserCard() {
+const ALLOWED_TEMPLATES = ["sir-template-1", "gym-template-1"]; // shown in chooser
+
+function getTokenFromCookie() {
+  if (typeof document === "undefined") return null;
+  const cname =
+    (process.env.NEXT_PUBLIC_COOKIE_NAME ||
+      process.env.COOKIE_NAME ||
+      "auth_token").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = document.cookie.match(new RegExp("(^| )" + cname + "=([^;]+)"));
+  return m ? decodeURIComponent(m[2]) : null;
+}
+
+function defaultVersionFor(tplObj) {
+  const versions = Array.isArray(tplObj?.versions) ? tplObj.versions : [];
+  return tplObj?.currentTag || versions?.[0]?.tag || "v1";
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Ensure the selected template has a Home page for this user.
+ * If missing, silently seed with your existing reset route (first_time_autoseed).
+ * Returns the homePageId (or null if not created in time).
+ */
+async function ensureHomeFor(userId, templateId, verTag) {
+  if (!userId || !templateId) return null;
+
+  // 1) already there?
+  let pageId = await api.getHomePageId(userId, templateId);
+  if (pageId) return pageId;
+
+  // 2) seed defaults (silently)
+  const url = `${backendBaseUrl}/api/template-reset/${encodeURIComponent(
+    userId
+  )}/${encodeURIComponent(templateId)}?ver=${encodeURIComponent(verTag || "v1")}`;
+
+  const token = getTokenFromCookie();
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ reason: "first_time_autoseed" }),
+      credentials: "include",
+    });
+  } catch {
+    // ignore network hiccups; we will still poll below
+  }
+
+  // 3) poll briefly (exponential backoff: ~3s total)
+  for (let i = 0; i < 6; i++) {
+    await sleep(250 * Math.pow(1.5, i));
+    pageId = await api.getHomePageId(userId, templateId);
+    if (pageId) return pageId;
+  }
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Template Chooser Card                                                      */
+/* -------------------------------------------------------------------------- */
+
+function TemplateChooserCard({ userId, onHomeReady }) {
   const router = useRouter();
-  const userId = getUserId();
 
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState([]);
@@ -901,7 +872,7 @@ function TemplateChooserCard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // reset modal
+  // reset modal (manual reset still available)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTpl, setConfirmTpl] = useState({
     id: null,
@@ -910,44 +881,42 @@ function TemplateChooserCard() {
     versions: [],
   });
   const [resetting, setResetting] = useState(false);
-  const [toast, setToast] = useState({
-    show: false,
-    msg: "",
-    variant: "success",
-  });
+  const [toast, setToast] = useState({ show: false, msg: "", variant: "success" });
 
   useEffect(() => {
     let off = false;
     (async () => {
       try {
-        // list contains your templates (with versions[])
+        // 1) list all templates
         const list = await api.listTemplates();
-        const sel = await api.selectedTemplateForUser(userId);
-        if (off) return;
-
-        const data = list?.data || [];
-
-        // ✅ Only keep the two templates you want to show
-        const filtered = data.filter((t) =>
+        const data = (list?.data || []).filter((t) =>
           ALLOWED_TEMPLATES.includes(t.templateId)
         );
 
-        setTemplates(filtered);
-
-        // choose selected from filtered list (fall back to first allowed)
+        // 2) fetch current selection for this user
+        const sel = await api.selectedTemplateForUser(userId);
         let activeTpl =
-          sel?.data?.templateId ??
-          sel?.templateId ??
-          filtered?.[0]?.templateId ??
-          null;
+          sel?.data?.templateId ?? sel?.templateId ?? data?.[0]?.templateId ?? null;
 
-        if (!filtered.find((t) => t.templateId === activeTpl)) {
-          activeTpl = filtered?.[0]?.templateId ?? null;
+        if (!data.find((t) => t.templateId === activeTpl)) {
+          activeTpl = data?.[0]?.templateId ?? null;
         }
-        setSelected(activeTpl);
+
+        if (!off) {
+          setTemplates(data);
+          setSelected(activeTpl);
+
+          // ensure home exists for the selected template (first visit experience)
+          if (activeTpl) {
+            const tplObj = data.find((t) => t.templateId === activeTpl) || {};
+            const verTag = defaultVersionFor(tplObj);
+            setTemplateCookie(activeTpl, verTag, userId);
+            const pageId = await ensureHomeFor(userId, activeTpl, verTag);
+            onHomeReady?.(pageId || null);
+          }
+        }
       } catch (e) {
-        if (!off)
-          setError(e?.message || "Failed to load templates / selected template");
+        if (!off) setError(e?.message || "Failed to load templates");
       } finally {
         if (!off) setLoading(false);
       }
@@ -955,12 +924,7 @@ function TemplateChooserCard() {
     return () => {
       off = true;
     };
-  }, [userId]);
-
-  function defaultVersionFor(tplObj) {
-    const versions = Array.isArray(tplObj?.versions) ? tplObj.versions : [];
-    return tplObj?.currentTag || versions?.[0]?.tag || "v1";
-  }
+  }, [userId, onHomeReady]);
 
   async function choose(templateId) {
     try {
@@ -968,30 +932,36 @@ function TemplateChooserCard() {
       await api.selectTemplate(templateId, userId);
       setSelected(templateId);
 
-      // pick a version tag for cookies (no UI change)
+      // version tag cookie
       const tplObj = templates.find((t) => t.templateId === templateId) || null;
       const verTag = defaultVersionFor(tplObj);
 
-      // keep cookie in sync (now writes version + user id as well)
+      // sync cookie
       setTemplateCookie(templateId, verTag, userId);
 
-      // ping public host to sync
-      fetch(
-        `${PUBLIC_HOST}/?templateId=${encodeURIComponent(templateId)}&v=${encodeURIComponent(verTag)}&r=${Date.now()}`,
-        { mode: "no-cors", credentials: "include" }
-      );
+      // silently ensure defaults so "Edit" works immediately
+      const pageId = await ensureHomeFor(userId, templateId, verTag);
+      onHomeReady?.(pageId || null);
+
+      // optional ping to static host
+      if (PUBLIC_HOST) {
+        fetch(
+          `${PUBLIC_HOST}/?templateId=${encodeURIComponent(
+            templateId
+          )}&v=${encodeURIComponent(verTag)}&r=${Date.now()}`,
+          { mode: "no-cors", credentials: "include" }
+        );
+      }
     } catch (e) {
-      alert(e.message || "Failed to select template");
+      alert(e?.message || "Failed to select template");
     } finally {
       setSaving(false);
     }
   }
 
   function openReset(tpl) {
-    // tpl is the object from listTemplates; it should have versions[]
     const versions = Array.isArray(tpl.versions) ? tpl.versions : [];
     const defaultTag = tpl.currentTag || versions?.[0]?.tag || "v1";
-
     setConfirmTpl({
       id: tpl.templateId,
       name: tpl.name || tpl.templateId,
@@ -1006,42 +976,48 @@ function TemplateChooserCard() {
     try {
       setResetting(true);
 
-      // pass ?ver=<selectedTag> so backend pulls the correct version
+      // POST /api/template-reset/:userId/:templateId?ver=<tag>
       const url = `${backendBaseUrl}/api/template-reset/${encodeURIComponent(
         userId
-      )}/${encodeURIComponent(confirmTpl.id)}?ver=${encodeURIComponent(
-        confirmTpl.tag
-      )}`;
+      )}/${encodeURIComponent(confirmTpl.id)}?ver=${encodeURIComponent(confirmTpl.tag)}`;
+
+      const token = getTokenFromCookie();
 
       const res = await fetch(url, {
         method: "POST",
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ reason: "user_reset_to_default" }),
+        credentials: "include",
       });
+
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json?.ok === false) {
-        throw new Error(json?.error || json?.message || "Reset failed");
+        throw new Error(json?.error || json?.message || `Reset failed (${res.status})`);
       }
 
-      // keep cookie & public site in sync if currently selected
+      // keep cookie & (optionally) static host in sync
       if (selected === confirmTpl.id) {
         setTemplateCookie(confirmTpl.id, confirmTpl.tag, userId);
-        fetch(
-          `${PUBLIC_HOST}/?templateId=${encodeURIComponent(
-            confirmTpl.id
-          )}&v=${encodeURIComponent(confirmTpl.tag)}&reset=1&r=${Date.now()}`,
-          { mode: "no-cors", credentials: "include" }
-        );
+        if (PUBLIC_HOST) {
+          fetch(
+            `${PUBLIC_HOST}/?templateId=${encodeURIComponent(
+              confirmTpl.id
+            )}&v=${encodeURIComponent(confirmTpl.tag)}&reset=1&r=${Date.now()}`,
+            { mode: "no-cors", credentials: "include" }
+          );
+        }
       }
 
       setToast({
         show: true,
-        msg: `Restored version defaults (${confirmTpl.tag}): content + order.`,
+        msg: `Restored version defaults (${confirmTpl.tag})`,
         variant: "success",
       });
       setConfirmOpen(false);
-
-      // optional: refresh current page data so editor/preview sees new order
-      router.replace(router.asPath);
     } catch (e) {
       setToast({
         show: true,
@@ -1053,15 +1029,21 @@ function TemplateChooserCard() {
     }
   }
 
-  // ✅ NEW: Open Editor for the currently selected template (works for Gym and Sir)
+  // Open the proper editor for the template that’s selected
   async function openEditorForSelected() {
     try {
-      const tplId = selected || FALLBACK_TEMPLATE_ID;
+      const tplId = selected;
+      if (!tplId) return;
       const pageId = await api.getHomePageId(userId, tplId);
       if (pageId) {
-        router.push(`/editorpages/page/${pageId}`);
+        router.push(`/editorpages/page/${pageId}?templateId=${encodeURIComponent(tplId)}`);
       } else {
-        alert("Home page not found yet.");
+        // Try to seed once if user somehow got here before seeding finished
+        const tplObj = templates.find((t) => t.templateId === tplId) || {};
+        const verTag = defaultVersionFor(tplObj);
+        const id = await ensureHomeFor(userId, tplId, verTag);
+        if (id) router.push(`/editorpages/page/${id}?templateId=${encodeURIComponent(tplId)}`);
+        else alert("Home page not found for this template.");
       }
     } catch (e) {
       alert(e?.message || "Failed to open editor");
@@ -1094,18 +1076,13 @@ function TemplateChooserCard() {
           {!loading && !error && (
             <div
               className="d-grid"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
-                gap: 12,
-              }}
+              style={{ gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}
             >
               {templates.map((t) => {
                 const isActive = selected === t.templateId;
                 const versions = Array.isArray(t.versions) ? t.versions : [];
                 const verLabel =
-                  t.currentTag ||
-                  versions?.[0]?.tag ||
-                  (versions.length ? versions[0].tag : "—");
+                  t.currentTag || versions?.[0]?.tag || (versions.length ? versions[0].tag : "—");
 
                 return (
                   <div
@@ -1152,7 +1129,6 @@ function TemplateChooserCard() {
                         Preview
                       </button>
 
-                      {/* ✅ This Edit now opens the Home editor for the active template (Gym supported) */}
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={openEditorForSelected}
@@ -1184,7 +1160,7 @@ function TemplateChooserCard() {
         </Card.Body>
       </Card>
 
-      {/* Confirm Reset Modal (versioned) */}
+      {/* Confirm Reset Modal */}
       <Modal
         show={confirmOpen}
         onHide={() => (!resetting ? setConfirmOpen(false) : null)}
@@ -1194,17 +1170,14 @@ function TemplateChooserCard() {
           <Modal.Title>Reset “{confirmTpl.name}” to default?</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          This will remove all your overrides and restore the{" "}
-          <b>version defaults</b> (content + section order) from S3 version{" "}
-          <code>{confirmTpl.tag}</code>. Your uploads remain in S3.
+          This will remove your overrides and restore the <b>version defaults</b> (content + section
+          order) from <code>{confirmTpl.tag}</code>.
           <div className="mt-3">
             <Form.Label className="fw-semibold">Version</Form.Label>
             <Form.Select
               disabled={resetting}
               value={confirmTpl.tag}
-              onChange={(e) =>
-                setConfirmTpl((s) => ({ ...s, tag: e.target.value }))
-              }
+              onChange={(e) => setConfirmTpl((s) => ({ ...s, tag: e.target.value }))}
             >
               {(confirmTpl.versions || []).map((v) => (
                 <option key={v.tag} value={v.tag}>
@@ -1216,11 +1189,7 @@ function TemplateChooserCard() {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setConfirmOpen(false)}
-            disabled={resetting}
-          >
+          <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={resetting}>
             Cancel
           </Button>
           <Button variant="danger" onClick={doReset} disabled={resetting}>
@@ -1251,12 +1220,17 @@ function TemplateChooserCard() {
   );
 }
 
-/* ------------------------------ MAIN DASHBOARD ------------------------------ */
+/* -------------------------------------------------------------------------- */
+/* Main Dashboard                                                             */
+/* -------------------------------------------------------------------------- */
+
 export default function DashboardHome() {
-  const [homePageId, setHomePageId] = useState(null);
+  const router = useRouter();
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isBelowLg, setIsBelowLg] = useState(false);
-  const router = useRouter();
+  const [me, setMe] = useState(null); // { user, next, meta }
+  const [homePageId, setHomePageId] = useState(null);
 
   const cardGlass = useMemo(
     () => ({
@@ -1280,24 +1254,39 @@ export default function DashboardHome() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // This card still uses a static fallback; the chooser's Edit button now handles Gym/Sir correctly.
+  // Load current user and ensure a homepage exists for their selected template
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const pageId = await api.getHomePageId(
-          USER_ID_CONST,
-          FALLBACK_TEMPLATE_ID
-        );
-        if (!cancelled) setHomePageId(pageId || null);
-      } catch {
-        if (!cancelled) setHomePageId(null);
+        const profile = await api.me();
+        if (cancelled) return;
+
+        setMe(profile);
+
+        const userId = getUserId();
+        const sel = await api.selectedTemplateForUser(userId);
+        const tplId = sel?.data?.templateId || sel?.templateId || "sir-template-1";
+
+        // we don't know the tag here; fetch its default from listTemplates
+        const list = await api.listTemplates();
+        const tplObj =
+          (list?.data || []).find((t) => t.templateId === tplId) || { versions: [] };
+        const verTag = defaultVersionFor(tplObj);
+
+        const pId = await ensureHomeFor(userId, tplId, verTag);
+        if (!cancelled) setHomePageId(pId || null);
+      } catch (e) {
+        if (!cancelled) router.replace("/authentication/signin");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
+
+  const userName = me?.user?.fullName || "there";
+  const userId = getUserId();
 
   return (
     <>
@@ -1316,14 +1305,8 @@ export default function DashboardHome() {
         <div className="bg-inner-custom" />
       </div>
 
-      <div
-        style={{ display: "flex", minHeight: "100vh", position: "relative", zIndex: 1 }}
-      >
-        <SidebarDashly
-          isOpen={sidebarOpen}
-          setIsOpen={setSidebarOpen}
-          isMobile={isBelowLg}
-        />
+      <div style={{ display: "flex", minHeight: "100vh", position: "relative", zIndex: 1 }}>
+        <SidebarDashly isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isMobile={isBelowLg} />
 
         <button
           type="button"
@@ -1353,21 +1336,21 @@ export default function DashboardHome() {
         >
           <Container fluid="xxl">
             <h5 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>
-              Welcome back, Marco!
+              Welcome back, {userName}!
             </h5>
             <br />
             <p className="text-dark">
               Here&apos;s your website overview and next steps to complete your setup.
             </p>
 
-            {/* ---------- TEMPLATE CHOOSER (version-aware reset) ---------- */}
+            {/* Template chooser */}
             <Row className="g-4 mt-2">
               <Col xs={12}>
-                <TemplateChooserCard />
+                {userId ? <TemplateChooserCard userId={userId} onHomeReady={setHomePageId} /> : <div />}
               </Col>
             </Row>
 
-            {/* ---- Rest of cards kept the same (optional UI below) ---- */}
+            {/* Quick “Open Editor” / other cards */}
             <Row className="g-4 mt-2">
               <Col xs={12} md={6} lg={4}>
                 <Card className="border-0 ion-card h-100" style={cardGlass}>
@@ -1380,24 +1363,16 @@ export default function DashboardHome() {
                         <img src="/icons/crown.png" alt="Pro Plan" />
                       </div>
                     </div>
+
                     <div className="d-flex flex-wrap gap-2 mb-3">
-                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">
-                        Pro Plan
-                      </span>
-                      <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">
-                        Monthly
-                      </span>
+                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">Pro Plan</span>
+                      <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">Monthly</span>
                     </div>
 
                     <div className="card_wrapper-custom">
-                      <h4
-                        className="fw-bold mb-3"
-                        style={{ lineHeight: "1.5", fontSize: "1.7rem" }}
-                      >
+                      <h4 className="fw-bold mb-3" style={{ lineHeight: "1.5", fontSize: "1.7rem" }}>
                         $29.99{" "}
-                        <small className="text-dark fs-6 fw-normal align-middle">
-                          /month
-                        </small>
+                        <small className="text-dark fs-6 fw-normal align-middle">/month</small>
                       </h4>
 
                       <div className="d-flex justify-content-between text-dark small mb-1">
@@ -1410,10 +1385,7 @@ export default function DashboardHome() {
                       </div>
 
                       <div className="mb-3 progress thin">
-                        <div
-                          className="progress-bar bg-mavsketch"
-                          style={{ width: `${(8.2 / 50) * 100}%` }}
-                        >
+                        <div className="progress-bar bg-mavsketch" style={{ width: `${(8.2 / 50) * 100}%` }}>
                           {8.2 > 8 ? <div>8.2GB</div> : ""}
                         </div>
                       </div>
@@ -1444,16 +1416,12 @@ export default function DashboardHome() {
 
                     <div className="card_wrapper-custom">
                       <h6 className="fw-bold mb-2 mt-3" style={{ fontSize: "1rem" }}>
-                        marcobotton.com
+                        yourdomain.com
                       </h6>
 
                       <div className="d-flex flex-wrap gap-2 mb-3">
-                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">
-                          ✔ Connected
-                        </span>
-                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-gray">
-                          SSL Active
-                        </span>
+                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">✔ Connected</span>
+                        <span className="px-2 py-1 rounded-pill fw-bold badge-soft-gray">SSL Active</span>
                       </div>
                     </div>
 
@@ -1467,9 +1435,9 @@ export default function DashboardHome() {
                           color: "#fff",
                           border: "none",
                         }}
-                        onClick={() =>
-                          window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank")
-                        }
+                        onClick={() => {
+                          if (PUBLIC_HOST) window.open(`${PUBLIC_HOST}/?r=${Date.now()}`, "_blank");
+                        }}
                       >
                         View Site
                       </button>
@@ -1513,12 +1481,7 @@ export default function DashboardHome() {
                           Open Editor
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          className="btn button-dark"
-                          disabled
-                          style={{ color: "#fff" }}
-                        >
+                        <button type="button" className="btn button-dark" disabled style={{ color: "#fff" }}>
                           <div className="modern-loader">
                             <svg viewBox="0 0 120 120" className="infinity-loader">
                               <path
@@ -1542,198 +1505,9 @@ export default function DashboardHome() {
                 </Card>
               </Col>
             </Row>
-
-            {/* simple metrics / recent activity (unchanged UI) */}
-            <Row className="g-4 mt-3">
-              <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 metric-card h-100" style={cardGlass}>
-                  <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
-                    <div className="d-flex justify-content-end">
-                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-                        +12.5%
-                      </span>
-                    </div>
-                    <div>
-                      <h6
-                        className="text-uppercase text-muted fw-semibold mb-1"
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        Subscribers
-                      </h6>
-                      <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-                        2,548
-                      </h3>
-                      <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-                        Compared to 2,267 last month
-                      </p>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col xs={12} md={6} lg={4}>
-                <Card className="border-0 metric-card h-100" style={cardGlass}>
-                  <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
-                    <div className="d-flex justify-content-end">
-                      <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-                        +8.2%
-                      </span>
-                    </div>
-                    <div>
-                      <h6
-                        className="text-uppercase text-muted fw-semibold mb-1"
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        Page Views
-                      </h6>
-                      <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-                        42.5k
-                      </h3>
-                      <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-                        Compared to 39.3k last month
-                      </p>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col xs={12} md={6} lg={4}>
-                <Card
-                  className="custom-card-shadow border-0 metric-card h-100"
-                  style={cardGlass}
-                >
-                  <Card.Body className="p-3 d-flex flex-column justify-content-between h-100">
-                    <div className="d-flex justify-content-end">
-                      <span
-                        className="px-2 py-1 rounded-pill fw-bold"
-                        style={{ background: "#FF3B30", color: "#fff" }}
-                      >
-                        +2.1%
-                      </span>
-                    </div>
-                    <div>
-                      <h6
-                        className="text-uppercase text-muted fw-semibold mb-1"
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        Bounce Rate
-                      </h6>
-                      <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>
-                        28.3%
-                      </h3>
-                      <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
-                        Compared to 26.2% last month
-                      </p>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-
-            <Row className="mt-4">
-              <Col xs={12}>
-                <Card className="custom-card-shadow border-0 rounded-4" style={cardGlass}>
-                  <Card.Body className="p-4">
-                    <h5 className="fw-bold mb-4" style={{ fontSize: "1.05rem" }}>
-                      Recent Activity
-                    </h5>
-                    <ul className="list-unstyled mb-0">
-                      <li className="mb-3 d-flex align-items-start gap-3">
-                        <Image
-                          src="/images/user1.jpg"
-                          alt=""
-                          width={40}
-                          height={40}
-                          className="rounded-circle object-fit-cover"
-                        />
-                        <div>
-                          <strong>Sarah Johnson</strong> published a new article “Design
-                          Systems in 2023”
-                          <br />
-                          <small className="text-muted">2 hours ago</small>
-                        </div>
-                      </li>
-                      <li className="mb-3 d-flex align-items-start gap-3">
-                        <img
-                          src="/images/user2.jpg"
-                          alt=""
-                          width="40"
-                          height="40"
-                          className="rounded-circle object-fit-cover"
-                        />
-                        <div>
-                          <strong>Robert Chen</strong> updated the homepage banner
-                          <br />
-                          <small className="text-muted">4 hours ago</small>
-                        </div>
-                      </li>
-                      <li className="d-flex align-items-start gap-3">
-                        <img
-                          src="/images/user3.jpg"
-                          alt=""
-                          width="40"
-                          height="40"
-                          className="rounded-circle object-fit-cover"
-                        />
-                        <div>
-                          <strong>Jessica Lee</strong> commented on “UX Design Fundamentals”
-                          <br />
-                          <small className="text-muted">Yesterday at 2:45 PM</small>
-                        </div>
-                      </li>
-                    </ul>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
           </Container>
         </main>
       </div>
     </>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

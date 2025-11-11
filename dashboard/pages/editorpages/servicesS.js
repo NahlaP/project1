@@ -3,8 +3,7 @@
 
 
 
-
-
+// // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\servicesS.js
 // "use client";
 
 // import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -23,15 +22,11 @@
 // } from "react-bootstrap";
 // import { useRouter } from "next/router";
 // import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-// import {
-//   backendBaseUrl,
-//   userId as defaultUserId,
-// } from "../../lib/config";
+// import { backendBaseUrl, userId as defaultUserId } from "../../lib/config";
 // import { api } from "../../lib/api";
 // import BackBar from "../components/BackBar";
 
 // /* ----------------------------- TEMPLATE PROFILES ----------------------------- */
-// /* What fields are used for Services per template */
 // const SERVICES_PROFILES = {
 //   "sir-template-1": {
 //     fields: {
@@ -43,7 +38,6 @@
 //       buttonText: false,
 //       buttonHref: false,
 //     },
-//     // number of items suggested (optional)
 //     suggested: 4,
 //   },
 //   "gym-template-1": {
@@ -62,8 +56,13 @@
 
 // // fallback if template unknown: allow everything
 // const ALL_SERVICE_FIELDS = {
-//   title: true, description: true, delay: true, order: true,
-//   imageUrl: true, buttonText: true, buttonHref: true,
+//   title: true,
+//   description: true,
+//   delay: true,
+//   order: true,
+//   imageUrl: true,
+//   buttonText: true,
+//   buttonHref: true,
 // };
 
 // /* ----------------------------- HELPERS ----------------------------- */
@@ -122,12 +121,14 @@
 //   const userId = defaultUserId;
 //   const templateId = useResolvedTemplateId(userId);
 
-//   const profile = SERVICES_PROFILES[templateId] || { fields: ALL_SERVICE_FIELDS, suggested: 4 };
+//   const profile =
+//     SERVICES_PROFILES[templateId] || { fields: ALL_SERVICE_FIELDS, suggested: 4 };
 //   const allowed = profile.fields;
 
 //   const [doc, setDoc] = useState({ services: [] });
 //   const [errorMsg, setErrorMsg] = useState("");
 //   const [saving, setSaving] = useState(false);
+//   const [resetting, setResetting] = useState(false);
 //   const [showToast, setShowToast] = useState(false);
 
 //   // draft previews keyed per row (_id or idx-#)
@@ -136,24 +137,33 @@
 
 //   const keyFor = (s, idx) => (s?._id ? String(s._id) : `idx-${idx}`);
 
-//   // ------------------- LOAD -------------------
-//   useEffect(() => {
-//     if (!templateId) return;
-//     let off = false;
+//   const apiBase = useMemo(() => {
+//     if (!templateId) return "";
+//     return `${backendBaseUrl}/api/services/${encodeURIComponent(
+//       userId
+//     )}/${encodeURIComponent(templateId)}`;
+//   }, [userId, templateId]);
 
+//   // ------------------- LOAD -------------------
+//   const loadServices = async () => {
+//     if (!apiBase) return;
+//     const res = await fetch(`${apiBase}?_=${Date.now()}`, {
+//       headers: { Accept: "application/json" },
+//       cache: "no-store",
+//     });
+//     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+//     const json = await res.json().catch(() => ({}));
+//     const rows = Array.isArray(json?.services) ? json.services : [];
+//     setDoc({ services: rows });
+//   };
+
+//   useEffect(() => {
+//     if (!apiBase) return;
+//     let off = false;
 //     (async () => {
 //       try {
-//         const res = await fetch(
-//           `${backendBaseUrl}/api/services/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
-//           { headers: { Accept: "application/json" }, cache: "no-store" }
-//         );
-//         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-//         const json = await res.json().catch(() => ({}));
-//         if (off) return;
-
-//         const rows = Array.isArray(json?.services) ? json.services : [];
-//         setDoc({ services: rows });
-//         setErrorMsg("");
+//         await loadServices();
+//         if (!off) setErrorMsg("");
 //       } catch (e) {
 //         if (!off) {
 //           setDoc({ services: [] });
@@ -162,15 +172,18 @@
 //         }
 //       }
 //     })();
-
-//     return () => { off = true; };
-//   }, [userId, templateId]);
+//     return () => {
+//       off = true;
+//     };
+//   }, [apiBase]);
 
 //   // cleanup object URLs
 //   useEffect(() => {
 //     return () => {
 //       Object.values(lastUrlsRef.current).forEach((u) => {
-//         try { u && URL.revokeObjectURL(u); } catch {}
+//         try {
+//           u && URL.revokeObjectURL(u);
+//         } catch {}
 //       });
 //       lastUrlsRef.current = {};
 //     };
@@ -210,7 +223,12 @@
 //       const removed = arr.splice(idx, 1)[0];
 //       const k = keyFor(removed, idx);
 //       const u = lastUrlsRef.current[k];
-//       if (u) { try { URL.revokeObjectURL(u); } catch {} delete lastUrlsRef.current[k]; }
+//       if (u) {
+//         try {
+//           URL.revokeObjectURL(u);
+//         } catch {}
+//         delete lastUrlsRef.current[k];
+//       }
 //       setDrafts((d) => {
 //         const { [k]: _, ...rest } = d;
 //         return rest;
@@ -228,7 +246,9 @@
 //     const objUrl = URL.createObjectURL(file);
 //     const prev = lastUrlsRef.current[rowKey];
 //     if (prev) {
-//       try { URL.revokeObjectURL(prev); } catch {}
+//       try {
+//         URL.revokeObjectURL(prev);
+//       } catch {}
 //     }
 //     lastUrlsRef.current[rowKey] = objUrl;
 //     setDrafts((d) => ({ ...d, [rowKey]: { file, url: objUrl } }));
@@ -237,10 +257,10 @@
 //   const uploadImageFor = async (serviceId, file) => {
 //     const form = new FormData();
 //     form.append("image", file);
-//     const res = await fetch(
-//       `${backendBaseUrl}/api/services/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}/${encodeURIComponent(serviceId)}/image`,
-//       { method: "POST", body: form }
-//     );
+//     const res = await fetch(`${apiBase}/${encodeURIComponent(serviceId)}/image`, {
+//       method: "POST",
+//       body: form,
+//     });
 //     if (!res.ok) {
 //       const txt = await res.text().catch(() => "");
 //       throw new Error(txt || "Upload failed");
@@ -264,7 +284,6 @@
 //           const draft = drafts[k];
 //           if (draft?.file && row?._id) {
 //             const up = await uploadImageFor(row._id, draft.file);
-//             // allow either shape {result:{services}} or {imageUrl: "..."}
 //             if (up?.result?.services) {
 //               working.services = up.result.services;
 //             } else if (up?.imageUrl) {
@@ -279,24 +298,25 @@
 //         services: working.services.map((s) => pickAllowed(s, allowed)),
 //       };
 
-//       const put = await fetch(
-//         `${backendBaseUrl}/api/services/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
-//         {
-//           method: "PUT",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify(payload),
-//         }
-//       );
+//       const put = await fetch(apiBase, {
+//         method: "PUT",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify(payload),
+//       });
 //       const putJson = await put.json().catch(() => null);
 //       if (!put.ok) {
 //         throw new Error(putJson?.error || put.statusText || "Save failed");
 //       }
 
-//       // replace with server doc
-//       if (putJson?.services) setDoc({ services: putJson.services });
+//       // refresh from server
+//       await loadServices();
 
 //       // clear drafts
-//       Object.values(lastUrlsRef.current).forEach((u) => { try { u && URL.revokeObjectURL(u); } catch {} });
+//       Object.values(lastUrlsRef.current).forEach((u) => {
+//         try {
+//           u && URL.revokeObjectURL(u);
+//         } catch {}
+//       });
 //       lastUrlsRef.current = {};
 //       setDrafts({});
 
@@ -305,6 +325,46 @@
 //       setErrorMsg(e?.message || "Save failed");
 //     } finally {
 //       setSaving(false);
+//     }
+//   };
+
+//   // ------------------- RESET (Server) -------------------
+//   const handleReset = async () => {
+//     if (!apiBase) return;
+//     setResetting(true);
+//     setErrorMsg("");
+//     try {
+//       const res = await fetch(`${apiBase}/reset`, {
+//         method: "POST",
+//         headers: { Accept: "application/json" },
+//         cache: "no-store",
+//       });
+//       const okJson = (res.headers.get("content-type") || "")
+//         .toLowerCase()
+//         .includes("application/json");
+//       const data = okJson ? await res.json().catch(() => ({})) : null;
+//       if (!res.ok) {
+//         const txt = okJson ? data?.error || data?.message : await res.text().catch(() => "");
+//         throw new Error(txt || `Reset failed (${res.status})`);
+//       }
+
+//       // reload fresh data
+//       await loadServices();
+
+//       // clear drafts
+//       Object.values(lastUrlsRef.current).forEach((u) => {
+//         try {
+//           u && URL.revokeObjectURL(u);
+//         } catch {}
+//       });
+//       lastUrlsRef.current = {};
+//       setDrafts({});
+
+//       setShowToast(true);
+//     } catch (e) {
+//       setErrorMsg(e?.message || "Reset failed");
+//     } finally {
+//       setResetting(false);
 //     }
 //   };
 
@@ -325,23 +385,25 @@
 //             <div className="accordion bord full-width">
 //               <div className="sec-head mb-70">
 //                 <span className="sub-title mb-15 opacity-8">- Services</span>
-//                 <h3 className="text-u f-bold">What We <span className="f-ultra-light">Do</span> ?</h3>
+//                 <h3 className="text-u f-bold">
+//                   What We <span className="f-ultra-light">Do</span> ?
+//                 </h3>
 //               </div>
 
 //               {items
 //                 .slice()
-//                 .sort((a,b)=>(a.order ?? 0)-(b.order ?? 0))
+//                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 //                 .map((s, i) => (
-//                 <div key={s._id || i} className="item mb-20">
-//                   <div className="title">
-//                     <h4 className="">{s.title || "Service Title"}</h4>
-//                     <span className="ico"></span>
+//                   <div key={s._id || i} className="item mb-20">
+//                     <div className="title">
+//                       <h4 className="">{s.title || "Service Title"}</h4>
+//                       <span className="ico"></span>
+//                     </div>
+//                     <div className="accordion-info">
+//                       <p>{s.description || "Service description..."}</p>
+//                     </div>
 //                   </div>
-//                   <div className="accordion-info">
-//                     <p>{s.description || "Service description..."}</p>
-//                   </div>
-//                 </div>
-//               ))}
+//                 ))}
 //             </div>
 //           </div>
 //         </div>
@@ -353,17 +415,25 @@
 //     <div className="row g-4">
 //       {items
 //         .slice()
-//         .sort((a,b)=>(a.order ?? 0)-(b.order ?? 0))
+//         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 //         .map((s, i) => {
 //           const k = keyFor(s, i);
 //           const shown = drafts[k]?.url || absUrl(s.imageUrl);
 //           return (
-//             <div className="col-lg-3 col-md-6" key={s._id || i} data-wow-delay={s.delay || `0.${i+1}s`}>
+//             <div
+//               className="col-lg-3 col-md-6"
+//               key={s._id || i}
+//               data-wow-delay={s.delay || `0.${i + 1}s`}
+//             >
 //               <div className="service-item">
 //                 <div className="service-inner pb-5">
-//                   {shown ? <img className="img-fluid w-100" src={shown} alt="" /> : null}
+//                   {shown ? (
+//                     <img className="img-fluid w-100" src={shown} alt="" />
+//                   ) : null}
 //                   <div className="service-text px-5 pt-4">
-//                     <h5 className="text-uppercase">{s.title || "Service Title"}</h5>
+//                     <h5 className="text-uppercase">
+//                       {s.title || "Service Title"}
+//                     </h5>
 //                     <p>{s.description || "Service description..."}</p>
 //                   </div>
 //                   <div className="d-flex gap-2 px-5">
@@ -394,16 +464,26 @@
 //             <div>
 //               template: <code>{templateId || "(resolving…)"}</code>{" "}
 //               <Badge bg="secondary">
-//                 fields: {Object.keys(allowed).filter(k => allowed[k]).join(", ")}
+//                 fields: {Object.keys(allowed).filter((k) => allowed[k]).join(", ")}
 //               </Badge>
 //             </div>
-//             <div className="text-muted">endpoint: <code>/api/services/{defaultUserId}/{templateId}</code></div>
+//             {apiBase && (
+//               <div className="text-muted" title={apiBase}>
+//                 endpoint: <code>/api/services/{defaultUserId}/{templateId}</code>
+//               </div>
+//             )}
 //           </div>
 //         </Col>
 //       </Row>
 
 //       {errorMsg ? (
-//         <Row className="mb-3"><Col><Alert variant="danger" className="mb-0">{errorMsg}</Alert></Col></Row>
+//         <Row className="mb-3">
+//           <Col>
+//             <Alert variant="danger" className="mb-0">
+//               {errorMsg}
+//             </Alert>
+//           </Col>
+//         </Row>
 //       ) : null}
 
 //       {/* Preview */}
@@ -419,7 +499,19 @@
 //       <Card className="p-4 shadow-sm">
 //         <div className="d-flex justify-content-between align-items-center mb-3">
 //           <h5 className="fw-bold">Edit Items</h5>
-//           <Button variant="outline-primary" onClick={addRow}>➕ Add Item</Button>
+//           <div className="d-flex gap-2">
+//             <Button
+//               variant="outline-danger"
+//               onClick={handleReset}
+//               disabled={resetting || !templateId}
+//               title="Reset to template/hardcoded defaults"
+//             >
+//               {resetting ? "Resetting…" : "🧹 Reset (Server)"}
+//             </Button>
+//             <Button variant="outline-primary" onClick={addRow}>
+//               ➕ Add Item
+//             </Button>
+//           </div>
 //         </div>
 
 //         <Table bordered responsive size="sm">
@@ -459,7 +551,9 @@
 //                       as="textarea"
 //                       rows={2}
 //                       value={s.description || ""}
-//                       onChange={(e) => updateRow(idx, "description", e.target.value)}
+//                       onChange={(e) =>
+//                         updateRow(idx, "description", e.target.value)
+//                       }
 //                     />
 //                   </td>
 
@@ -478,7 +572,13 @@
 //                         <img
 //                           src={thumb}
 //                           alt=""
-//                           style={{ width: 64, height: 64, objectFit: "cover", display: "block", marginBottom: 6 }}
+//                           style={{
+//                             width: 64,
+//                             height: 64,
+//                             objectFit: "cover",
+//                             display: "block",
+//                             marginBottom: 6,
+//                           }}
 //                         />
 //                       ) : null}
 //                       <Form.Control
@@ -488,7 +588,9 @@
 //                           const f = e.target.files?.[0];
 //                           if (!f) return;
 //                           pickLocalFile(f, k);
-//                           try { e.target.value = ""; } catch {}
+//                           try {
+//                             e.target.value = "";
+//                           } catch {}
 //                         }}
 //                       />
 //                       {!s._id && drafts[k]?.file && (
@@ -503,7 +605,9 @@
 //                     <td>
 //                       <Form.Control
 //                         value={s.buttonText || ""}
-//                         onChange={(e) => updateRow(idx, "buttonText", e.target.value)}
+//                         onChange={(e) =>
+//                           updateRow(idx, "buttonText", e.target.value)
+//                         }
 //                       />
 //                     </td>
 //                   )}
@@ -512,7 +616,9 @@
 //                     <td>
 //                       <Form.Control
 //                         value={s.buttonHref || ""}
-//                         onChange={(e) => updateRow(idx, "buttonHref", e.target.value)}
+//                         onChange={(e) =>
+//                           updateRow(idx, "buttonHref", e.target.value)
+//                         }
 //                       />
 //                     </td>
 //                   )}
@@ -547,8 +653,14 @@
 //       </Card>
 
 //       <ToastContainer position="bottom-end" className="p-3">
-//         <Toast bg="success" onClose={() => setShowToast(false)} show={showToast} delay={2200} autohide>
-//           <Toast.Body className="text-white">✅ Saved successfully.</Toast.Body>
+//         <Toast
+//           bg="success"
+//           onClose={() => setShowToast(false)}
+//           show={showToast}
+//           delay={2200}
+//           autohide
+//         >
+//           <Toast.Body className="text-white">✅ Done.</Toast.Body>
 //         </Toast>
 //       </ToastContainer>
 //     </Container>
@@ -602,11 +714,10 @@ import {
   Alert,
   Badge,
 } from "react-bootstrap";
-import { useRouter } from "next/router";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-import { backendBaseUrl, userId as defaultUserId } from "../../lib/config";
-import { api } from "../../lib/api";
+import { backendBaseUrl } from "../../lib/config";
 import BackBar from "../components/BackBar";
+import { useIonContext } from "../../lib/useIonContext";
 
 /* ----------------------------- TEMPLATE PROFILES ----------------------------- */
 const SERVICES_PROFILES = {
@@ -647,7 +758,6 @@ const ALL_SERVICE_FIELDS = {
   buttonHref: true,
 };
 
-/* ----------------------------- HELPERS ----------------------------- */
 const ABS = /^https?:\/\//i;
 const absUrl = (u) => {
   const s = String(u || "").trim();
@@ -665,43 +775,8 @@ const pickAllowed = (row, allowed) => {
   return out;
 };
 
-/* Resolve templateId: ?templateId → backend selection → gym-template-1 */
-function useResolvedTemplateId(userId) {
-  const router = useRouter();
-  const [tid, setTid] = useState("");
-
-  useEffect(() => {
-    let off = false;
-    (async () => {
-      const fromUrl =
-        typeof router.query.templateId === "string" &&
-        router.query.templateId.trim();
-      if (fromUrl) {
-        if (!off) setTid(fromUrl);
-        return;
-      }
-      try {
-        const sel = await api.selectedTemplateForUser(userId);
-        const t = sel?.data?.templateId;
-        if (t && !off) {
-          setTid(t);
-          return;
-        }
-      } catch {}
-      if (!off) setTid("gym-template-1");
-    })();
-    return () => {
-      off = true;
-    };
-  }, [router.query.templateId, userId]);
-
-  return tid;
-}
-
-/* ============================= PAGE ============================== */
 function ServicesEditorPage() {
-  const userId = defaultUserId;
-  const templateId = useResolvedTemplateId(userId);
+  const { userId, templateId } = useIonContext();
 
   const profile =
     SERVICES_PROFILES[templateId] || { fields: ALL_SERVICE_FIELDS, suggested: 4 };
@@ -720,7 +795,7 @@ function ServicesEditorPage() {
   const keyFor = (s, idx) => (s?._id ? String(s._id) : `idx-${idx}`);
 
   const apiBase = useMemo(() => {
-    if (!templateId) return "";
+    if (!userId || !templateId) return "";
     return `${backendBaseUrl}/api/services/${encodeURIComponent(
       userId
     )}/${encodeURIComponent(templateId)}`;
@@ -732,6 +807,7 @@ function ServicesEditorPage() {
     const res = await fetch(`${apiBase}?_=${Date.now()}`, {
       headers: { Accept: "application/json" },
       cache: "no-store",
+      credentials: "include",
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const json = await res.json().catch(() => ({}));
@@ -842,6 +918,7 @@ function ServicesEditorPage() {
     const res = await fetch(`${apiBase}/${encodeURIComponent(serviceId)}/image`, {
       method: "POST",
       body: form,
+      credentials: "include",
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
@@ -852,13 +929,14 @@ function ServicesEditorPage() {
 
   // ------------------- SAVE -------------------
   const handleSave = async () => {
+    if (!apiBase) return;
     setSaving(true);
     setErrorMsg("");
 
     try {
       let working = { services: [...(doc.services || [])] };
 
-      // If this template supports imageUrl, upload drafts for rows that have _id
+      // Upload drafts where applicable (GYM supports images)
       if (allowed.imageUrl) {
         for (let idx = 0; idx < working.services.length; idx++) {
           const row = working.services[idx];
@@ -867,6 +945,7 @@ function ServicesEditorPage() {
           if (draft?.file && row?._id) {
             const up = await uploadImageFor(row._id, draft.file);
             if (up?.result?.services) {
+              // controller returned full list
               working.services = up.result.services;
             } else if (up?.imageUrl) {
               working.services[idx] = { ...row, imageUrl: up.imageUrl };
@@ -875,7 +954,7 @@ function ServicesEditorPage() {
         }
       }
 
-      // send only allowed fields to backend
+      // Only send allowed fields to avoid cross-template pollution
       const payload = {
         services: working.services.map((s) => pickAllowed(s, allowed)),
       };
@@ -883,6 +962,7 @@ function ServicesEditorPage() {
       const put = await fetch(apiBase, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
       const putJson = await put.json().catch(() => null);
@@ -890,7 +970,6 @@ function ServicesEditorPage() {
         throw new Error(putJson?.error || put.statusText || "Save failed");
       }
 
-      // refresh from server
       await loadServices();
 
       // clear drafts
@@ -920,6 +999,7 @@ function ServicesEditorPage() {
         method: "POST",
         headers: { Accept: "application/json" },
         cache: "no-store",
+        credentials: "include",
       });
       const okJson = (res.headers.get("content-type") || "")
         .toLowerCase()
@@ -930,10 +1010,8 @@ function ServicesEditorPage() {
         throw new Error(txt || `Reset failed (${res.status})`);
       }
 
-      // reload fresh data
       await loadServices();
 
-      // clear drafts
       Object.values(lastUrlsRef.current).forEach((u) => {
         try {
           u && URL.revokeObjectURL(u);
@@ -1051,7 +1129,7 @@ function ServicesEditorPage() {
             </div>
             {apiBase && (
               <div className="text-muted" title={apiBase}>
-                endpoint: <code>/api/services/{defaultUserId}/{templateId}</code>
+                endpoint: <code>/api/services/{userId}/{templateId}</code>
               </div>
             )}
           </div>

@@ -186,3 +186,15 @@ FooterPreview.getLayout = (page) => (
 );
 
 export default FooterPreview;
+
+
+
+
+
+
+
+
+
+
+
+

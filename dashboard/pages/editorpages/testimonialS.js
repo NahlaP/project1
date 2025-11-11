@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-// // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\testimonialS.js
 // 'use client';
 
 // import React, { useEffect, useMemo, useState } from 'react';
@@ -27,26 +20,23 @@
 //   templateId as defaultTemplateId,
 // } from '../../lib/config';
 // import { api } from '../../lib/api';
-// import BackBar from "../components/BackBar";
+// import BackBar from '../components/BackBar';
 
-// /** Resolve templateId in this order:
-//  *  1) ?templateId=… in URL
-//  *  2) backend-selected template for the user
-//  *  3) config fallback (legacy)
-//  */
+// /* ---------------- templateId resolver ---------------- */
 // function useResolvedTemplateId(userId) {
 //   const [tpl, setTpl] = useState('');
 //   useEffect(() => {
 //     let off = false;
 //     (async () => {
-//       // 1) URL param
-//       const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+//       const sp =
+//         typeof window !== 'undefined'
+//           ? new URLSearchParams(window.location.search)
+//           : null;
 //       const fromUrl = sp?.get('templateId')?.trim();
 //       if (fromUrl) {
 //         if (!off) setTpl(fromUrl);
 //         return;
 //       }
-//       // 2) Backend-selected
 //       try {
 //         const sel = await api.selectedTemplateForUser(userId);
 //         const t = sel?.data?.templateId;
@@ -55,7 +45,6 @@
 //           return;
 //         }
 //       } catch {}
-//       // 3) Fallback
 //       if (!off) setTpl(defaultTemplateId || 'gym-template-1');
 //     })();
 //     return () => {
@@ -65,7 +54,9 @@
 //   return tpl;
 // }
 
-// // Helper to get a presigned URL for a stored S3 key
+// /* ---------------- small helpers ---------------- */
+// const isObjectId = (s) => typeof s === 'string' && /^[a-f\d]{24}$/i.test(s);
+
 // async function presignKey(key) {
 //   if (!key) return '';
 //   try {
@@ -79,6 +70,7 @@
 //   }
 // }
 
+// /* ---------------- page ---------------- */
 // function TestimonialEditor() {
 //   const userId = defaultUserId;
 //   const templateId = useResolvedTemplateId(userId);
@@ -87,6 +79,7 @@
 //   const [success, setSuccess] = useState('');
 //   const [error, setError] = useState('');
 //   const [loading, setLoading] = useState(false);
+
 //   const [form, setForm] = useState({
 //     name: '',
 //     profession: '',
@@ -94,6 +87,7 @@
 //     rating: 5,
 //   });
 //   const [imageFile, setImageFile] = useState(null);
+
 //   const [editingId, setEditingId] = useState(null);
 //   const [editingImageFile, setEditingImageFile] = useState(null);
 
@@ -104,24 +98,20 @@
 
 //   const imgDisplayUrl = useMemo(
 //     () => async (item) => {
-//       // If backend already returned a full URL, use it
-//       if (item?.imageUrl && /^https?:\/\//i.test(item.imageUrl)) return item.imageUrl;
-
-//       // If we have an S3 key (imageKey or non-absolute imageUrl), presign it
+//       if (item?.imageUrl && /^https?:\/\//i.test(item.imageUrl))
+//         return item.imageUrl;
 //       const maybeKey =
 //         item?.imageKey ||
-//         (item?.imageUrl && !/^https?:\/\//i.test(item.imageUrl) ? item.imageUrl : '');
-
+//         (item?.imageUrl && !/^https?:\/\//i.test(item.imageUrl)
+//           ? item.imageUrl
+//           : '');
 //       if (maybeKey) {
 //         const url = await presignKey(maybeKey);
 //         if (url) return url;
 //       }
-
-//       // Legacy /uploads fallback
 //       if (typeof item?.imageUrl === 'string' && item.imageUrl.startsWith('/uploads/')) {
 //         return `${backendUrl}${item.imageUrl}`;
 //       }
-
 //       return '';
 //     },
 //     []
@@ -133,18 +123,24 @@
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [templateId]);
 
-//   const fetchTestimonials = async () => {
+//   async function fetchTestimonials() {
 //     try {
 //       const res = await fetch(
-//         `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
+//         `${backendUrl}/api/testimonial/${encodeURIComponent(
+//           userId
+//         )}/${encodeURIComponent(templateId)}`
 //       );
 //       const data = await res.json();
-//       const arr = Array.isArray(data) ? data : [];
+//       const arr = Array.isArray(data)
+//         ? data
+//         : Array.isArray(data.items)
+//         ? data.items
+//         : [];
 
-//       // Attach displayUrl per item
 //       const withUrls = await Promise.all(
 //         arr.map(async (t) => ({
 //           ...t,
+//           _id: t._id || t.id,
 //           displayUrl: await imgDisplayUrl(t),
 //         }))
 //       );
@@ -153,9 +149,9 @@
 //       console.error(e);
 //       setError('Failed to load testimonials');
 //     }
-//   };
+//   }
 
-//   const handleAdd = async () => {
+//   async function handleAdd() {
 //     resetAlerts();
 //     if (!form.name || !form.message) {
 //       setError('Name and message are required');
@@ -172,18 +168,19 @@
 //       if (imageFile) fd.append('image', imageFile);
 
 //       const res = await fetch(
-//         `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
+//         `${backendUrl}/api/testimonial/${encodeURIComponent(
+//           userId
+//         )}/${encodeURIComponent(templateId)}`,
 //         { method: 'POST', body: fd }
 //       );
 
 //       if (!res.ok) throw new Error(await res.text());
 //       const data = await res.json();
-
-//       // Normalize and add displayUrl
 //       const newItem = { ...(data?.data || data) };
+//       newItem._id = newItem._id || newItem.id;
 //       newItem.displayUrl = await imgDisplayUrl(newItem);
-//       setItems((prev) => [newItem, ...prev]);
 
+//       setItems((prev) => [newItem, ...prev]);
 //       setForm({ name: '', profession: '', message: '', rating: 5 });
 //       setImageFile(null);
 //       setSuccess('✅ Testimonial added');
@@ -193,9 +190,9 @@
 //     } finally {
 //       setLoading(false);
 //     }
-//   };
+//   }
 
-//   const handleEditStart = (item) => {
+//   function handleEditStart(item) {
 //     setForm({
 //       name: item.name || '',
 //       profession: item.profession || '',
@@ -206,39 +203,69 @@
 //     setEditingImageFile(null);
 //     setImageFile(null);
 //     window.scrollTo(0, 0);
-//   };
+//   }
 
-//   const handleEdit = async () => {
+//   // If editing a template placeholder (id like "tpl-0"), create an override instead of PATCH.
+//   async function handleEdit() {
 //     resetAlerts();
-//     if (!editingId || !form.name || !form.message) {
+//     if (!form.name || !form.message) {
 //       setError('Name and message are required');
 //       return;
 //     }
+//     if (!editingId) return;
 
 //     try {
 //       setLoading(true);
-//       const fd = new FormData();
-//       fd.append('name', form.name);
-//       fd.append('profession', form.profession);
-//       fd.append('message', form.message);
-//       fd.append('rating', String(form.rating));
-//       if (editingImageFile) fd.append('image', editingImageFile);
 
-//       const res = await fetch(`${backendUrl}/api/testimonial/${encodeURIComponent(editingId)}`, {
-//         method: 'PATCH',
-//         body: fd,
-//       });
+//       if (!isObjectId(editingId)) {
+//         // Template item -> create user override (POST)
+//         const fd = new FormData();
+//         fd.append('name', form.name);
+//         fd.append('profession', form.profession);
+//         fd.append('message', form.message);
+//         fd.append('rating', String(form.rating));
+//         if (editingImageFile) fd.append('image', editingImageFile);
 
-//       if (!res.ok) throw new Error(await res.text());
-//       const updated = await res.json();
+//         const res = await fetch(
+//           `${backendUrl}/api/testimonial/${encodeURIComponent(
+//             userId
+//           )}/${encodeURIComponent(templateId)}`,
+//           { method: 'POST', body: fd }
+//         );
+//         if (!res.ok) throw new Error(await res.text());
+//         const created = await res.json();
+//         const up = { ...(created?.data || created) };
+//         up._id = up._id || up.id;
+//         up.displayUrl = await imgDisplayUrl(up);
+//         setItems((prev) => [up, ...prev]);
+//         setSuccess('✅ Converted template item to your testimonial');
+//       } else {
+//         // Real DB row -> PATCH
+//         const fd = new FormData();
+//         fd.append('name', form.name);
+//         fd.append('profession', form.profession);
+//         fd.append('message', form.message);
+//         fd.append('rating', String(form.rating));
+//         if (editingImageFile) fd.append('image', editingImageFile);
 
-//       // Refresh display url
-//       const up = { ...(updated?.data || updated) };
-//       up.displayUrl = await imgDisplayUrl(up);
+//         const res = await fetch(
+//           `${backendUrl}/api/testimonial/${encodeURIComponent(editingId)}`,
+//           { method: 'PATCH', body: fd }
+//         );
+//         if (!res.ok) throw new Error(await res.text());
+//         const updated = await res.json();
 
-//       setItems((prev) => prev.map((it) => (it._id === editingId ? up : it)));
+//         const up = { ...(updated?.data || updated) };
+//         up._id = up._id || up.id;
+//         up.displayUrl = await imgDisplayUrl(up);
 
-//       setSuccess('✅ Testimonial updated');
+//         setItems((prev) =>
+//           prev.map((it) => ((it._id || it.id) === (up._id || up.id) ? up : it))
+//         );
+//         setSuccess('✅ Testimonial updated');
+//       }
+
+//       // reset
 //       setForm({ name: '', profession: '', message: '', rating: 5 });
 //       setImageFile(null);
 //       setEditingImageFile(null);
@@ -249,22 +276,29 @@
 //     } finally {
 //       setLoading(false);
 //     }
-//   };
+//   }
 
-//   const handleDelete = async (id) => {
+//   async function handleDelete(id) {
 //     resetAlerts();
+//     if (!isObjectId(id)) {
+//       setError(
+//         'This item comes from the template. Convert it (Edit → Save) before deleting.'
+//       );
+//       return;
+//     }
 //     try {
-//       const res = await fetch(`${backendUrl}/api/testimonial/${encodeURIComponent(id)}`, {
-//         method: 'DELETE',
-//       });
+//       const res = await fetch(
+//         `${backendUrl}/api/testimonial/${encodeURIComponent(id)}`,
+//         { method: 'DELETE' }
+//       );
 //       if (!res.ok) throw new Error('Delete failed');
-//       setItems((prev) => prev.filter((t) => t._id !== id));
+//       setItems((prev) => prev.filter((t) => (t._id || t.id) !== id));
 //       setSuccess('🗑️ Testimonial deleted');
 //     } catch (e) {
 //       console.error(e);
 //       setError('Failed to delete testimonial');
 //     }
-//   };
+//   }
 
 //   return (
 //     <Container fluid className="py-4">
@@ -275,15 +309,21 @@
 //         </Col>
 //       </Row>
 
-//       {/* Preview Section */}
+//       {/* Preview */}
 //       <Row className="my-4">
 //         <Col>
 //           <div className="bg-light p-4 rounded shadow-sm">
 //             <h5 className="mb-4">Live Preview</h5>
 //             <div className="d-flex flex-wrap gap-4">
-//               {items.length === 0 && <span className="text-muted">No testimonials yet.</span>}
+//               {items.length === 0 && (
+//                 <span className="text-muted">No testimonials yet.</span>
+//               )}
 //               {items.map((t) => (
-//                 <div key={t._id} className="border rounded p-3 bg-white shadow-sm" style={{ width: '300px' }}>
+//                 <div
+//                   key={t._id}
+//                   className="border rounded p-3 bg-white shadow-sm"
+//                   style={{ width: '300px' }}
+//                 >
 //                   {t.displayUrl ? (
 //                     <Image
 //                       src={t.displayUrl}
@@ -292,7 +332,9 @@
 //                       height={80}
 //                       roundedCircle
 //                       className="mb-2"
-//                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
+//                       onError={(e) => {
+//                         e.currentTarget.style.display = 'none';
+//                       }}
 //                     />
 //                   ) : null}
 //                   <h6 className="mb-1">{t.name}</h6>
@@ -302,9 +344,11 @@
 //                     {Array.from({ length: t.rating || 0 }).map((_, i) => (
 //                       <i key={i} className="fas fa-star"></i>
 //                     ))}
-//                     {Array.from({ length: Math.max(0, 5 - (t.rating || 0)) }).map((_, i) => (
-//                       <i key={i} className="far fa-star"></i>
-//                     ))}
+//                     {Array.from({ length: Math.max(0, 5 - (t.rating || 0)) }).map(
+//                       (_, i) => (
+//                         <i key={i} className="far fa-star"></i>
+//                       )
+//                     )}
 //                   </div>
 //                 </div>
 //               ))}
@@ -323,7 +367,9 @@
 //               <Form.Label>Name *</Form.Label>
 //               <Form.Control
 //                 value={form.name}
-//                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({ ...p, name: e.target.value }))
+//                 }
 //               />
 //             </Form.Group>
 
@@ -331,7 +377,9 @@
 //               <Form.Label>Profession</Form.Label>
 //               <Form.Control
 //                 value={form.profession}
-//                 onChange={(e) => setForm((p) => ({ ...p, profession: e.target.value }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({ ...p, profession: e.target.value }))
+//                 }
 //               />
 //             </Form.Group>
 
@@ -341,7 +389,9 @@
 //                 as="textarea"
 //                 rows={4}
 //                 value={form.message}
-//                 onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({ ...p, message: e.target.value }))
+//                 }
 //               />
 //             </Form.Group>
 
@@ -351,12 +401,19 @@
 //                 min={1}
 //                 max={5}
 //                 value={form.rating}
-//                 onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({
+//                     ...p,
+//                     rating: Number(e.target.value),
+//                   }))
+//                 }
 //               />
 //             </Form.Group>
 
 //             <Form.Group className="mb-3">
-//               <Form.Label>{editingId ? 'Replace Image (optional)' : 'Image (optional)'}</Form.Label>
+//               <Form.Label>
+//                 {editingId ? 'Replace Image (optional)' : 'Image (optional)'}
+//               </Form.Label>
 //               <Form.Control
 //                 type="file"
 //                 accept="image/*"
@@ -403,7 +460,11 @@
 //           </thead>
 //           <tbody>
 //             {items.length === 0 ? (
-//               <tr><td colSpan={6} className="text-center text-muted">No testimonials yet.</td></tr>
+//               <tr>
+//                 <td colSpan={6} className="text-center text-muted">
+//                   No testimonials yet.
+//                 </td>
+//               </tr>
 //             ) : (
 //               items.map((t) => (
 //                 <tr key={t._id}>
@@ -415,7 +476,9 @@
 //                         width={60}
 //                         height={60}
 //                         roundedCircle
-//                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
+//                         onError={(e) => {
+//                           e.currentTarget.style.display = 'none';
+//                         }}
 //                       />
 //                     ) : (
 //                       <span className="text-muted">No image</span>
@@ -427,10 +490,18 @@
 //                   <td className="align-middle">{t.rating}</td>
 //                   <td className="align-middle">
 //                     <div className="d-flex gap-2 flex-wrap">
-//                       <Button variant="warning" size="sm" onClick={() => handleEditStart(t)}>
+//                       <Button
+//                         variant="warning"
+//                         size="sm"
+//                         onClick={() => handleEditStart(t)}
+//                       >
 //                         Edit
 //                       </Button>
-//                       <Button variant="danger" size="sm" onClick={() => handleDelete(t._id)}>
+//                       <Button
+//                         variant="danger"
+//                         size="sm"
+//                         onClick={() => handleDelete(t._id)}
+//                       >
 //                         Delete
 //                       </Button>
 //                     </div>
@@ -445,9 +516,10 @@
 //   );
 // }
 
-// TestimonialEditor.getLayout = (page) => (
-//   <EditorDashboardLayout>{page}</EditorDashboardLayout>
-// );
+// /* wrap in layout (JS-safe) */
+// TestimonialEditor.getLayout = function (page) {
+//   return <EditorDashboardLayout>{page}</EditorDashboardLayout>;
+// };
 
 // export default TestimonialEditor;
 
@@ -466,9 +538,7 @@
 
 
 
-
-// // og
-
+// // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\testimonialS.js
 // 'use client';
 
 // import React, { useEffect, useMemo, useState } from 'react';
@@ -490,19 +560,18 @@
 //   templateId as defaultTemplateId,
 // } from '../../lib/config';
 // import { api } from '../../lib/api';
-// import BackBar from "../components/BackBar";
+// import BackBar from '../components/BackBar';
 
-// /** Resolve templateId in this order:
-//  *  1) ?templateId=… in URL
-//  *  2) backend-selected template for the user
-//  *  3) config fallback (legacy)
-//  */
+// /* ---------------- templateId resolver ---------------- */
 // function useResolvedTemplateId(userId) {
 //   const [tpl, setTpl] = useState('');
 //   useEffect(() => {
 //     let off = false;
 //     (async () => {
-//       const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+//       const sp =
+//         typeof window !== 'undefined'
+//           ? new URLSearchParams(window.location.search)
+//           : null;
 //       const fromUrl = sp?.get('templateId')?.trim();
 //       if (fromUrl) {
 //         if (!off) setTpl(fromUrl);
@@ -518,16 +587,25 @@
 //       } catch {}
 //       if (!off) setTpl(defaultTemplateId || 'gym-template-1');
 //     })();
-//     return () => { off = true; };
+//     return () => {
+//       off = true;
+//     };
 //   }, [userId]);
 //   return tpl;
 // }
 
-// // Helper: presign S3 keys
+// /* ---------------- small helpers ---------------- */
+// const ABS = /^https?:\/\//i;
+// const isObjectId = (s) => typeof s === 'string' && /^[a-f\d]{24}$/i.test(s);
+// const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
 // async function presignKey(key) {
 //   if (!key) return '';
 //   try {
-//     const res = await fetch(`${backendUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`);
+//     const res = await fetch(
+//       `${backendUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`,
+//       { credentials: 'include', cache: 'no-store' }
+//     );
 //     const json = await res.json().catch(() => ({}));
 //     return json?.url || json?.signedUrl || '';
 //   } catch {
@@ -535,6 +613,28 @@
 //   }
 // }
 
+// async function buildDisplayUrl(item) {
+//   if (item?.imageUrl && ABS.test(item.imageUrl)) return item.imageUrl;
+//   const key =
+//     item?.imageKey ||
+//     (item?.imageUrl && !ABS.test(item.imageUrl) ? item.imageUrl : '');
+//   if (key) {
+//     const url = await presignKey(key);
+//     if (url) return url;
+//   }
+//   if (typeof item?.imageUrl === 'string' && item.imageUrl.startsWith('/uploads/')) {
+//     return `${backendUrl}${item.imageUrl}`;
+//   }
+//   return '';
+// }
+
+// function normItems(payload) {
+//   if (Array.isArray(payload)) return payload;
+//   if (payload && Array.isArray(payload.items)) return payload.items;
+//   return [];
+// }
+
+// /* ---------------- page ---------------- */
 // function TestimonialEditor() {
 //   const userId = defaultUserId;
 //   const templateId = useResolvedTemplateId(userId);
@@ -543,6 +643,7 @@
 //   const [success, setSuccess] = useState('');
 //   const [error, setError] = useState('');
 //   const [loading, setLoading] = useState(false);
+
 //   const [form, setForm] = useState({
 //     name: '',
 //     profession: '',
@@ -550,6 +651,7 @@
 //     rating: 5,
 //   });
 //   const [imageFile, setImageFile] = useState(null);
+
 //   const [editingId, setEditingId] = useState(null);
 //   const [editingImageFile, setEditingImageFile] = useState(null);
 
@@ -559,44 +661,32 @@
 //   };
 
 //   const imgDisplayUrl = useMemo(
-//     () => async (item) => {
-//       if (item?.imageUrl && /^https?:\/\//i.test(item.imageUrl)) return item.imageUrl;
-//       const maybeKey =
-//         item?.imageKey ||
-//         (item?.imageUrl && !/^https?:\/\//i.test(item.imageUrl) ? item.imageUrl : '');
-//       if (maybeKey) {
-//         const url = await presignKey(maybeKey);
-//         if (url) return url;
-//       }
-//       if (typeof item?.imageUrl === 'string' && item.imageUrl.startsWith('/uploads/')) {
-//         return `${backendUrl}${item.imageUrl}`;
-//       }
-//       return '';
-//     },
+//     () => async (item) => buildDisplayUrl(item),
 //     []
 //   );
 
 //   useEffect(() => {
 //     if (!templateId) return;
 //     fetchTestimonials();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [templateId]);
 
-//   const fetchTestimonials = async () => {
+//   async function fetchTestimonials() {
 //     try {
 //       const res = await fetch(
-//         `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`
+//         `${backendUrl}/api/testimonial/${encodeURIComponent(
+//           userId
+//         )}/${encodeURIComponent(templateId)}?_=${Date.now()}`,
+//         { credentials: 'include', cache: 'no-store' }
 //       );
-//       const data = await res.json();
-//       // FIX: handle both object & array response shapes
-//       const arr = Array.isArray(data)
-//         ? data
-//         : Array.isArray(data.items)
-//         ? data.items
-//         : [];
+//       const data = await res.json().catch(() => ({}));
+//       const arr = normItems(data);
 
 //       const withUrls = await Promise.all(
 //         arr.map(async (t) => ({
 //           ...t,
+//           _id: t._id || t.id,
+//           rating: clamp(Number(t.rating || 0), 0, 5),
 //           displayUrl: await imgDisplayUrl(t),
 //         }))
 //       );
@@ -605,9 +695,9 @@
 //       console.error(e);
 //       setError('Failed to load testimonials');
 //     }
-//   };
+//   }
 
-//   const handleAdd = async () => {
+//   async function handleAdd() {
 //     resetAlerts();
 //     if (!form.name || !form.message) {
 //       setError('Name and message are required');
@@ -620,20 +710,24 @@
 //       fd.append('name', form.name);
 //       fd.append('profession', form.profession);
 //       fd.append('message', form.message);
-//       fd.append('rating', String(form.rating));
+//       fd.append('rating', String(clamp(form.rating, 1, 5)));
 //       if (imageFile) fd.append('image', imageFile);
 
 //       const res = await fetch(
-//         `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`,
-//         { method: 'POST', body: fd }
+//         `${backendUrl}/api/testimonial/${encodeURIComponent(
+//           userId
+//         )}/${encodeURIComponent(templateId)}`,
+//         { method: 'POST', body: fd, credentials: 'include', cache: 'no-store' }
 //       );
 
 //       if (!res.ok) throw new Error(await res.text());
-//       const data = await res.json();
+//       const data = await res.json().catch(() => ({}));
 //       const newItem = { ...(data?.data || data) };
+//       newItem._id = newItem._id || newItem.id;
+//       newItem.rating = clamp(Number(newItem.rating || 0), 0, 5);
 //       newItem.displayUrl = await imgDisplayUrl(newItem);
-//       setItems((prev) => [newItem, ...prev]);
 
+//       setItems((prev) => [newItem, ...prev]);
 //       setForm({ name: '', profession: '', message: '', rating: 5 });
 //       setImageFile(null);
 //       setSuccess('✅ Testimonial added');
@@ -643,51 +737,84 @@
 //     } finally {
 //       setLoading(false);
 //     }
-//   };
+//   }
 
-//   const handleEditStart = (item) => {
+//   function handleEditStart(item) {
 //     setForm({
 //       name: item.name || '',
 //       profession: item.profession || '',
 //       message: item.message || '',
-//       rating: item.rating || 5,
+//       rating: clamp(Number(item.rating || 5), 1, 5),
 //     });
 //     setEditingId(item._id);
 //     setEditingImageFile(null);
 //     setImageFile(null);
-//     window.scrollTo(0, 0);
-//   };
+//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//   }
 
-//   const handleEdit = async () => {
+//   // If editing a template placeholder (id like "tpl-0"), create an override instead of PATCH.
+//   async function handleEdit() {
 //     resetAlerts();
-//     if (!editingId || !form.name || !form.message) {
+//     if (!form.name || !form.message) {
 //       setError('Name and message are required');
 //       return;
 //     }
+//     if (!editingId) return;
 
 //     try {
 //       setLoading(true);
-//       const fd = new FormData();
-//       fd.append('name', form.name);
-//       fd.append('profession', form.profession);
-//       fd.append('message', form.message);
-//       fd.append('rating', String(form.rating));
-//       if (editingImageFile) fd.append('image', editingImageFile);
 
-//       const res = await fetch(`${backendUrl}/api/testimonial/${encodeURIComponent(editingId)}`, {
-//         method: 'PATCH',
-//         body: fd,
-//       });
+//       if (!isObjectId(editingId)) {
+//         // Template item -> create user override (POST)
+//         const fd = new FormData();
+//         fd.append('name', form.name);
+//         fd.append('profession', form.profession);
+//         fd.append('message', form.message);
+//         fd.append('rating', String(clamp(form.rating, 1, 5)));
+//         if (editingImageFile) fd.append('image', editingImageFile);
 
-//       if (!res.ok) throw new Error(await res.text());
-//       const updated = await res.json();
+//         const res = await fetch(
+//           `${backendUrl}/api/testimonial/${encodeURIComponent(
+//             userId
+//           )}/${encodeURIComponent(templateId)}`,
+//           { method: 'POST', body: fd, credentials: 'include', cache: 'no-store' }
+//         );
+//         if (!res.ok) throw new Error(await res.text());
+//         const created = await res.json().catch(() => ({}));
+//         const up = { ...(created?.data || created) };
+//         up._id = up._id || up.id;
+//         up.rating = clamp(Number(up.rating || 0), 0, 5);
+//         up.displayUrl = await imgDisplayUrl(up);
+//         setItems((prev) => [up, ...prev]);
+//         setSuccess('✅ Converted template item to your testimonial');
+//       } else {
+//         // Real DB row -> PATCH
+//         const fd = new FormData();
+//         fd.append('name', form.name);
+//         fd.append('profession', form.profession);
+//         fd.append('message', form.message);
+//         fd.append('rating', String(clamp(form.rating, 1, 5)));
+//         if (editingImageFile) fd.append('image', editingImageFile);
 
-//       const up = { ...(updated?.data || updated) };
-//       up.displayUrl = await imgDisplayUrl(up);
+//         const res = await fetch(
+//           `${backendUrl}/api/testimonial/${encodeURIComponent(editingId)}`,
+//           { method: 'PATCH', body: fd, credentials: 'include', cache: 'no-store' }
+//         );
+//         if (!res.ok) throw new Error(await res.text());
+//         const updated = await res.json().catch(() => ({}));
 
-//       setItems((prev) => prev.map((it) => (it._id === editingId ? up : it)));
+//         const up = { ...(updated?.data || updated) };
+//         up._id = up._id || up.id;
+//         up.rating = clamp(Number(up.rating || 0), 0, 5);
+//         up.displayUrl = await imgDisplayUrl(up);
 
-//       setSuccess('✅ Testimonial updated');
+//         setItems((prev) =>
+//           prev.map((it) => ((it._id || it.id) === (up._id || up.id) ? up : it))
+//         );
+//         setSuccess('✅ Testimonial updated');
+//       }
+
+//       // reset
 //       setForm({ name: '', profession: '', message: '', rating: 5 });
 //       setImageFile(null);
 //       setEditingImageFile(null);
@@ -698,22 +825,29 @@
 //     } finally {
 //       setLoading(false);
 //     }
-//   };
+//   }
 
-//   const handleDelete = async (id) => {
+//   async function handleDelete(id) {
 //     resetAlerts();
+//     if (!isObjectId(id)) {
+//       setError(
+//         'This item comes from the template. Convert it (Edit → Save) before deleting.'
+//       );
+//       return;
+//     }
 //     try {
-//       const res = await fetch(`${backendUrl}/api/testimonial/${encodeURIComponent(id)}`, {
-//         method: 'DELETE',
-//       });
+//       const res = await fetch(
+//         `${backendUrl}/api/testimonial/${encodeURIComponent(id)}`,
+//         { method: 'DELETE', credentials: 'include', cache: 'no-store' }
+//       );
 //       if (!res.ok) throw new Error('Delete failed');
-//       setItems((prev) => prev.filter((t) => t._id !== id));
+//       setItems((prev) => prev.filter((t) => (t._id || t.id) !== id));
 //       setSuccess('🗑️ Testimonial deleted');
 //     } catch (e) {
 //       console.error(e);
 //       setError('Failed to delete testimonial');
 //     }
-//   };
+//   }
 
 //   return (
 //     <Container fluid className="py-4">
@@ -724,36 +858,46 @@
 //         </Col>
 //       </Row>
 
-//       {/* Preview Section */}
+//       {/* Preview */}
 //       <Row className="my-4">
 //         <Col>
 //           <div className="bg-light p-4 rounded shadow-sm">
 //             <h5 className="mb-4">Live Preview</h5>
 //             <div className="d-flex flex-wrap gap-4">
-//               {items.length === 0 && <span className="text-muted">No testimonials yet.</span>}
+//               {items.length === 0 && (
+//                 <span className="text-muted">No testimonials yet.</span>
+//               )}
 //               {items.map((t) => (
-//                 <div key={t._id} className="border rounded p-3 bg-white shadow-sm" style={{ width: '300px' }}>
+//                 <div
+//                   key={t._id || t.id}
+//                   className="border rounded p-3 bg-white shadow-sm"
+//                   style={{ width: '300px' }}
+//                 >
 //                   {t.displayUrl ? (
 //                     <Image
 //                       src={t.displayUrl}
-//                       alt={t.name}
+//                       alt={t.name || 'User'}
 //                       width={80}
 //                       height={80}
 //                       roundedCircle
 //                       className="mb-2"
-//                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
+//                       onError={(e) => {
+//                         e.currentTarget.style.display = 'none';
+//                       }}
 //                     />
 //                   ) : null}
-//                   <h6 className="mb-1">{t.name}</h6>
-//                   <small className="text-muted">{t.profession}</small>
-//                   <p className="mt-2 mb-1">{t.message}</p>
+//                   <h6 className="mb-1">{t.name || 'Name'}</h6>
+//                   <small className="text-muted">{t.profession || ''}</small>
+//                   <p className="mt-2 mb-1">{t.message || ''}</p>
 //                   <div className="text-warning">
-//                     {Array.from({ length: t.rating || 0 }).map((_, i) => (
+//                     {Array.from({ length: clamp(t.rating || 0, 0, 5) }).map((_, i) => (
 //                       <i key={i} className="fas fa-star"></i>
 //                     ))}
-//                     {Array.from({ length: Math.max(0, 5 - (t.rating || 0)) }).map((_, i) => (
-//                       <i key={i} className="far fa-star"></i>
-//                     ))}
+//                     {Array.from({ length: Math.max(0, 5 - clamp(t.rating || 0, 0, 5)) }).map(
+//                       (_, i) => (
+//                         <i key={i} className="far fa-star"></i>
+//                       )
+//                     )}
 //                   </div>
 //                 </div>
 //               ))}
@@ -772,7 +916,9 @@
 //               <Form.Label>Name *</Form.Label>
 //               <Form.Control
 //                 value={form.name}
-//                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({ ...p, name: e.target.value }))
+//                 }
 //               />
 //             </Form.Group>
 
@@ -780,7 +926,9 @@
 //               <Form.Label>Profession</Form.Label>
 //               <Form.Control
 //                 value={form.profession}
-//                 onChange={(e) => setForm((p) => ({ ...p, profession: e.target.value }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({ ...p, profession: e.target.value }))
+//                 }
 //               />
 //             </Form.Group>
 
@@ -790,7 +938,9 @@
 //                 as="textarea"
 //                 rows={4}
 //                 value={form.message}
-//                 onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({ ...p, message: e.target.value }))
+//                 }
 //               />
 //             </Form.Group>
 
@@ -800,12 +950,19 @@
 //                 min={1}
 //                 max={5}
 //                 value={form.rating}
-//                 onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
+//                 onChange={(e) =>
+//                   setForm((p) => ({
+//                     ...p,
+//                     rating: clamp(Number(e.target.value), 1, 5),
+//                   }))
+//                 }
 //               />
 //             </Form.Group>
 
 //             <Form.Group className="mb-3">
-//               <Form.Label>{editingId ? 'Replace Image (optional)' : 'Image (optional)'}</Form.Label>
+//               <Form.Label>
+//                 {editingId ? 'Replace Image (optional)' : 'Image (optional)'}
+//               </Form.Label>
 //               <Form.Control
 //                 type="file"
 //                 accept="image/*"
@@ -852,19 +1009,25 @@
 //           </thead>
 //           <tbody>
 //             {items.length === 0 ? (
-//               <tr><td colSpan={6} className="text-center text-muted">No testimonials yet.</td></tr>
+//               <tr>
+//                 <td colSpan={6} className="text-center text-muted">
+//                   No testimonials yet.
+//                 </td>
+//               </tr>
 //             ) : (
 //               items.map((t) => (
-//                 <tr key={t._id}>
+//                 <tr key={t._id || t.id}>
 //                   <td className="align-middle">
 //                     {t.displayUrl ? (
 //                       <Image
 //                         src={t.displayUrl}
-//                         alt={t.name}
+//                         alt={t.name || 'User'}
 //                         width={60}
 //                         height={60}
 //                         roundedCircle
-//                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
+//                         onError={(e) => {
+//                           e.currentTarget.style.display = 'none';
+//                         }}
 //                       />
 //                     ) : (
 //                       <span className="text-muted">No image</span>
@@ -873,13 +1036,21 @@
 //                   <td className="align-middle">{t.name}</td>
 //                   <td className="align-middle">{t.profession}</td>
 //                   <td className="align-middle">{t.message}</td>
-//                   <td className="align-middle">{t.rating}</td>
+//                   <td className="align-middle">{clamp(t.rating || 0, 0, 5)}</td>
 //                   <td className="align-middle">
 //                     <div className="d-flex gap-2 flex-wrap">
-//                       <Button variant="warning" size="sm" onClick={() => handleEditStart(t)}>
+//                       <Button
+//                         variant="warning"
+//                         size="sm"
+//                         onClick={() => handleEditStart(t)}
+//                       >
 //                         Edit
 //                       </Button>
-//                       <Button variant="danger" size="sm" onClick={() => handleDelete(t._id)}>
+//                       <Button
+//                         variant="danger"
+//                         size="sm"
+//                         onClick={() => handleDelete(t._id || t.id)}
+//                       >
 //                         Delete
 //                       </Button>
 //                     </div>
@@ -894,9 +1065,10 @@
 //   );
 // }
 
-// TestimonialEditor.getLayout = (page) => (
-//   <EditorDashboardLayout>{page}</EditorDashboardLayout>
-// );
+// /* wrap in layout (JS-safe) */
+// TestimonialEditor.getLayout = function (page) {
+//   return <EditorDashboardLayout>{page}</EditorDashboardLayout>;
+// };
 
 // export default TestimonialEditor;
 
@@ -917,32 +1089,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\testimonialS.js
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -960,52 +1107,25 @@ import {
 import EditorDashboardLayout from '../layouts/EditorDashboardLayout';
 import {
   backendBaseUrl as backendUrl,
-  userId as defaultUserId,
-  templateId as defaultTemplateId,
 } from '../../lib/config';
 import { api } from '../../lib/api';
+import { useIonContext } from '../../lib/useIonContext';
 import BackBar from '../components/BackBar';
 
-/* ---------------- templateId resolver ---------------- */
-function useResolvedTemplateId(userId) {
-  const [tpl, setTpl] = useState('');
-  useEffect(() => {
-    let off = false;
-    (async () => {
-      const sp =
-        typeof window !== 'undefined'
-          ? new URLSearchParams(window.location.search)
-          : null;
-      const fromUrl = sp?.get('templateId')?.trim();
-      if (fromUrl) {
-        if (!off) setTpl(fromUrl);
-        return;
-      }
-      try {
-        const sel = await api.selectedTemplateForUser(userId);
-        const t = sel?.data?.templateId;
-        if (t && !off) {
-          setTpl(t);
-          return;
-        }
-      } catch {}
-      if (!off) setTpl(defaultTemplateId || 'gym-template-1');
-    })();
-    return () => {
-      off = true;
-    };
-  }, [userId]);
-  return tpl;
-}
-
-/* ---------------- small helpers ---------------- */
+/* ---------------- helpers ---------------- */
+const ABS = /^https?:\/\//i;
 const isObjectId = (s) => typeof s === 'string' && /^[a-f\d]{24}$/i.test(s);
+const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+const isPresigned = (url) =>
+  /\bX-Amz-(Signature|Algorithm|Credential|Date|Expires|SignedHeaders)=/i.test(String(url));
+const bust = (url) => (!url || isPresigned(url) ? url : `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`);
 
 async function presignKey(key) {
   if (!key) return '';
   try {
     const res = await fetch(
-      `${backendUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`
+      `${backendUrl}/api/upload/file-url?key=${encodeURIComponent(key)}`,
+      { credentials: 'include', cache: 'no-store' }
     );
     const json = await res.json().catch(() => ({}));
     return json?.url || json?.signedUrl || '';
@@ -1014,10 +1134,30 @@ async function presignKey(key) {
   }
 }
 
+async function buildDisplayUrl(item) {
+  if (item?.imageUrl && ABS.test(item.imageUrl)) return bust(item.imageUrl);
+  const key =
+    item?.imageKey ||
+    (item?.imageUrl && !ABS.test(item.imageUrl) ? item.imageUrl : '');
+  if (key) {
+    const url = await presignKey(key);
+    if (url) return bust(url);
+  }
+  if (typeof item?.imageUrl === 'string' && item.imageUrl.startsWith('/uploads/')) {
+    return bust(`${backendUrl}${item.imageUrl}`);
+  }
+  return '';
+}
+
+function normItems(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.items)) return payload.items;
+  return [];
+}
+
 /* ---------------- page ---------------- */
 function TestimonialEditor() {
-  const userId = defaultUserId;
-  const templateId = useResolvedTemplateId(userId);
+  const { userId, templateId } = useIonContext(); // ✅ single source of truth
 
   const [items, setItems] = useState([]);
   const [success, setSuccess] = useState('');
@@ -1041,50 +1181,41 @@ function TestimonialEditor() {
   };
 
   const imgDisplayUrl = useMemo(
-    () => async (item) => {
-      if (item?.imageUrl && /^https?:\/\//i.test(item.imageUrl))
-        return item.imageUrl;
-      const maybeKey =
-        item?.imageKey ||
-        (item?.imageUrl && !/^https?:\/\//i.test(item.imageUrl)
-          ? item.imageUrl
-          : '');
-      if (maybeKey) {
-        const url = await presignKey(maybeKey);
-        if (url) return url;
-      }
-      if (typeof item?.imageUrl === 'string' && item.imageUrl.startsWith('/uploads/')) {
-        return `${backendUrl}${item.imageUrl}`;
-      }
-      return '';
-    },
+    () => async (item) => buildDisplayUrl(item),
     []
   );
 
+  const endpoints = useMemo(() => {
+    if (!userId || !templateId) return null;
+    const base = `${backendUrl}/api/testimonial/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+    return {
+      list: `${base}`,
+      create: `${base}`,
+      reset: `${base}/reset`,
+      patchOne: (id) => `${backendUrl}/api/testimonial/${encodeURIComponent(id)}`,
+      deleteOne: (id) => `${backendUrl}/api/testimonial/${encodeURIComponent(id)}`,
+    };
+  }, [userId, templateId]);
+
   useEffect(() => {
-    if (!templateId) return;
+    if (!endpoints) return;
     fetchTestimonials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId]);
+  }, [endpoints?.list]);
 
   async function fetchTestimonials() {
     try {
-      const res = await fetch(
-        `${backendUrl}/api/testimonial/${encodeURIComponent(
-          userId
-        )}/${encodeURIComponent(templateId)}`
-      );
-      const data = await res.json();
-      const arr = Array.isArray(data)
-        ? data
-        : Array.isArray(data.items)
-        ? data.items
-        : [];
-
+      const res = await fetch(`${endpoints.list}?_=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const data = await res.json().catch(() => ({}));
+      const arr = normItems(data);
       const withUrls = await Promise.all(
         arr.map(async (t) => ({
           ...t,
           _id: t._id || t.id,
+          rating: clamp(Number(t.rating || 0), 0, 5),
           displayUrl: await imgDisplayUrl(t),
         }))
       );
@@ -1108,20 +1239,21 @@ function TestimonialEditor() {
       fd.append('name', form.name);
       fd.append('profession', form.profession);
       fd.append('message', form.message);
-      fd.append('rating', String(form.rating));
+      fd.append('rating', String(clamp(form.rating, 1, 5)));
       if (imageFile) fd.append('image', imageFile);
 
-      const res = await fetch(
-        `${backendUrl}/api/testimonial/${encodeURIComponent(
-          userId
-        )}/${encodeURIComponent(templateId)}`,
-        { method: 'POST', body: fd }
-      );
+      const res = await fetch(endpoints.create, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+        cache: 'no-store',
+      });
 
       if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const newItem = { ...(data?.data || data) };
       newItem._id = newItem._id || newItem.id;
+      newItem.rating = clamp(Number(newItem.rating || 0), 0, 5);
       newItem.displayUrl = await imgDisplayUrl(newItem);
 
       setItems((prev) => [newItem, ...prev]);
@@ -1141,12 +1273,12 @@ function TestimonialEditor() {
       name: item.name || '',
       profession: item.profession || '',
       message: item.message || '',
-      rating: item.rating || 5,
+      rating: clamp(Number(item.rating || 5), 1, 5),
     });
     setEditingId(item._id);
     setEditingImageFile(null);
     setImageFile(null);
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // If editing a template placeholder (id like "tpl-0"), create an override instead of PATCH.
@@ -1156,7 +1288,7 @@ function TestimonialEditor() {
       setError('Name and message are required');
       return;
     }
-    if (!editingId) return;
+    if (!editingId || !endpoints) return;
 
     try {
       setLoading(true);
@@ -1167,19 +1299,20 @@ function TestimonialEditor() {
         fd.append('name', form.name);
         fd.append('profession', form.profession);
         fd.append('message', form.message);
-        fd.append('rating', String(form.rating));
+        fd.append('rating', String(clamp(form.rating, 1, 5)));
         if (editingImageFile) fd.append('image', editingImageFile);
 
-        const res = await fetch(
-          `${backendUrl}/api/testimonial/${encodeURIComponent(
-            userId
-          )}/${encodeURIComponent(templateId)}`,
-          { method: 'POST', body: fd }
-        );
+        const res = await fetch(endpoints.create, {
+          method: 'POST',
+          body: fd,
+          credentials: 'include',
+          cache: 'no-store',
+        });
         if (!res.ok) throw new Error(await res.text());
-        const created = await res.json();
+        const created = await res.json().catch(() => ({}));
         const up = { ...(created?.data || created) };
         up._id = up._id || up.id;
+        up.rating = clamp(Number(up.rating || 0), 0, 5);
         up.displayUrl = await imgDisplayUrl(up);
         setItems((prev) => [up, ...prev]);
         setSuccess('✅ Converted template item to your testimonial');
@@ -1189,18 +1322,21 @@ function TestimonialEditor() {
         fd.append('name', form.name);
         fd.append('profession', form.profession);
         fd.append('message', form.message);
-        fd.append('rating', String(form.rating));
+        fd.append('rating', String(clamp(form.rating, 1, 5)));
         if (editingImageFile) fd.append('image', editingImageFile);
 
-        const res = await fetch(
-          `${backendUrl}/api/testimonial/${encodeURIComponent(editingId)}`,
-          { method: 'PATCH', body: fd }
-        );
+        const res = await fetch(endpoints.patchOne(editingId), {
+          method: 'PATCH',
+          body: fd,
+          credentials: 'include',
+          cache: 'no-store',
+        });
         if (!res.ok) throw new Error(await res.text());
-        const updated = await res.json();
+        const updated = await res.json().catch(() => ({}));
 
         const up = { ...(updated?.data || updated) };
         up._id = up._id || up.id;
+        up.rating = clamp(Number(up.rating || 0), 0, 5);
         up.displayUrl = await imgDisplayUrl(up);
 
         setItems((prev) =>
@@ -1209,7 +1345,7 @@ function TestimonialEditor() {
         setSuccess('✅ Testimonial updated');
       }
 
-      // reset
+      // reset editing form
       setForm({ name: '', profession: '', message: '', rating: 5 });
       setImageFile(null);
       setEditingImageFile(null);
@@ -1224,6 +1360,7 @@ function TestimonialEditor() {
 
   async function handleDelete(id) {
     resetAlerts();
+    if (!endpoints) return;
     if (!isObjectId(id)) {
       setError(
         'This item comes from the template. Convert it (Edit → Save) before deleting.'
@@ -1231,10 +1368,11 @@ function TestimonialEditor() {
       return;
     }
     try {
-      const res = await fetch(
-        `${backendUrl}/api/testimonial/${encodeURIComponent(id)}`,
-        { method: 'DELETE' }
-      );
+      const res = await fetch(endpoints.deleteOne(id), {
+        method: 'DELETE',
+        credentials: 'include',
+        cache: 'no-store',
+      });
       if (!res.ok) throw new Error('Delete failed');
       setItems((prev) => prev.filter((t) => (t._id || t.id) !== id));
       setSuccess('🗑️ Testimonial deleted');
@@ -1244,11 +1382,41 @@ function TestimonialEditor() {
     }
   }
 
+  /* ⟳ Reset to template defaults (like Hero) */
+  async function handleReset() {
+    resetAlerts();
+    if (!endpoints) return;
+    if (!confirm('Reset testimonials to template defaults?')) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${endpoints.reset}?_=${Date.now()}`, {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(await res.text().catch(() => 'Reset failed'));
+
+      // Re-fetch so the preview shows the seeded defaults immediately
+      await fetchTestimonials();
+      setSuccess('↺ Reset to defaults done.');
+    } catch (e) {
+      console.error(e);
+      setError('Failed to reset testimonials');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Container fluid className="py-4">
       <Row>
-        <Col>
-          <h4 className="fw-bold">⭐ Testimonial Section Editor</h4>
+        <Col className="d-flex align-items-center justify-content-between">
+          <div>
+            <h4 className="fw-bold">⭐ Testimonial Section Editor</h4>
+            <div className="small text-muted">
+              template: <code>{templateId || '…'}</code>
+            </div>
+          </div>
           <BackBar />
         </Col>
       </Row>
@@ -1264,14 +1432,14 @@ function TestimonialEditor() {
               )}
               {items.map((t) => (
                 <div
-                  key={t._id}
+                  key={t._id || t.id}
                   className="border rounded p-3 bg-white shadow-sm"
                   style={{ width: '300px' }}
                 >
                   {t.displayUrl ? (
                     <Image
                       src={t.displayUrl}
-                      alt={t.name}
+                      alt={t.name || 'User'}
                       width={80}
                       height={80}
                       roundedCircle
@@ -1281,14 +1449,14 @@ function TestimonialEditor() {
                       }}
                     />
                   ) : null}
-                  <h6 className="mb-1">{t.name}</h6>
-                  <small className="text-muted">{t.profession}</small>
-                  <p className="mt-2 mb-1">{t.message}</p>
+                  <h6 className="mb-1">{t.name || 'Name'}</h6>
+                  <small className="text-muted">{t.profession || ''}</small>
+                  <p className="mt-2 mb-1">{t.message || ''}</p>
                   <div className="text-warning">
-                    {Array.from({ length: t.rating || 0 }).map((_, i) => (
+                    {Array.from({ length: clamp(t.rating || 0, 0, 5) }).map((_, i) => (
                       <i key={i} className="fas fa-star"></i>
                     ))}
-                    {Array.from({ length: Math.max(0, 5 - (t.rating || 0)) }).map(
+                    {Array.from({ length: Math.max(0, 5 - clamp(t.rating || 0, 0, 5)) }).map(
                       (_, i) => (
                         <i key={i} className="far fa-star"></i>
                       )
@@ -1348,7 +1516,7 @@ function TestimonialEditor() {
                 onChange={(e) =>
                   setForm((p) => ({
                     ...p,
-                    rating: Number(e.target.value),
+                    rating: clamp(Number(e.target.value), 1, 5),
                   }))
                 }
               />
@@ -1369,23 +1537,32 @@ function TestimonialEditor() {
               />
             </Form.Group>
 
-            <Button onClick={editingId ? handleEdit : handleAdd} disabled={loading || !templateId}>
-              {loading ? 'Saving…' : editingId ? '✏️ Update Testimonial' : '➕ Add Testimonial'}
-            </Button>
-            {editingId && (
-              <Button
-                variant="secondary"
-                className="ms-2"
-                onClick={() => {
-                  setEditingId(null);
-                  setForm({ name: '', profession: '', message: '', rating: 5 });
-                  setImageFile(null);
-                  setEditingImageFile(null);
-                }}
-              >
-                Cancel
+            <div className="d-flex gap-2">
+              <Button onClick={editingId ? handleEdit : handleAdd} disabled={loading || !templateId || !userId}>
+                {loading ? 'Saving…' : editingId ? '✏️ Update Testimonial' : '➕ Add Testimonial'}
               </Button>
-            )}
+              <Button
+                variant="outline-secondary"
+                onClick={handleReset}
+                disabled={loading || !templateId || !userId}
+                title="Reset to template defaults on the server"
+              >
+                ↺ Reset to Defaults
+              </Button>
+              {editingId && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditingId(null);
+                    setForm({ name: '', profession: '', message: '', rating: 5 });
+                    setImageFile(null);
+                    setEditingImageFile(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
           </Col>
         </Row>
       </Card>
@@ -1411,12 +1588,12 @@ function TestimonialEditor() {
               </tr>
             ) : (
               items.map((t) => (
-                <tr key={t._id}>
+                <tr key={t._id || t.id}>
                   <td className="align-middle">
                     {t.displayUrl ? (
                       <Image
                         src={t.displayUrl}
-                        alt={t.name}
+                        alt={t.name || 'User'}
                         width={60}
                         height={60}
                         roundedCircle
@@ -1431,7 +1608,7 @@ function TestimonialEditor() {
                   <td className="align-middle">{t.name}</td>
                   <td className="align-middle">{t.profession}</td>
                   <td className="align-middle">{t.message}</td>
-                  <td className="align-middle">{t.rating}</td>
+                  <td className="align-middle">{clamp(t.rating || 0, 0, 5)}</td>
                   <td className="align-middle">
                     <div className="d-flex gap-2 flex-wrap">
                       <Button
@@ -1444,7 +1621,7 @@ function TestimonialEditor() {
                       <Button
                         variant="danger"
                         size="sm"
-                        onClick={() => handleDelete(t._id)}
+                        onClick={() => handleDelete(t._id || t.id)}
                       >
                         Delete
                       </Button>
@@ -1460,7 +1637,7 @@ function TestimonialEditor() {
   );
 }
 
-/* wrap in layout (JS-safe) */
+/* wrap in layout */
 TestimonialEditor.getLayout = function (page) {
   return <EditorDashboardLayout>{page}</EditorDashboardLayout>;
 };

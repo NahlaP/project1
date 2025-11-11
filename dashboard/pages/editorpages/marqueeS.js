@@ -1,3 +1,8 @@
+
+
+
+
+// // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\marqueeS.js
 // "use client";
 
 // import React, { useEffect, useMemo, useState } from "react";
@@ -16,10 +21,7 @@
 // } from "react-bootstrap";
 // import { useRouter } from "next/router";
 // import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-// import {
-//   backendBaseUrl,
-//   userId as defaultUserId,
-// } from "../../lib/config";
+// import { backendBaseUrl, userId as defaultUserId } from "../../lib/config";
 // import { api } from "../../lib/api";
 // import BackBar from "../components/BackBar";
 
@@ -36,37 +38,46 @@
 //       const fromUrl =
 //         typeof router.query.templateId === "string" &&
 //         router.query.templateId.trim();
-//       if (fromUrl) { if (!off) setTid(fromUrl); return; }
-
+//       if (fromUrl) {
+//         if (!off) setTid(fromUrl);
+//         return;
+//       }
 //       try {
 //         const sel = await api.selectedTemplateForUser(userId);
 //         const t = sel?.data?.templateId;
-//         if (t && !off) { setTid(t); return; }
+//         if (t && !off) {
+//           setTid(t);
+//           return;
+//         }
 //       } catch {}
-
 //       if (!off) setTid("sir-template-1");
 //     })();
-//     return () => { off = true; };
+//     return () => {
+//       off = true;
+//     };
 //   }, [router.query.templateId, userId]);
 //   return tid;
 // }
 
 // function MarqueeStudioPage() {
-//   const router = useRouter();
 //   const userId = defaultUserId;
 //   const templateId = useResolvedTemplateId(userId);
 
 //   const [items, setItems] = useState([{ text: "", icon: "*" }]);
 //   const [saving, setSaving] = useState(false);
+//   const [resetting, setResetting] = useState(false);
 //   const [showToast, setShowToast] = useState(false);
+//   const [toastMsg, setToastMsg] = useState("✅ Saved successfully.");
 //   const [errorMsg, setErrorMsg] = useState("");
 
 //   const apiUrl = useMemo(() => {
 //     if (!templateId) return "";
-//     return `${API}/api/marquee/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+//     return `${API}/api/marquee/${encodeURIComponent(
+//       userId
+//     )}/${encodeURIComponent(templateId)}`;
 //   }, [userId, templateId]);
 
-//   // defaults when template changes (keep at least 5)
+//   // sensible local defaults while resolving template / before first GET
 //   useEffect(() => {
 //     setItems([
 //       { text: "UI-UX Experience", icon: "*" },
@@ -78,19 +89,27 @@
 //     setErrorMsg("");
 //   }, [templateId]);
 
-//   // load
+//   // loader
+//   const load = async () => {
+//     if (!apiUrl) return;
+//     const res = await fetch(`${apiUrl}?_=${Date.now()}`, {
+//       headers: { Accept: "application/json" },
+//       cache: "no-store",
+//     });
+//     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+//     const data = await res.json().catch(() => ({}));
+//     const arr = Array.isArray(data?.items) ? data.items : [];
+//     if (arr.length) {
+//       setItems(arr.map((x) => ({ text: x.text || "", icon: x.icon || "*" })));
+//     }
+//   };
+
+//   // initial load & on template change
 //   useEffect(() => {
 //     if (!apiUrl) return;
 //     (async () => {
 //       try {
-//         const res = await fetch(`${apiUrl}?_=${Date.now()}`, {
-//           headers: { Accept: "application/json" },
-//           cache: "no-store",
-//         });
-//         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-//         const data = await res.json().catch(() => ({}));
-//         const arr = Array.isArray(data?.items) ? data.items : [];
-//         if (arr.length) setItems(arr.map((x) => ({ text: x.text || "", icon: x.icon || "*" })));
+//         await load();
 //       } catch (e) {
 //         console.error("❌ Load marquee failed", e);
 //         setErrorMsg("Failed to load marquee data.");
@@ -112,8 +131,7 @@
 //       prev.length >= MAX_ITEMS ? prev : [...prev, { text: "", icon: "*" }]
 //     );
 
-//   const removeItem = (idx) =>
-//     setItems((prev) => prev.filter((_, i) => i !== idx));
+//   const removeItem = (idx) => setItems((prev) => prev.filter((_, i) => i !== idx));
 
 //   const moveUp = (idx) =>
 //     setItems((prev) => {
@@ -136,24 +154,66 @@
 //     setSaving(true);
 //     setErrorMsg("");
 //     try {
-//       const body = { items: items.map((x) => ({ text: x.text || "", icon: x.icon || "*" })) };
+//       const body = {
+//         items: items
+//           .map((x) => ({ text: (x.text || "").trim(), icon: x.icon || "*" }))
+//           .filter((x) => x.text.length > 0),
+//       };
 //       const res = await fetch(apiUrl, {
 //         method: "PUT",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify(body),
 //         cache: "no-store",
 //       });
-//       const isJson = (res.headers.get("content-type") || "").includes("application/json");
+//       const isJson = (res.headers.get("content-type") || "").includes(
+//         "application/json"
+//       );
 //       const data = isJson ? await res.json().catch(() => ({})) : null;
 //       if (!res.ok) {
-//         const txt = isJson ? (data?.error || data?.message) : await res.text().catch(() => "");
+//         const txt = isJson
+//           ? data?.error || data?.message
+//           : await res.text().catch(() => "");
 //         throw new Error(txt || `Save failed (${res.status})`);
 //       }
+//       setToastMsg("✅ Saved successfully.");
 //       setShowToast(true);
 //     } catch (e) {
 //       setErrorMsg(e?.message || "Save failed");
 //     } finally {
 //       setSaving(false);
+//     }
+//   };
+
+//   const handleReset = async () => {
+//     if (!apiUrl) return;
+//     setResetting(true);
+//     setErrorMsg("");
+//     try {
+//       const res = await fetch(`${apiUrl}/reset`, {
+//         method: "POST",
+//         headers: { Accept: "application/json" },
+//         cache: "no-store",
+//       });
+//       const isJson = (res.headers.get("content-type") || "").includes(
+//         "application/json"
+//       );
+//       const data = isJson ? await res.json().catch(() => ({})) : null;
+//       if (!res.ok) {
+//         const txt = isJson
+//           ? data?.error || data?.message
+//           : await res.text().catch(() => "");
+//         throw new Error(txt || `Reset failed (${res.status})`);
+//       }
+
+//       // reload from backend (will fall back to template → hard default)
+//       await load();
+
+//       setToastMsg("✅ Reset to template defaults.");
+//       setShowToast(true);
+//     } catch (e) {
+//       setErrorMsg(e?.message || "Reset failed");
+//     } finally {
+//       setResetting(false);
 //     }
 //   };
 
@@ -182,7 +242,9 @@
 //       {errorMsg ? (
 //         <Row className="mb-3">
 //           <Col>
-//             <Alert variant="danger" className="mb-0">{errorMsg}</Alert>
+//             <Alert variant="danger" className="mb-0">
+//               {errorMsg}
+//             </Alert>
 //           </Col>
 //         </Row>
 //       ) : null}
@@ -206,9 +268,25 @@
 //       <Card className="p-3">
 //         <div className="d-flex justify-content-between align-items-center mb-2">
 //           <h6 className="mb-0 fw-bold">Items</h6>
-//           <Button variant="outline-primary" size="sm" onClick={addItem} disabled={items.length >= MAX_ITEMS}>
-//             ➕ Add Item
-//           </Button>
+//           <div className="d-flex gap-2">
+//             <Button
+//               variant="outline-secondary"
+//               size="sm"
+//               onClick={handleReset}
+//               disabled={resetting || !templateId}
+//               title="Reset to template defaults"
+//             >
+//               {resetting ? "Resetting…" : "↺ Reset to Defaults"}
+//             </Button>
+//             <Button
+//               variant="outline-primary"
+//               size="sm"
+//               onClick={addItem}
+//               disabled={items.length >= MAX_ITEMS}
+//             >
+//               ➕ Add Item
+//             </Button>
+//           </div>
 //         </div>
 
 //         <Table bordered hover responsive>
@@ -268,7 +346,11 @@
 //               </tr>
 //             ))}
 //             {items.length === 0 && (
-//               <tr><td colSpan={4} className="text-center text-muted">No items. Add one above.</td></tr>
+//               <tr>
+//                 <td colSpan={4} className="text-center text-muted">
+//                   No items. Add one above.
+//                 </td>
+//               </tr>
 //             )}
 //           </tbody>
 //         </Table>
@@ -281,8 +363,14 @@
 //       </Card>
 
 //       <ToastContainer position="bottom-end" className="p-3">
-//         <Toast bg="success" onClose={() => setShowToast(false)} show={showToast} delay={2200} autohide>
-//           <Toast.Body className="text-white">✅ Saved successfully.</Toast.Body>
+//         <Toast
+//           bg="success"
+//           onClose={() => setShowToast(false)}
+//           show={showToast}
+//           delay={2200}
+//           autohide
+//         >
+//           <Toast.Body className="text-white">{toastMsg}</Toast.Body>
 //         </Toast>
 //       </ToastContainer>
 //     </Container>
@@ -314,67 +402,34 @@
 
 
 
-
 // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\marqueeS.js
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-  Form,
-  Toast,
-  ToastContainer,
-  Alert,
-  Badge,
-  Table,
+  Container, Row, Col, Card, Button, Form, Toast, ToastContainer,
+  Alert, Badge, Table
 } from "react-bootstrap";
-import { useRouter } from "next/router";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-import { backendBaseUrl, userId as defaultUserId } from "../../lib/config";
-import { api } from "../../lib/api";
 import BackBar from "../components/BackBar";
+
+import { backendBaseUrl } from "../../lib/config";
+import { useIonContext } from "../../lib/useIonContext";
 
 const API = backendBaseUrl || "";
 const MAX_ITEMS = 10;
 
-/* Resolve templateId: (1) ?templateId, (2) backend selection, (3) fallback */
-function useResolvedTemplateId(userId) {
-  const router = useRouter();
-  const [tid, setTid] = useState("");
-  useEffect(() => {
-    let off = false;
-    (async () => {
-      const fromUrl =
-        typeof router.query.templateId === "string" &&
-        router.query.templateId.trim();
-      if (fromUrl) {
-        if (!off) setTid(fromUrl);
-        return;
-      }
-      try {
-        const sel = await api.selectedTemplateForUser(userId);
-        const t = sel?.data?.templateId;
-        if (t && !off) {
-          setTid(t);
-          return;
-        }
-      } catch {}
-      if (!off) setTid("sir-template-1");
-    })();
-    return () => {
-      off = true;
-    };
-  }, [router.query.templateId, userId]);
-  return tid;
-}
+// sensible local preview defaults (used only before first successful GET)
+const LOCAL_DEFAULTS = [
+  { text: "UI-UX Experience", icon: "*" },
+  { text: "Web Development", icon: "*" },
+  { text: "Digital Marketing", icon: "*" },
+  { text: "Product Design", icon: "*" },
+  { text: "Mobile Solutions", icon: "*" },
+];
 
 function MarqueeStudioPage() {
-  const userId = defaultUserId;
-  const templateId = useResolvedTemplateId(userId);
+  const { userId, templateId } = useIonContext();
 
   const [items, setItems] = useState([{ text: "", icon: "*" }]);
   const [saving, setSaving] = useState(false);
@@ -384,40 +439,34 @@ function MarqueeStudioPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const apiUrl = useMemo(() => {
-    if (!templateId) return "";
-    return `${API}/api/marquee/${encodeURIComponent(
-      userId
-    )}/${encodeURIComponent(templateId)}`;
+    if (!userId || !templateId) return "";
+    return `${API}/api/marquee/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
   }, [userId, templateId]);
 
-  // sensible local defaults while resolving template / before first GET
+  // while resolving template, show nice defaults
   useEffect(() => {
-    setItems([
-      { text: "UI-UX Experience", icon: "*" },
-      { text: "Web Development", icon: "*" },
-      { text: "Digital Marketing", icon: "*" },
-      { text: "Product Design", icon: "*" },
-      { text: "Mobile Solutions", icon: "*" },
-    ]);
+    setItems(LOCAL_DEFAULTS);
     setErrorMsg("");
   }, [templateId]);
 
-  // loader
   const load = async () => {
     if (!apiUrl) return;
     const res = await fetch(`${apiUrl}?_=${Date.now()}`, {
       headers: { Accept: "application/json" },
       cache: "no-store",
+      credentials: "include",
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = await res.json().catch(() => ({}));
     const arr = Array.isArray(data?.items) ? data.items : [];
-    if (arr.length) {
-      setItems(arr.map((x) => ({ text: x.text || "", icon: x.icon || "*" })));
-    }
+    setItems(
+      arr.length
+        ? arr.map((x) => ({ text: x?.text || "", icon: x?.icon || "*" }))
+        : LOCAL_DEFAULTS
+    );
   };
 
-  // initial load & on template change
+  // initial load & when template/user changes
   useEffect(() => {
     if (!apiUrl) return;
     (async () => {
@@ -477,17 +526,16 @@ function MarqueeStudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         cache: "no-store",
+        credentials: "include",
       });
-      const isJson = (res.headers.get("content-type") || "").includes(
-        "application/json"
-      );
+      const isJson = (res.headers.get("content-type") || "").includes("application/json");
       const data = isJson ? await res.json().catch(() => ({})) : null;
       if (!res.ok) {
-        const txt = isJson
-          ? data?.error || data?.message
-          : await res.text().catch(() => "");
+        const txt = isJson ? (data?.error || data?.message) : await res.text().catch(() => "");
         throw new Error(txt || `Save failed (${res.status})`);
       }
+
+      await load();
       setToastMsg("✅ Saved successfully.");
       setShowToast(true);
     } catch (e) {
@@ -502,25 +550,20 @@ function MarqueeStudioPage() {
     setResetting(true);
     setErrorMsg("");
     try {
-      const res = await fetch(`${apiUrl}/reset`, {
+      const res = await fetch(`${apiUrl}/reset?_=${Date.now()}`, {
         method: "POST",
         headers: { Accept: "application/json" },
         cache: "no-store",
+        credentials: "include",
       });
-      const isJson = (res.headers.get("content-type") || "").includes(
-        "application/json"
-      );
+      const isJson = (res.headers.get("content-type") || "").includes("application/json");
       const data = isJson ? await res.json().catch(() => ({})) : null;
       if (!res.ok) {
-        const txt = isJson
-          ? data?.error || data?.message
-          : await res.text().catch(() => "");
+        const txt = isJson ? (data?.error || data?.message) : await res.text().catch(() => "");
         throw new Error(txt || `Reset failed (${res.status})`);
       }
 
-      // reload from backend (will fall back to template → hard default)
-      await load();
-
+      await load(); // fetch template defaults now active
       setToastMsg("✅ Reset to template defaults.");
       setShowToast(true);
     } catch (e) {
@@ -545,7 +588,7 @@ function MarqueeStudioPage() {
             </div>
             {apiUrl && (
               <div className="text-muted" title={apiUrl}>
-                endpoint: <code>/api/marquee/{defaultUserId}/{templateId}</code>
+                endpoint: <code>/api/marquee/{userId || "?"}/{templateId || "?"}</code>
               </div>
             )}
           </div>
@@ -555,9 +598,7 @@ function MarqueeStudioPage() {
       {errorMsg ? (
         <Row className="mb-3">
           <Col>
-            <Alert variant="danger" className="mb-0">
-              {errorMsg}
-            </Alert>
+            <Alert variant="danger" className="mb-0">{errorMsg}</Alert>
           </Col>
         </Row>
       ) : null}
@@ -676,13 +717,7 @@ function MarqueeStudioPage() {
       </Card>
 
       <ToastContainer position="bottom-end" className="p-3">
-        <Toast
-          bg="success"
-          onClose={() => setShowToast(false)}
-          show={showToast}
-          delay={2200}
-          autohide
-        >
+        <Toast bg="success" onClose={() => setShowToast(false)} show={showToast} delay={2200} autohide>
           <Toast.Body className="text-white">{toastMsg}</Toast.Body>
         </Toast>
       </ToastContainer>
@@ -690,8 +725,5 @@ function MarqueeStudioPage() {
   );
 }
 
-MarqueeStudioPage.getLayout = (page) => (
-  <EditorDashboardLayout>{page}</EditorDashboardLayout>
-);
-
+MarqueeStudioPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
 export default MarqueeStudioPage;

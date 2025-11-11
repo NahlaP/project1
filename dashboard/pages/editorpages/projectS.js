@@ -1,3 +1,9 @@
+
+
+
+
+
+// // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\projectS.js
 // "use client";
 
 // import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +31,7 @@
 // import BackBar from "../components/BackBar";
 
 // /* ------------------------------------------------------------------
-//    Template profile (SIR shows a “works” strip with up to 6 projects)
+//    SIR template shows a “works” strip with up to 6 projects
 // -------------------------------------------------------------------*/
 // const MAX_PROJECTS = 6;
 
@@ -43,11 +49,12 @@
 // };
 
 // const API = backendBaseUrl || "";
-// const isAbs = (u) => typeof u === "string" && /^https?:\/\//i.test(u);
+// const ABS_RX = /^https?:\/\//i;
+// const isAbs = (u) => typeof u === "string" && ABS_RX.test(u);
 // const toAbs = (u) => {
 //   if (!u) return "";
-//   if (isAbs(u)) return u;
-//   if (u.startsWith("/")) return u;
+//   if (isAbs(u)) return u;                     // presigned from backend
+//   if (u.startsWith("/")) return u;            // absolute path
 //   if (s3Bucket && s3Region) {
 //     return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${u.replace(/^\/+/, "")}`;
 //   }
@@ -61,16 +68,26 @@
 //   useEffect(() => {
 //     let off = false;
 //     (async () => {
-//       const fromUrl = typeof router.query.templateId === "string" && router.query.templateId.trim();
-//       if (fromUrl) { if (!off) setTid(fromUrl); return; }
+//       const fromUrl =
+//         typeof router.query.templateId === "string" &&
+//         router.query.templateId.trim();
+//       if (fromUrl) {
+//         if (!off) setTid(fromUrl);
+//         return;
+//       }
 //       try {
 //         const sel = await api.selectedTemplateForUser(userId);
 //         const t = sel?.data?.templateId;
-//         if (t && !off) { setTid(t); return; }
+//         if (t && !off) {
+//           setTid(t);
+//           return;
+//         }
 //       } catch {}
 //       if (!off) setTid("sir-template-1");
 //     })();
-//     return () => { off = true; };
+//     return () => {
+//       off = true;
+//     };
 //   }, [router.query.templateId, userId]);
 //   return tid;
 // }
@@ -81,63 +98,76 @@
 //   const userId = defaultUserId;
 //   const templateId = useResolvedTemplateId(userId);
 
+//   // Always keep exactly MAX_PROJECTS slots in UI
+//   const emptyRow = { tag: "", title: "", year: "", href: "", imageUrl: "", imageKey: "" };
 //   const [projects, setProjects] = useState(
-//     Array.from({ length: MAX_PROJECTS }, () => ({
-//       tag: "", title: "", year: "", href: "", imageUrl: "", imageKey: ""
-//     }))
+//     Array.from({ length: MAX_PROJECTS }, () => ({ ...emptyRow }))
 //   );
+
 //   const [saving, setSaving] = useState(false);
+//   const [resetting, setResetting] = useState(false);
 //   const [showToast, setShowToast] = useState(false);
 //   const [errorMsg, setErrorMsg] = useState("");
 
-//   // Keep a local per-index draft file & preview
+//   // Keep a local per-index draft file & preview (upload on Save)
 //   const [drafts, setDrafts] = useState(
 //     Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" }))
 //   );
-//   const lastUrlsRef = useRef(Array(MAX_PROJECTS).fill(null));
+//   const lastUrlsRef = useRef(Array(MAX_PROJECTS).fill(null)); // revokeObjectURL later
 
 //   const apiUrl = useMemo(() => {
 //     if (!templateId) return "";
 //     return `${API}/api/projects/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
 //   }, [userId, templateId]);
 
-//   // Defaults for template
+//   // Template defaults → fill UI (non-destructive)
 //   useEffect(() => {
 //     const d = TEMPLATE_DEFAULTS["sir-template-1"]?.projects || [];
 //     setProjects((prev) => {
-//       const merged = Array.from({ length: MAX_PROJECTS }, (_, i) => ({ ...prev[i], ...(d[i] || {}) }));
+//       const merged = Array.from({ length: MAX_PROJECTS }, (_, i) => ({
+//         ...emptyRow,
+//         ...(prev[i] || {}),
+//         ...(d[i] || {}),
+//       }));
 //       return merged;
 //     });
 //     setDrafts(Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" })));
 //   }, [templateId]);
 
-//   // Load current
+//   // Load current from backend
+//   const loadProjects = async () => {
+//     if (!apiUrl) return;
+//     const res = await fetch(`${apiUrl}?_=${Date.now()}`, {
+//       headers: { Accept: "application/json" },
+//       cache: "no-store",
+//     });
+//     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+//     const data = await res.json().catch(() => ({}));
+//     const list = Array.isArray(data?.projects) ? data.projects : [];
+
+//     setProjects(() => {
+//       // pad/trim to exactly MAX_PROJECTS
+//       const padded = Array.from({ length: MAX_PROJECTS }, (_, i) => ({
+//         ...emptyRow,
+//         ...(list[i] || {}),
+//         imageUrl: list[i]?.imageUrl || "", // presigned for preview
+//         imageKey: list[i]?.imageKey || "", // S3 key persisted in DB
+//       }));
+//       return padded;
+//     });
+//   };
+
 //   useEffect(() => {
 //     if (!apiUrl) return;
 //     (async () => {
 //       try {
-//         const res = await fetch(`${apiUrl}?_=${Date.now()}`, {
-//           headers: { Accept: "application/json" },
-//           cache: "no-store",
-//         });
-//         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-//         const data = await res.json().catch(() => ({}));
-//         const list = Array.isArray(data?.projects) ? data.projects : [];
-//         // The backend returns presigned imageUrl (+ imageKey). Keep both.
-//         setProjects((prev) => {
-//           const merged = Array.from({ length: MAX_PROJECTS }, (_, i) => ({
-//             ...prev[i],
-//             ...(list[i] || {}),
-//             imageUrl: (list[i]?.imageUrl || ""), // presigned for preview
-//             imageKey: (list[i]?.imageKey || prev[i]?.imageKey || "")
-//           }));
-//           return merged;
-//         });
+//         await loadProjects();
 //       } catch (e) {
 //         console.error("❌ Load projects failed", e);
 //         setErrorMsg("Failed to load projects.");
 //       }
 //     })();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [apiUrl]);
 
 //   // field setters
@@ -194,7 +224,7 @@
 //         Array.from({ length: MAX_PROJECTS }, (_, i) => uploadDraftIfAny(i))
 //       );
 
-//       // 2) prepare payload
+//       // 2) prepare payload (keys only)
 //       const body = {
 //         projects: projects.map((p, i) => ({
 //           tag: p.tag || "",
@@ -203,6 +233,7 @@
 //           href: p.href || "",
 //           // If we uploaded a new file, send its relative key; otherwise keep prior key.
 //           imageKey: uploadedKeys[i] ? uploadedKeys[i] : (p.imageKey || ""),
+//           // (imageAlt is fixed in controller as "Project image" unless you add it to UI)
 //         })),
 //       };
 
@@ -213,7 +244,9 @@
 //         body: JSON.stringify(body),
 //         cache: "no-store",
 //       });
-//       const okJson = (res.headers.get("content-type") || "").toLowerCase().includes("application/json");
+//       const okJson = (res.headers.get("content-type") || "")
+//         .toLowerCase()
+//         .includes("application/json");
 //       const data = okJson ? await res.json().catch(() => ({})) : null;
 //       if (!res.ok) {
 //         const txt = okJson ? (data?.error || data?.message) : await res.text().catch(() => "");
@@ -221,31 +254,57 @@
 //       }
 
 //       // 4) refresh from server
-//       const fresh = await fetch(`${apiUrl}?_=${Date.now()}`, {
-//         headers: { Accept: "application/json" },
-//         cache: "no-store",
-//       });
-//       const freshJson = await fresh.json().catch(() => ({}));
-//       const list = Array.isArray(freshJson?.projects) ? freshJson.projects : [];
-//       setProjects((prev) => {
-//         const merged = Array.from({ length: MAX_PROJECTS }, (_, i) => ({
-//           ...prev[i],
-//           ...(list[i] || {}),
-//           imageUrl: (list[i]?.imageUrl || ""),    // presigned for preview
-//           imageKey: (list[i]?.imageKey || prev[i]?.imageKey || "")
-//         }));
-//         return merged;
-//       });
+//       await loadProjects();
 
 //       // 5) clear draft previews
 //       setDrafts(Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" })));
-//       lastUrlsRef.current.forEach((u, i) => { if (u) URL.revokeObjectURL(u); lastUrlsRef.current[i] = null; });
+//       lastUrlsRef.current.forEach((u, i) => {
+//         if (u) URL.revokeObjectURL(u);
+//         lastUrlsRef.current[i] = null;
+//       });
 
 //       setShowToast(true);
 //     } catch (e) {
 //       setErrorMsg(e?.message || "Save failed");
 //     } finally {
 //       setSaving(false);
+//     }
+//   };
+
+//   const handleReset = async () => {
+//     if (!apiUrl) return;
+//     setResetting(true);
+//     setErrorMsg("");
+//     try {
+//       const res = await fetch(`${apiUrl}/reset`, {
+//         method: "POST",
+//         headers: { Accept: "application/json" },
+//         cache: "no-store",
+//       });
+//       const okJson = (res.headers.get("content-type") || "")
+//         .toLowerCase()
+//         .includes("application/json");
+//       const data = okJson ? await res.json().catch(() => ({})) : null;
+//       if (!res.ok) {
+//         const txt = okJson ? (data?.error || data?.message) : await res.text().catch(() => "");
+//         throw new Error(txt || `Reset failed (${res.status})`);
+//       }
+
+//       // reload fresh data
+//       await loadProjects();
+
+//       // clear drafts
+//       setDrafts(Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" })));
+//       lastUrlsRef.current.forEach((u, i) => {
+//         if (u) URL.revokeObjectURL(u);
+//         lastUrlsRef.current[i] = null;
+//       });
+
+//       setShowToast(true);
+//     } catch (e) {
+//       setErrorMsg(e?.message || "Reset failed");
+//     } finally {
+//       setResetting(false);
 //     }
 //   };
 
@@ -286,9 +345,15 @@
 //             <div key={i} className="border rounded p-2" style={{ width: 280 }}>
 //               <div className="ratio ratio-16x9 mb-2" style={{ background: "#111" }}>
 //                 {drafts[i].preview || p.imageUrl ? (
-//                   <img src={drafts[i].preview || toAbs(p.imageUrl)} alt="" style={{ objectFit: "cover" }} />
+//                   <img
+//                     src={drafts[i].preview || toAbs(p.imageUrl)}
+//                     alt=""
+//                     style={{ objectFit: "cover" }}
+//                   />
 //                 ) : (
-//                   <div className="d-flex align-items-center justify-content-center text-muted">No image</div>
+//                   <div className="d-flex align-items-center justify-content-center text-muted">
+//                     No image
+//                   </div>
 //                 )}
 //               </div>
 //               <div className="small opacity-75">{p.tag || "Tag"}</div>
@@ -343,7 +408,15 @@
 //         ))}
 //       </Row>
 
-//       <div className="d-flex justify-content-end mt-3">
+//       <div className="d-flex justify-content-end gap-2 mt-3">
+//         <Button
+//           variant="outline-secondary"
+//           onClick={handleReset}
+//           disabled={resetting || !templateId}
+//           title="Reset to template defaults"
+//         >
+//           {resetting ? "Resetting…" : "↺ Reset to Defaults"}
+//         </Button>
 //         <Button onClick={handleSave} disabled={saving || !templateId}>
 //           {saving ? "Saving…" : "💾 Save"}
 //         </Button>
@@ -357,7 +430,7 @@
 //           delay={2200}
 //           autohide
 //         >
-//           <Toast.Body className="text-white">✅ Saved successfully.</Toast.Body>
+//           <Toast.Body className="text-white">✅ Done.</Toast.Body>
 //         </Toast>
 //       </ToastContainer>
 //     </Container>
@@ -377,55 +450,20 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\projectS.js
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-  Form,
-  Toast,
-  ToastContainer,
-  Alert,
-  Badge,
+  Container, Row, Col, Card, Button, Form,
+  Toast, ToastContainer, Alert, Badge,
 } from "react-bootstrap";
 import { useRouter } from "next/router";
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
-import {
-  backendBaseUrl,
-  userId as defaultUserId,
-  s3Bucket,
-  s3Region,
-} from "../../lib/config";
-import { api } from "../../lib/api";
 import BackBar from "../components/BackBar";
+
+import { backendBaseUrl, s3Bucket, s3Region } from "../../lib/config";
+import { useIonContext } from "../../lib/useIonContext";
 
 /* ------------------------------------------------------------------
    SIR template shows a “works” strip with up to 6 projects
@@ -435,65 +473,34 @@ const MAX_PROJECTS = 6;
 const TEMPLATE_DEFAULTS = {
   "sir-template-1": {
     projects: [
-      { tag: "Digital Design", title: "Retouch Photo", year: "2023", href: "project1.html", imageUrl: "", imageKey: "" },
+      { tag: "Digital Design", title: "Retouch Photo",   year: "2023", href: "project1.html", imageUrl: "", imageKey: "" },
       { tag: "Branding",       title: "Earthmade Aroma", year: "2023", href: "project2.html", imageUrl: "", imageKey: "" },
       { tag: "Branding",       title: "Bank Rebranding", year: "2023", href: "project3.html", imageUrl: "", imageKey: "" },
-      { tag: "Product Design", title: "The joy of music", year: "2023", href: "project4.html", imageUrl: "", imageKey: "" },
+      { tag: "Product Design", title: "The joy of music",year: "2023", href: "project4.html", imageUrl: "", imageKey: "" },
       { tag: "Digital Art",    title: "Blue Adobe MAX",  year: "2023", href: "project1.html", imageUrl: "", imageKey: "" },
       { tag: "Web Design",     title: "Carved Wood",     year: "2023", href: "project3.html", imageUrl: "", imageKey: "" },
     ],
   },
 };
 
-const API = backendBaseUrl || "";
 const ABS_RX = /^https?:\/\//i;
 const isAbs = (u) => typeof u === "string" && ABS_RX.test(u);
 const toAbs = (u) => {
   if (!u) return "";
-  if (isAbs(u)) return u;                     // presigned from backend
-  if (u.startsWith("/")) return u;            // absolute path
+  if (isAbs(u)) return u;                 // presigned from backend
+  if (u.startsWith("/")) return u;        // absolute path on same host
   if (s3Bucket && s3Region) {
     return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${u.replace(/^\/+/, "")}`;
   }
   return u;
 };
 
-// Resolve templateId: (1) ?templateId, (2) backend selection, (3) fallback
-function useResolvedTemplateId(userId) {
-  const router = useRouter();
-  const [tid, setTid] = useState("");
-  useEffect(() => {
-    let off = false;
-    (async () => {
-      const fromUrl =
-        typeof router.query.templateId === "string" &&
-        router.query.templateId.trim();
-      if (fromUrl) {
-        if (!off) setTid(fromUrl);
-        return;
-      }
-      try {
-        const sel = await api.selectedTemplateForUser(userId);
-        const t = sel?.data?.templateId;
-        if (t && !off) {
-          setTid(t);
-          return;
-        }
-      } catch {}
-      if (!off) setTid("sir-template-1");
-    })();
-    return () => {
-      off = true;
-    };
-  }, [router.query.templateId, userId]);
-  return tid;
-}
-
 /* ============================= PAGE ============================== */
 function ProjectStudioPage() {
   const router = useRouter();
-  const userId = defaultUserId;
-  const templateId = useResolvedTemplateId(userId);
+
+  // ✅ single source of truth (no local fallbacks)
+  const { userId, templateId } = useIonContext();
 
   // Always keep exactly MAX_PROJECTS slots in UI
   const emptyRow = { tag: "", title: "", year: "", href: "", imageUrl: "", imageKey: "" };
@@ -506,29 +513,33 @@ function ProjectStudioPage() {
   const [showToast, setShowToast] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Keep a local per-index draft file & preview (upload on Save)
+  // Keep per-index draft file & preview (upload on Save)
   const [drafts, setDrafts] = useState(
     Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" }))
   );
   const lastUrlsRef = useRef(Array(MAX_PROJECTS).fill(null)); // revokeObjectURL later
 
   const apiUrl = useMemo(() => {
-    if (!templateId) return "";
-    return `${API}/api/projects/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
+    if (!userId || !templateId) return "";
+    return `${backendBaseUrl}/api/projects/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}`;
   }, [userId, templateId]);
 
-  // Template defaults → fill UI (non-destructive)
+  // Fill UI with template defaults (non-destructive) when templateId changes
   useEffect(() => {
+    if (!templateId) return;
     const d = TEMPLATE_DEFAULTS["sir-template-1"]?.projects || [];
-    setProjects((prev) => {
-      const merged = Array.from({ length: MAX_PROJECTS }, (_, i) => ({
+    setProjects(() =>
+      Array.from({ length: MAX_PROJECTS }, (_, i) => ({
         ...emptyRow,
-        ...(prev[i] || {}),
         ...(d[i] || {}),
-      }));
-      return merged;
-    });
+      }))
+    );
     setDrafts(Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" })));
+    // revoke any previous previews
+    lastUrlsRef.current.forEach((u, i) => {
+      if (u) URL.revokeObjectURL(u);
+      lastUrlsRef.current[i] = null;
+    });
   }, [templateId]);
 
   // Load current from backend
@@ -537,21 +548,20 @@ function ProjectStudioPage() {
     const res = await fetch(`${apiUrl}?_=${Date.now()}`, {
       headers: { Accept: "application/json" },
       cache: "no-store",
+      credentials: "include",
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = await res.json().catch(() => ({}));
     const list = Array.isArray(data?.projects) ? data.projects : [];
 
-    setProjects(() => {
-      // pad/trim to exactly MAX_PROJECTS
-      const padded = Array.from({ length: MAX_PROJECTS }, (_, i) => ({
+    setProjects(() =>
+      Array.from({ length: MAX_PROJECTS }, (_, i) => ({
         ...emptyRow,
         ...(list[i] || {}),
         imageUrl: list[i]?.imageUrl || "", // presigned for preview
-        imageKey: list[i]?.imageKey || "", // S3 key persisted in DB
-      }));
-      return padded;
-    });
+        imageKey: list[i]?.imageKey || "",
+      }))
+    );
   };
 
   useEffect(() => {
@@ -601,7 +611,7 @@ function ProjectStudioPage() {
     const url = `${apiUrl}/image/${i}`;
     const form = new FormData();
     form.append("image", draft.file);
-    const res = await fetch(url, { method: "POST", body: form });
+    const res = await fetch(url, { method: "POST", body: form, credentials: "include" });
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       throw new Error(txt || `Upload failed (index ${i + 1})`);
@@ -628,9 +638,7 @@ function ProjectStudioPage() {
           title: p.title || "",
           year: p.year || "",
           href: p.href || "",
-          // If we uploaded a new file, send its relative key; otherwise keep prior key.
           imageKey: uploadedKeys[i] ? uploadedKeys[i] : (p.imageKey || ""),
-          // (imageAlt is fixed in controller as "Project image" unless you add it to UI)
         })),
       };
 
@@ -640,13 +648,12 @@ function ProjectStudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         cache: "no-store",
+        credentials: "include",
       });
-      const okJson = (res.headers.get("content-type") || "")
-        .toLowerCase()
-        .includes("application/json");
-      const data = okJson ? await res.json().catch(() => ({})) : null;
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      const data = ct.includes("application/json") ? await res.json().catch(() => ({})) : null;
       if (!res.ok) {
-        const txt = okJson ? (data?.error || data?.message) : await res.text().catch(() => "");
+        const txt = ct.includes("application/json") ? (data?.error || data?.message) : await res.text().catch(() => "");
         throw new Error(txt || `Save failed (${res.status})`);
       }
 
@@ -673,24 +680,21 @@ function ProjectStudioPage() {
     setResetting(true);
     setErrorMsg("");
     try {
-      const res = await fetch(`${apiUrl}/reset`, {
+      const res = await fetch(`${apiUrl}/reset?_=${Date.now()}`, {
         method: "POST",
         headers: { Accept: "application/json" },
         cache: "no-store",
+        credentials: "include",
       });
-      const okJson = (res.headers.get("content-type") || "")
-        .toLowerCase()
-        .includes("application/json");
-      const data = okJson ? await res.json().catch(() => ({})) : null;
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      const data = ct.includes("application/json") ? await res.json().catch(() => ({})) : null;
       if (!res.ok) {
-        const txt = okJson ? (data?.error || data?.message) : await res.text().catch(() => "");
+        const txt = ct.includes("application/json") ? (data?.error || data?.message) : await res.text().catch(() => "");
         throw new Error(txt || `Reset failed (${res.status})`);
       }
 
-      // reload fresh data
       await loadProjects();
 
-      // clear drafts
       setDrafts(Array.from({ length: MAX_PROJECTS }, () => ({ file: null, preview: "" })));
       lastUrlsRef.current.forEach((u, i) => {
         if (u) URL.revokeObjectURL(u);
@@ -720,7 +724,7 @@ function ProjectStudioPage() {
             </div>
             {apiUrl && (
               <div className="text-muted" title={apiUrl}>
-                endpoint: <code>/api/projects/{defaultUserId}/{templateId}</code>
+                endpoint: <code>/api/projects/{userId}/{templateId}</code>
               </div>
             )}
           </div>
@@ -729,9 +733,7 @@ function ProjectStudioPage() {
 
       {errorMsg ? (
         <Row className="mb-3">
-          <Col>
-            <Alert variant="danger" className="mb-0">{errorMsg}</Alert>
-          </Col>
+          <Col><Alert variant="danger" className="mb-0">{errorMsg}</Alert></Col>
         </Row>
       ) : null}
 
@@ -820,13 +822,7 @@ function ProjectStudioPage() {
       </div>
 
       <ToastContainer position="bottom-end" className="p-3">
-        <Toast
-          bg="success"
-          onClose={() => setShowToast(false)}
-          show={showToast}
-          delay={2200}
-          autohide
-        >
+        <Toast bg="success" onClose={() => setShowToast(false)} show={showToast} delay={2200} autohide>
           <Toast.Body className="text-white">✅ Done.</Toast.Body>
         </Toast>
       </ToastContainer>
@@ -834,10 +830,5 @@ function ProjectStudioPage() {
   );
 }
 
-ProjectStudioPage.getLayout = (page) => (
-  <EditorDashboardLayout>{page}</EditorDashboardLayout>
-);
-
+ProjectStudioPage.getLayout = (page) => <EditorDashboardLayout>{page}</EditorDashboardLayout>;
 export default ProjectStudioPage;
-
-
