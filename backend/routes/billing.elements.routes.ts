@@ -315,7 +315,7 @@ import User from "../models/User";
 const SECRET = process.env.STRIPE_SECRET_KEY!;
 if (!SECRET) throw new Error("STRIPE_SECRET_KEY missing");
 
-const stripe = new Stripe(SECRET);
+const stripe = new Stripe(SECRET, { apiVersion: "2024-06-20" });
 const r = Router();
 
 /* ----------------------------- Types ----------------------------- */
