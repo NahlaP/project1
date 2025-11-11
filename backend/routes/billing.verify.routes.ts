@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import User from "../models/User";
 
 const r = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 type AuthedUser = { userId: string; email?: string; name?: string };
 type ReqWithUser = Request & { user?: AuthedUser };

@@ -77,7 +77,7 @@ import Stripe from "stripe";
 import User from "../models/User";
 
 const r = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // IMPORTANT: raw body for Stripe signature verification
