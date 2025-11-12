@@ -656,9 +656,10 @@ mongoose
   .catch((err) => {
     console.error("🔴 MongoDB connection error:", err?.message || err);
     // Optional: start server even if DB fails
-    app.listen(PORT, HOST, () => {
-      console.log(`🚀 Server (no DB) at http://${HOST}:${PORT}`);
-    });
+   app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server listening at http://0.0.0.0:${PORT}`);
+});
+
   });
 
 /* -----------------------------------------------------------
