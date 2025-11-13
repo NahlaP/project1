@@ -680,10 +680,11 @@
       return null;
     }
 
-    /* ====== HERO (headline only; capture hero video url) ====== */
+    /* ====== HERO (headline + safe stacked video) ====== */
     try {
       const hero = await fetchFirst(["hero","homeHero","landingHero"]);
       if (hero) {
+        // 1) Headline
         const headline =
           hero.headline ||
           hero.title ||
@@ -692,11 +693,54 @@
         const h1 = document.querySelector("header.land-header .caption h1");
         if (h1 && headline) h1.textContent = headline;
 
-        // expose the hero video url to be used by the reorder helper
-        window._ion7_heroVideoUrl =
-          hero.videoUrl || fromKey(hero.videoKey) || hero?.content?.videoUrl || "";
+        // 2) Video (stacked under caption, without touching layout)
+        const videoUrl  = hero.videoUrl  || fromKey(hero.videoKey) || hero?.content?.videoUrl || "";
+        const posterUrl = hero.posterUrl || fromKey(hero.posterKey) || hero?.content?.posterUrl || "";
 
-        // ensure no background video remains inside the hero
+        // expose for other helpers (if any)
+        window._ion7_heroVideoUrl = videoUrl || "";
+
+        if (videoUrl) {
+          const header = document.querySelector("header.land-header");
+          const caption = header?.querySelector(".caption");
+          if (header && caption) {
+            let holder = header.querySelector(".hero-video-stacked");
+            if (!holder) {
+              holder = document.createElement("div");
+              holder.className = "hero-video-stacked";
+              caption.after(holder);
+              header.classList.add("has-hero-stacked");
+            } else {
+              holder.innerHTML = "";
+            }
+
+            const v = document.createElement("video");
+            v.setAttribute("autoplay", "");
+            v.setAttribute("muted", "");
+            v.setAttribute("loop", "");
+            v.setAttribute("playsinline", "");
+            v.playsInline = true; v.muted = true;
+            if (posterUrl) v.setAttribute("poster", posterUrl);
+
+            const s = document.createElement("source");
+            s.src = videoUrl;
+            if (/\.mp4(\?|$)/i.test(videoUrl)) s.type = "video/mp4";
+            v.appendChild(s);
+            holder.appendChild(v);
+
+            v.load?.(); v.play?.().catch(()=>{});
+
+            // IMPORTANT: prevent the reorder helper from replacing the hero
+            // by removing the About intro video only when we have a custom hero video.
+            const aboutIntro = document.querySelector("section.about .vid-intro");
+            if (aboutIntro) aboutIntro.remove();
+
+            // mark as done (for any later guards you might add)
+            window.__ION7_HERO_DONE = true;
+          }
+        }
+
+        // ensure no legacy background video inside the hero (theme default)
         document.querySelector("header.land-header .hero-video")?.remove();
       }
     } catch (e) {
