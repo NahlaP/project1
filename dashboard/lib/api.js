@@ -445,13 +445,15 @@
 
 // dashboard/lib/api.js
 // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
+export const PUBLIC_HOST =
+  process.env.NEXT_PUBLIC_PUBLIC_HOST || "https://ion7devtemplate.mavsketch.com";
 
 const BASE = (
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ||
   process.env.BACKEND_ORIGIN ||
   "http://127.0.0.1:5000"
 ).replace(/\/$/, "");
-export { PUBLIC_HOST } from "./config";
+// export { PUBLIC_HOST } from "./config";
 
 // ✅ Export the resolved backend base (useful for debugging)
 export const BACKEND = BASE;
