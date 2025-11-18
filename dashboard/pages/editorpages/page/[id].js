@@ -398,6 +398,7 @@ export default function HomepagePreview() {
             </Dropdown>
           </div>
 
+          {/* ---------Section box */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="sections">
               {(provided) => (

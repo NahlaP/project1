@@ -6,12 +6,82 @@ $grey: #a9a9a9;
 $primary: #d5ff40;
 $primary_dark: #495916;
 $small_screen: 991px;
+$xsm_screen: 767px;
 $neon_orange: #FF6431;
 $mavsketch_color: #ff3130;
 
 
+// Other colors
+$icon-green: #4ADE80;
+$icon-orange: #FB923C;
+$icon-neonorange: #ff8500;
+$icon-red: #F87171;
+$icon-purple: #C084FC;
+$icon-teal: #2DD4BF;
+$icon-lightteal: #d5feff;
+$icon-yellow: #FACC15;
+$icon-blue: #60A5FA;
+$icon-neongreen: #A3E635;
+$icon-grey: #94A3B8;
+
+.widget-box-light {
+  background: rgba($light, 0.2);
+  border: 1px rgba($light, 0.3) solid;
+  border-radius: 10px;
+}
+
+.widget-box-border {
+  background: none;
+  border: 1px rgba($light, 0.3) solid;
+  border-radius: 10px;
+}
+
+.widget-box-active {
+  background: rgba($icon-neonorange, 0.2);
+  border: 1px rgba($icon-neonorange, 0.3) solid;
+  border-radius: 10px;
+}
+
+.widget-box-create {
+  background: none;
+  border: 1px rgba($primary, 0.9) dashed;
+  border-radius: 10px;
+}
+
+.label-success {
+  background: rgba($icon-neongreen, 0.4);
+  color: lighten($icon-neongreen, 20%);
+  .label-icon {
+  }
+}
+
+.label-warning {
+  background: rgba($icon-yellow, 0.4);
+  color: lighten($icon-yellow, 20%);
+  .label-icon {
+    
+  }
+}
+
+.label-danger {
+  background: rgba($icon-red, 0.4);
+  color: lighten($icon-red, 20%);
+  .label-icon {
+    
+  }
+}
+
+
 $primary_gradient: linear-gradient(135deg, $primary, #86d705);
 $light_gradient: linear-gradient(135deg, $light, darken($light, 20%));
+$secondary_gradient: linear-gradient(135deg,#FF3C3C, darken(#FF3C3C, 10%));
+
+
+
+// ------ COLOR THEME
+$overlay_bg_dark: linear-gradient(359deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.3294117647));
+$overlay_bg_light: linear-gradient(90deg, #ffffff8c, rgba(255, 255, 255, 0.8), #00000054);
+$title_color_dark: rgba(255, 255, 255, 0.651);
 
 
 
@@ -31,8 +101,11 @@ $font-family-base: 'Inter', 'Roboto', sans-serif;
 $font-weight-light: 300;
 $font-weight-regular: 400;
 $font-weight-medium: 500;
+$font-weight-xm: 600;
 $font-weight-bold: 700;
 
+$font-size-xxxs: 0.5rem;  
+$font-size-xxs: 0.6rem;  
 $font-size-xs: 0.75rem;   // 12px
 $font-size-sm: 0.875rem;  // 14px
 $font-size-md: 1rem;      // 16px
@@ -40,4 +113,6 @@ $font-size-lg: 1.25rem;   // 20px
 $font-size-xl: 1.5rem;    // 24px
 $font-size-xls: 1.7rem;    
 $font-size-xxl: 2rem;     // 32px
-$font-size-super: 3rem;     
+$font-size-xxxl: 2.5rem; 
+$font-size-super: 3rem;  
+$font-size-xsuper: 4rem;     

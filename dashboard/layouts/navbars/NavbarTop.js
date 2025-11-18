@@ -184,9 +184,9 @@ const NavbarTop = ({ isMobile }) => {
                   style={{ width: 6, height: 6, border: '1.5px solid white', top: 3, right: 3 }}
                 />
               </div> */}
-
               <div className="navbar-profile">
-                <img src="https://i.pravatar.cc/40" alt="Profile" className="rounded-circle"/>
+                {/* <img src="https://i.pravatar.cc/40" alt="Profile" className="rounded-circle"/> */}
+                <img src="images/avatar/avatar-1.jpg" alt="Profile" className="rounded-circle"/>
                 <div className="user-info">
                   <strong className="fs-6">Marco Botton</strong>
                   <small className="text-muted">Admin</small>

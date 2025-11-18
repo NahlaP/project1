@@ -95,7 +95,7 @@ function MyApp({ Component, pageProps }) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="keywords" content={keywords} />
-        <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="./images/svg/ION7-iconlogo.webp" type="image/x-icon" />
       </Head>
 
       <NextSeo
