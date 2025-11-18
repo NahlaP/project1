@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * Ensure there is a Stripe Customer for this app user.
  * - Reuses existing user.stripeCustomerId
  * - Otherwise looks up by email to avoid dupes
- * - Otherwise creates a new customer
+ * - Otherwise creates a new customer  
  * - Persists stripeCustomerId on the user
  */
 export async function ensureStripeCustomer(userId: string): Promise<string> {
