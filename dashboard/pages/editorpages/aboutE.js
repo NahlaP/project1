@@ -1,5 +1,3 @@
-
-
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\aboutE.js
 "use client";
 
@@ -16,14 +14,14 @@ const TEMPLATE_PROFILES = {
       fields: {
         subtitle: true,
         title: true,
-        lines: true,          // up to 3 animated lines
+        lines: true, // up to 3 animated lines
         description: true,
         highlight: true,
         videoUrl: true,
         posterUrl: true,
         imageUrl: false,
         imageAlt: false,
-        services: true,       // 3 tiles
+        services: true, // 3 tiles
         bullets: false,
       },
     },
@@ -50,7 +48,10 @@ const TEMPLATE_PROFILES = {
 /* ----------------------------- HELPERS ------------------------------ */
 const absFromKey = (key) =>
   key && s3Bucket && s3Region
-    ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${String(key).replace(/^\/+/, "")}`
+    ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${String(key).replace(
+        /^\/+/,
+        ""
+      )}`
     : "";
 
 const getAllowed = (templateId, section) =>
@@ -88,26 +89,37 @@ export default function AboutViewer() {
   });
   const [loading, setLoading] = useState(true);
 
-  const pageId = typeof router.query.pageId === "string" ? router.query.pageId : "";
-  const sectionId = typeof router.query.sectionId === "string" ? router.query.sectionId : "";
+  const pageId =
+    typeof router.query.pageId === "string" ? router.query.pageId : "";
+  const sectionId =
+    typeof router.query.sectionId === "string" ? router.query.sectionId : "";
 
-  // fetch About for the resolved template
   useEffect(() => {
     if (!userId || !templateId) return;
     let off = false;
+
     (async () => {
       try {
         setLoading(true);
+
         const res = await fetch(
-          `${backendBaseUrl}/api/about/${encodeURIComponent(userId)}/${encodeURIComponent(templateId)}?_=${Date.now()}`,
-          { headers: { Accept: "application/json" }, cache: "no-store", credentials: "include" }
+          `${backendBaseUrl}/api/about/${encodeURIComponent(
+            userId
+          )}/${encodeURIComponent(templateId)}?_=${Date.now()}`,
+          {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+            credentials: "include",
+          }
         );
+
         const raw = await res.json().catch(() => ({}));
 
-        // Normalize media fallbacks, then keep only allowed fields
+        // Normalize media fallbacks & arrays
         const normalized = {
           ...raw,
-          imageUrl: raw?.imageUrl || (raw?.imageKey ? absFromKey(raw.imageKey) : ""),
+          imageUrl:
+            raw?.imageUrl || (raw?.imageKey ? absFromKey(raw.imageKey) : ""),
           videoUrl: raw?.videoUrl || "",
           posterUrl: raw?.posterUrl || "",
           lines: Array.isArray(raw?.lines) ? raw.lines : [],
@@ -115,24 +127,32 @@ export default function AboutViewer() {
           services: Array.isArray(raw?.services) ? raw.services : [],
         };
 
+        // Keep only allowed fields for this template
         const safe = pickAllowed(normalized, allowed);
-        if (!off) setAbout((prev) => ({ ...prev, ...safe }));
+
+        if (!off) {
+          setAbout((prev) => ({
+            ...prev,
+            ...safe,
+          }));
+        }
       } catch (err) {
         console.error("❌ Failed to fetch About section", err);
       } finally {
         if (!off) setLoading(false);
       }
     })();
-    return () => { off = true; };
+
+    return () => {
+      off = true;
+    };
   }, [userId, templateId, allowed]);
 
-  // Prefer direct URL; fall back to absolute S3 path if only key is available
   const displayImageUrl = useMemo(
     () => about.imageUrl || absFromKey(about.imageKey || ""),
     [about.imageUrl, about.imageKey]
   );
 
-  // Media decision based on template profile
   const showVideo = !!(allowed.videoUrl && about.videoUrl);
   const showImage = !!(allowed.imageUrl && (about.imageUrl || about.imageKey));
 
@@ -174,13 +194,17 @@ export default function AboutViewer() {
         ) : showImage ? (
           <img
             src={displayImageUrl}
-            alt={allowed.imageAlt ? (about.imageAlt || "About") : "About"}
+            alt={allowed.imageAlt ? about.imageAlt || "About" : "About"}
             className="w-100 h-100"
             style={{ objectFit: "cover" }}
           />
         ) : (
           <div className="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white">
-            {(!userId || !templateId) ? "Resolving…" : (loading ? "Loading…" : "No Media")}
+            {!userId || !templateId
+              ? "Resolving…"
+              : loading
+              ? "Loading…"
+              : "No Media"}
           </div>
         )}
       </div>
@@ -202,46 +226,63 @@ export default function AboutViewer() {
 
         {allowed.lines && (about.lines || []).length > 0 && (
           <div className="mb-2" style={{ fontSize: "0.95rem", opacity: 0.8 }}>
-            {(about.lines || []).slice(0, 3).map((ln, i) => (
-              <div key={i}>{ln}</div>
-            ))}
+            {(about.lines || [])
+              .slice(0, 3)
+              .map((ln, i) => <div key={i}>{ln}</div>)}
           </div>
         )}
 
         {allowed.description && (
           <p className="mb-2" style={{ fontSize: "0.95rem" }}>
-            {about.description || (loading ? "Loading description…" : "Short about description...")}
+            {about.description ||
+              (loading ? "Loading description…" : "Short about description...")}
           </p>
         )}
 
         {allowed.highlight && about.highlight && (
-          <div className="bg-white border px-3 py-2 rounded mb-2" style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+          <div
+            className="bg-white border px-3 py-2 rounded mb-2"
+            style={{ fontSize: "0.875rem", fontWeight: 500 }}
+          >
             ⭐ {about.highlight}
           </div>
         )}
 
-        {allowed.services && Array.isArray(about.services) && about.services.length > 0 && (
-          <div className="row g-2 mb-2" style={{ fontSize: "0.9rem" }}>
-            {about.services.slice(0, 3).map((s, idx) => (
-              <div className="col-6" key={idx}>
-                <div className="p-2 border rounded h-100 bg-white">
-                  <div className="text-muted" style={{ fontSize: "0.78rem" }}>{s?.tag || "Tag"}</div>
-                  <div className="fw-semibold">{s?.heading || "Heading"}</div>
-                  {s?.href ? (
-                    <a href={s.href} target="_blank" rel="noreferrer">View Details →</a>
-                  ) : (
-                    <span className="text-muted">No link</span>
-                  )}
+        {allowed.services &&
+          Array.isArray(about.services) &&
+          about.services.length > 0 && (
+            <div className="row g-2 mb-2" style={{ fontSize: "0.9rem" }}>
+              {about.services.slice(0, 3).map((s, idx) => (
+                <div className="col-6" key={idx}>
+                  <div className="p-2 border rounded h-100 bg-white">
+                    <div
+                      className="text-muted"
+                      style={{ fontSize: "0.78rem" }}
+                    >
+                      {s?.tag || "Tag"}
+                    </div>
+                    <div className="fw-semibold">
+                      {s?.heading || "Heading"}
+                    </div>
+                    {s?.href ? (
+                      <a href={s.href} target="_blank" rel="noreferrer">
+                        View Details →
+                      </a>
+                    ) : (
+                      <span className="text-muted">No link</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
         {allowed.bullets && (
           <ul style={{ fontSize: "0.875rem", paddingLeft: "1.25rem" }}>
             {(about.bullets || []).slice(0, 3).map((b, i) => (
-              <li key={b?._id || `${b?.text || ""}-${i}`}>{b?.text || ""}</li>
+              <li key={b?._id || `${b?.text || ""}-${i}`}>
+                {b?.text || ""}
+              </li>
             ))}
           </ul>
         )}

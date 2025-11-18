@@ -27,6 +27,8 @@ import DefaultDashboardLayout from 'layouts/DefaultDashboardLayout';
 const PROD_BACKEND = 'https://project1backend-2xvq.onrender.com';
 
 function MyApp({ Component, pageProps }) {
+
+  
   const router = useRouter();
 
   // ---- Analytics toggle ----
@@ -88,7 +90,6 @@ function MyApp({ Component, pageProps }) {
     Component.getLayout ||
     ((page) => <DefaultDashboardLayout>{page}</DefaultDashboardLayout>);
 
-  // --- IMPORTANT: let /login render without chrome ---
   const noChrome = Component.noChrome || router.pathname === '/login';
 
   return (
@@ -96,7 +97,7 @@ function MyApp({ Component, pageProps }) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="keywords" content={keywords} />
-        <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="./images/svg/ION7-iconlogo.webp" type="image/x-icon" />
       </Head>
 
       <NextSeo
@@ -112,10 +113,10 @@ function MyApp({ Component, pageProps }) {
       />
 
       {noChrome ? (
-        // render page alone: no navbar/sidebars
+    
         <Component {...pageProps} />
       ) : (
-        // all other pages use the normal dashboard layout (with navbar, sidebar, etc.)
+        
         getLayout(<Component {...pageProps} />)
       )}
 

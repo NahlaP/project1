@@ -1,8 +1,5 @@
-
-
-
-
-
+// prod
+// dashboard/lib/config.js
 
 export const backendBaseUrl =
   (process.env.NEXT_PUBLIC_BACKEND_ORIGIN || "http://127.0.0.1:5000").replace(/\/$/, "");
@@ -13,7 +10,7 @@ export const userId = "demo-user";
 // Public site host (already used by nginx / templates)
 export const PUBLIC_HOST = "https://ion7devtemplate.mavsketch.com";
 
-// S3 bits (unchanged)
+// S3 bits (you can later swap to UAE bucket if needed)
 export const s3Bucket = "project1-uploads-12345";
 export const s3Region = "ap-south-1";
 
@@ -39,8 +36,8 @@ export const templateId =
   getSelectedTemplateId() ||
   "gym-template-1";
 
-// (Optional) some files may import this alias:
+// (Optional) alias used by some files
 export const defaultTemplateId = templateId;
 
-// Default export for convenience (won’t break anything)
+// Default export for convenience
 export default { backendBaseUrl, userId, PUBLIC_HOST, s3Bucket, s3Region, templateId };

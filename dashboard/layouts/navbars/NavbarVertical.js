@@ -1,9 +1,4 @@
 
-
-
-
-
-
 // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarVertical.js
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -25,7 +20,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
 
-const BREAKPOINT = 993;
+const BREAKPOINT = 1120;
 const NAVBAR_H = 68;
 
 const iconMap = {
@@ -44,26 +39,39 @@ const SidebarItem = ({ icon, label, href }) => {
   const router = useRouter();
   const faIcon = iconMap[icon] || faFile;
 
-  // highlight for exact path *and* nested routes
-  const isActive = router.pathname === href || router.pathname.startsWith(`${href}/`);
+  // normalize path (strip query/hash) to avoid false negatives
+  const currentPath = router.asPath ? router.asPath.split(/[?#]/)[0] : '';
+  const isActive = currentPath === href || currentPath.startsWith(`${href}/`);
+
+  // If already on the same page, render a non-<Link> to avoid navigation attempts
+  if (isActive) {
+    return (
+      <div
+        className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 active-nav-custom rounded-pill fw-semibold`}
+        style={{ textDecoration: 'none', cursor: 'default' }}
+        aria-current="page"
+      >
+        <FontAwesomeIcon icon={faIcon} className="fs-5" />
+        <span>{label}</span>
+      </div>
+    );
+  }
 
   return (
-    <Link
-      href={href}
-      className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 ${
-        isActive ? 'active-nav-custom rounded-pill fw-semibold' : 'text-dark'
-      }`}
-      style={{ textDecoration: 'none' }}
-    >
-      <FontAwesomeIcon icon={faIcon} className="fs-5" />
-      <span>{label}</span>
+    <Link href={href} prefetch={false} legacyBehavior>
+      <a
+        className="d-flex align-items-center gap-3 px-4 py-2 mb-1 nav-text"
+        style={{ textDecoration: 'none' }}
+      >
+        <FontAwesomeIcon icon={faIcon} className="fs-5" />
+        <span>{label}</span>
+      </a>
     </Link>
   );
 };
 
-const SidebarDashly = () => {
-  const [isCompact, setIsCompact] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
+  
 
   useEffect(() => {
     const handleResize = () => {
@@ -90,7 +98,7 @@ const SidebarDashly = () => {
       <div
         className='bg-wrapper-custom'
         style={{
-          backgroundImage: 'url("images/background/640.webp")',
+          // backgroundImage: 'url("images/background/640.webp")',
         }}
       >
         <div className="blob blob1"></div>
@@ -102,99 +110,88 @@ const SidebarDashly = () => {
         <div className="bg-inner-custom"></div>
       </div>
 
-      {isCompact && (
-        <button
-          className="btn btn-outline-secondary position-fixed"
-          style={{
-            top: 16,
-            left: 16,
-            zIndex: 2000,
-            borderRadius: 8,
-            background: '#fff',
-            border: '1px solid #e0e0e0'
-          }}
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle sidebar"
-        >
-          <FontAwesomeIcon icon={faBars} />
-        </button>
-      )}
 
       {/* Sidebar */}
       <aside
-        className="side-nav-custom d-flex flex-column position-fixed"
-        style={{
-          top: isCompact ? NAVBAR_H : 0,
-          left: isCompact ? (isOpen ? 0 : -256) : 0,
-          height: isCompact ? `calc(100vh - ${NAVBAR_H}px)` : '100vh',
-          boxShadow: isCompact && isOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none',
-        }}
-      >
-        <SimpleBar style={{ height: '100%' }}>
-          {/* Logo */}
-          <div className="px-4 pt-2 pb-4 d-flex align-items-center gap-2">
-            <img
-              src="/images/svg/download.png"
-              alt="Logo"
-              style={{ width: 'auto', height: 100 }}
-            />
-          </div>
+        className={`side-nav-custom d-flex flex-column position-fixed ${isCompact ? "side-nav-compact" : ""} ${isOpen ? "open" : ""}`}
+      > 
+        <div className="nav-logo">
+          <img
+            // src="/images/svg/ION7.png"
+            src="/images/svg/ION7-icon.png"
+            alt="ION7"
+          />
+        </div>
+        <div className="simple-bar-wrapper">
+          <SimpleBar className="simple-bar" style={{ height: '100%' }}>
+            {/* Logo */}
+            {/* <div className="nav-logo">
+              <img
+                // src="/images/svg/ION7.png"
+                src="/images/svg/ION7-icon.png"
+                alt="ION7"
+              />
+            </div> */}
 
-          {/* Main Menu */}
-          <div className="px-3 pt-2">
-            <p className="text-uppercase small fw-bold text-muted px-2 mb-2">Main Menu</p>
-            <SidebarItem icon="bar-chart" label="Dashboard" href="/dashboard" />
-            <SidebarItem icon="file" label="Content" href="/content" />
-            <SidebarItem icon="image" label="Media" href="/media" />
-            <SidebarItem icon="user" label="Users" href="/users" />
-            <SidebarItem icon="message-circle" label="Comments" href="/comments" />
-<SidebarItem icon="login" label="login" href="/logino" />
-            {/* NEW MENU ITEM */}
-            <SidebarItem icon="envelope" label="Email Manager" href="/email-manager" />
-          </div>
+            {/* Main Menu */}
+            <div className="px-3 pt-2">
+              <p className="nav-title px-2 mb-2">Main Menu</p>
+              <SidebarItem icon="bar-chart" label="Dashboard" href="/dashboard" />
+              {/* <SidebarItem icon="file" label="Content" href="/content" /> */}
+              <SidebarItem icon="image" label="Media" href="/media" />
+              {/* <SidebarItem icon="message-circle" label="Comments" href="/comments" /> */}
 
-          {/* Settings */}
-          <div className="px-3 pt-4">
-            <p className="text-uppercase small fw-bold text-muted px-2 mb-2">Settings</p>
-            <SidebarItem icon="settings" label="General" href="/settings/general" />
-            <SidebarItem icon="eye" label="Appearance" href="/settings/appearance" />
-            <SidebarItem icon="shield" label="Security" href="/settings/security" />
-          </div>
-
-          {/* Support Box */}
-          <div className="px-4 py-4 mt-auto">
-            <div
-              style={{
-                width: '100%',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 20,
-                padding: 12,
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <div
-                className="fw-semibold text-dark mb-2 d-flex align-items-center"
-                style={{ fontSize: 14, gap: 6 }}
-              >
-                <FontAwesomeIcon icon={faHeadset} style={{ width: 14, height: 14 }} />
-                <span>Need help?</span>
-              </div>
-              <div className="text-muted mb-3 text-center" style={{ fontSize: 13, lineHeight: 1.4 }}>
-                Contact our support team for assistance
-              </div>
-              <button
-                className="btn btn-outline-dark btn-sm"
-                style={{ width: '100%', height: 38, fontSize: 13, borderRadius: 12 }}
-              >
-                Contact Support
-              </button>
+              {/* NEW MENU ITEM */}
+              <SidebarItem icon="envelope" label="Email Manager" href="/email-manager" />
             </div>
-          </div>
-        </SimpleBar>
+
+            {/* Settings */}
+            <div className="px-3 pt-4">
+              <p className="nav-title px-2 mb-2">Settings</p>
+              <SidebarItem icon="settings" label="General" href="/settings/general" />
+              <SidebarItem icon="user" label="Users" href="/users" />
+              {/* <SidebarItem icon="eye" label="Appearance" href="/settings/appearance" />
+              <SidebarItem icon="shield" label="Security" href="/settings/security" /> */}
+            </div>
+
+            {/* Support Box */}
+            <div className="px-4 py-4 mt-auto">
+              <div
+                className="support-wrapper"
+                style={{
+                }}
+              >
+                <svg className="frost" viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'>
+                    <filter id='noiseFilter'>
+                      <feTurbulence 
+                        type='fractalNoise' 
+                        baseFrequency='20.43' 
+                        numOctaves='400' 
+                        stitchTiles='stitch'/>
+                    </filter>
+                    
+                    <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
+                </svg>
+                <div
+                  className="fw-semibold mb-2 d-flex align-items-center"
+                  style={{ fontSize: 14, gap: 6 }}
+                >
+                  
+                  <FontAwesomeIcon icon={faHeadset} style={{ width: 14, height: 14 }} />
+                  <span>Need help?</span>
+                </div>
+                <div className="mb-3 text-center" style={{ fontSize: 13, lineHeight: 1.4 }}>
+                  Contact our support team for assistance
+                </div>
+                <button
+                  className="w-100"
+                >
+                  Contact Support
+                </button>
+              </div>
+            </div>
+          </SimpleBar>
+        </div>
       </aside>
 
       {isCompact && isOpen && (

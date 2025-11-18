@@ -1,6 +1,7 @@
 
 
-// dashboard/pages/editorpages/page/[id].js
+
+// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\page\[id].js
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -408,6 +409,7 @@ export default function HomepagePreview() {
             </Dropdown>
           </div>
 
+          {/* ---------Section box */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="sections">
               {(provided) => (

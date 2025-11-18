@@ -1,6 +1,11 @@
 
 
+<<<<<<< HEAD
 // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\testimonialS.js
+=======
+
+// C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\testimonialS.js
+>>>>>>> origin/design-work
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';

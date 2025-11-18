@@ -1,4 +1,11 @@
 
+<<<<<<< HEAD
+=======
+
+
+
+// // works fine st
+>>>>>>> origin/design-work
 // // dashboard/lib/sectionsApi.js
 import axios from "axios";
 
@@ -14,7 +21,7 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
-/* ---------- NORMALIZERS (hide 'works', rename to 'projects') ---------- */
+
 const HIDE_WORKS = true;
 
 function normalizeOne(row) {
@@ -33,13 +40,12 @@ function normalizeList(rows = []) {
     : list;
 }
 
-/** Wrap raw data back into an axios-like response { data } */
 function wrap(data) {
   return { data };
 }
 
 export const SectionsApi = {
-  /** list for a template (optionally filter by type/slug/parentPageId via params) */
+  
   async list(userId, templateId, params = {}) {
     const res = await api.get(`/sections/${userId}/${templateId}`, { params });
     const raw = Array.isArray(res.data) ? res.data : res.data?.data || [];

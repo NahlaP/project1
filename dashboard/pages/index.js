@@ -7,6 +7,12 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // alert("testmarco");
+  }, []);
+
+
+  useEffect(() => {
+    // alert();
     router.replace("/dashboard");
   }, [router]);
 

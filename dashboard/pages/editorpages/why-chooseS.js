@@ -1,4 +1,9 @@
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> origin/design-work
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\why-chooseS.js
 "use client";
 
@@ -10,8 +15,13 @@ import {
 import EditorDashboardLayout from "../layouts/EditorDashboardLayout";
 import BackBar from "../components/BackBar";
 
+<<<<<<< HEAD
 import { backendBaseUrl, s3Bucket, s3Region } from "../../lib/config";
 import { useIonContext } from "../../lib/useIonContext";
+=======
+
+const API = backendBaseUrl || "";
+>>>>>>> origin/design-work
 
 /* -------------------------------------------------------------------------- */
 /* Per-template field matrix + defaults (mirror Hero pattern)                 */

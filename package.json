@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "gitignore": "^0.7.0"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^10.0.0"
   }
 }

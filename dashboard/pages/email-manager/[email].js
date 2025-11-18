@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/design-work
 
 
 // pages/email-manager/[email].js

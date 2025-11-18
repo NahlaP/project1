@@ -19,7 +19,7 @@ export const TEMPLATE_PROFILES = {
         lines: true,         // 3 lines
         description: true,
         highlight: true,
-        imageUrl: false,     // sir-about prefers video
+        imageUrl: false,     
         videoUrl: true,
         posterUrl: true,
         imageAlt: false,

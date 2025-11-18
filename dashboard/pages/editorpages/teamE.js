@@ -1,6 +1,13 @@
 
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+>>>>>>> origin/design-work
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\teamE.js
 "use client";
 
@@ -12,11 +19,7 @@ import {
 } from "../../lib/config";
 import { api } from "../../lib/api";
 
-/** Resolve templateId in this order:
- *  1) ?templateId=… in URL
- *  2) backend-selected template for the user
- *  3) config fallback (legacy)
- */
+
 function useResolvedTemplateId(userId) {
   const [tpl, setTpl] = useState("");
   useEffect(() => {

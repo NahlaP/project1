@@ -1,4 +1,10 @@
 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> origin/design-work
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\why-chooseE.js
 "use client";
 
@@ -93,7 +99,11 @@ export default function WhyChooseEditorPreview() {
     description: "",
     stats: [],
     progressBars: [],
+<<<<<<< HEAD
     bgImageUrl: "",
+=======
+    bgImageUrl: "", 
+>>>>>>> origin/design-work
     bgImageKey: "",
     bgOverlay: 0.5,
   });
