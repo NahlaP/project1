@@ -1,8 +1,4 @@
 
-
-
-
-
 // C:\Users\97158\Desktop\project1\dashboard\pages\_app.js
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -22,23 +18,23 @@ import '../lib/fontawesome';
 import 'styles/theme.scss';
 import 'styles/_user.scss';
 
-import DefaultDashboardLayout from 'layouts/DefaultDashboardLayout';
+// ✅ use relative import so there is no alias problem
+import DefaultDashboardLayout from '../layouts/DefaultDashboardLayout';
 
 const PROD_BACKEND = 'https://project1backend-2xvq.onrender.com';
 
 function MyApp({ Component, pageProps }) {
-
-  
   const router = useRouter();
 
   // ---- Analytics toggle ----
   const [AnalyticsComp, setAnalyticsComp] = useState(null);
-  const analyticsEnabled = process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true';
+  const analyticsEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true';
 
   useEffect(() => {
     if (analyticsEnabled) {
       import('@vercel/analytics/react')
-        .then(m => setAnalyticsComp(() => m.Analytics))
+        .then((m) => setAnalyticsComp(() => m.Analytics))
         .catch(() => setAnalyticsComp(null));
     }
   }, [analyticsEnabled]);
@@ -47,6 +43,7 @@ function MyApp({ Component, pageProps }) {
     import('bootstrap/dist/js/bootstrap.bundle.min.js');
   }, []);
 
+  // ---- axios base URL ----
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -63,7 +60,10 @@ function MyApp({ Component, pageProps }) {
     axios.defaults.baseURL = base;
 
     const id = axios.interceptors.request.use((cfg) => {
-      if (typeof cfg.url === 'string' && cfg.url.startsWith('http://localhost:5000')) {
+      if (
+        typeof cfg.url === 'string' &&
+        cfg.url.startsWith('http://localhost:5000')
+      ) {
         cfg.url = cfg.url.replace('http://localhost:5000', base);
       }
       return cfg;
@@ -97,7 +97,11 @@ function MyApp({ Component, pageProps }) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="keywords" content={keywords} />
-        <link rel="shortcut icon" href="./images/svg/ION7-iconlogo.webp" type="image/x-icon" />
+        <link
+          rel="shortcut icon"
+          href="./images/svg/ION7-iconlogo.webp"
+          type="image/x-icon"
+        />
       </Head>
 
       <NextSeo
@@ -108,15 +112,14 @@ function MyApp({ Component, pageProps }) {
           url: canonical,
           title,
           description,
-          site_name: process.env.NEXT_PUBLIC_SITE_NAME || 'Dash UI',
+          site_name:
+            process.env.NEXT_PUBLIC_SITE_NAME || 'Dash UI',
         }}
       />
 
       {noChrome ? (
-    
         <Component {...pageProps} />
       ) : (
-        
         getLayout(<Component {...pageProps} />)
       )}
 

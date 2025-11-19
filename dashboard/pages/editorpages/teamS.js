@@ -1,8 +1,4 @@
 
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/design-work
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\teamS.js
 "use client";
 

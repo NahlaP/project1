@@ -1,28 +1,30 @@
-
-
-
-import { useState, useEffect } from 'react';
-import NavbarTop from './navbars/NavbarTop';
+// C:\Users\97158\Desktop\project1\dashboard\layouts\DefaultDashboardLayout.js
+import React, { useState, useEffect } from 'react';
 import { Row, Col } from 'react-bootstrap';
+import NavbarTop from './navbars/NavbarTop';
 
-const NAVBAR_H = 48;            // top bar height
-const BREAKPOINT = 1120;         // ≤ 993px => compact
+const NAVBAR_H = 48; // top bar height (if needed)
+const BREAKPOINT = 1120; // breakpoint for compact mode
 
-const ION7DashboardLayout = (props) => {
+const DefaultDashboardLayout = (props) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
 
-  const toggleMenu = () => setShowMenu(prev => !prev);
+  const toggleMenu = () => setShowMenu((prev) => !prev);
 
   useEffect(() => {
     const handleResize = () => {
+      if (typeof window === 'undefined') return;
       const compact = window.innerWidth <= BREAKPOINT;
       setIsCompact(compact);
       if (!compact) setShowMenu(false);
     };
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
   }, []);
 
   useEffect(() => {
@@ -32,18 +34,18 @@ const ION7DashboardLayout = (props) => {
 
   return (
     <div id="db-wrapper">
-      {/* keep your small global style */}
+      {/* responsive tweak for old header buttons */}
       <style jsx global>{`
         @media (max-width: ${BREAKPOINT}px) {
-          .header button[aria-label="Toggle sidebar"],
-          .header button[aria-label="Menu"],
+          .header button[aria-label='Toggle sidebar'],
+          .header button[aria-label='Menu'],
           .header .darkmode-toggle {
             display: none !important;
           }
         }
       `}</style>
 
-      {/* ✅ Background layer required by your SCSS */}
+      {/* Background blobs */}
       <div className="bg-wrapper-custom">
         <div className="blob blob1" />
         <div className="blob blob2" />
@@ -55,15 +57,18 @@ const ION7DashboardLayout = (props) => {
       <div
         id="page-content"
         style={{
-          paddingTop: isCompact ? 0 : 0,
-          position: 'relative',  // ensure stacking above bg
-          zIndex: 1
+          paddingTop: 0,
+          position: 'relative',
+          zIndex: 1,
         }}
       >
+        {/* Top navbar */}
+        <NavbarTop isMobile={isCompact} />
 
+        {/* Main content */}
         {props.children}
 
-
+        {/* Footer */}
         <div className="px-6 py-3 footer-custom">
           <Row>
             <Col sm={12} className="text-center">
@@ -80,4 +85,4 @@ const ION7DashboardLayout = (props) => {
   );
 };
 
-export default ION7DashboardLayout;
+export default DefaultDashboardLayout;

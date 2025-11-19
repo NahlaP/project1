@@ -1,9 +1,6 @@
 
-<<<<<<< HEAD
 
 
-=======
->>>>>>> origin/design-work
 // C:\Users\97158\Desktop\project1\dashboard\pages\editorpages\servicesE.js
 "use client";
 
@@ -79,22 +76,11 @@ export default function ServicesPagePreview() {
         const doc = (await res.json().catch(() => ({}))) || { services: [] };
         const items = Array.isArray(doc.services) ? doc.services : [];
 
-<<<<<<< HEAD
         // build displayUrl respecting template’s fields
         const withUrls = await Promise.all(
           items.map(async (it) => {
             if (!allowed.imageUrl) return { ...it, displayUrl: "" };
             if (it.imageUrl && isAbs(it.imageUrl)) return { ...it, displayUrl: it.imageUrl };
-=======
-        // build displayUrl per service item
-        const services = await Promise.all(
-          (doc.services || []).map(async (item) => {
-            // prefer absolute URL
-            if (item.imageUrl && /^https?:\/\//i.test(item.imageUrl)) {
-              return { ...item, displayUrl: item.imageUrl };
-            }
-            
->>>>>>> origin/design-work
             const key =
               it.imageKey ||
               (it.imageUrl && !isAbs(it.imageUrl) ? it.imageUrl : "");

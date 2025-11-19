@@ -1,11 +1,4 @@
 
-<<<<<<< HEAD
-=======
-
-
-
-// // works fine st
->>>>>>> origin/design-work
 // // dashboard/lib/sectionsApi.js
 import axios from "axios";
 

@@ -9,7 +9,6 @@ import { useRouter } from "next/router";
 import { backendBaseUrl } from "../../lib/config";
 import { useIonContext } from "../../lib/useIonContext";
 
-<<<<<<< HEAD
 /* ---------------- helpers ---------------- */
 const ABS = /^https?:\/\//i;
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number(n || 0)));
@@ -19,37 +18,6 @@ const isPresigned = (url) =>
   );
 const bust = (url) =>
   !url || isPresigned(url) ? url : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`;
-=======
-
-function useResolvedTemplateId(userId) {
-  const [tpl, setTpl] = useState("");
-  useEffect(() => {
-    let off = false;
-    (async () => {
-      // 1) URL param
-      const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-      const fromUrl = sp?.get("templateId")?.trim();
-      if (fromUrl) {
-        if (!off) setTpl(fromUrl);
-        return;
-      }
-      // 2) Backend-selected
-      try {
-        const sel = await api.selectedTemplateForUser(userId);
-        const t = sel?.data?.templateId;
-        if (t && !off) {
-          setTpl(t);
-          return;
-        }
-      } catch {}
-      // 3) Fallback
-      if (!off) setTpl(defaultTemplateId || "gym-template-1");
-    })();
-    return () => { off = true; };
-  }, [userId]);
-  return tpl;
-}
->>>>>>> origin/design-work
 
 const normArr = (data) =>
   Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];

@@ -1,10 +1,5 @@
 
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> origin/design-work
 
 
 // C:\Users\97158\Desktop\project1 dev\project1\dashboard\pages\editorpages\servicesS.js
@@ -85,43 +80,6 @@ const pickAllowed = (row, allowed) => {
   return out;
 };
 
-<<<<<<< HEAD
-=======
-
-function useResolvedTemplateId(userId) {
-  const router = useRouter();
-  const [tid, setTid] = useState("");
-
-  useEffect(() => {
-    let off = false;
-    (async () => {
-      const fromUrl =
-        typeof router.query.templateId === "string" &&
-        router.query.templateId.trim();
-      if (fromUrl) {
-        if (!off) setTid(fromUrl);
-        return;
-      }
-      try {
-        const sel = await api.selectedTemplateForUser(userId);
-        const t = sel?.data?.templateId;
-        if (t && !off) {
-          setTid(t);
-          return;
-        }
-      } catch {}
-      if (!off) setTid("gym-template-1");
-    })();
-    return () => {
-      off = true;
-    };
-  }, [router.query.templateId, userId]);
-
-  return tid;
-}
-
-/* ============================= PAGE ============================== */
->>>>>>> origin/design-work
 function ServicesEditorPage() {
   const { userId, templateId } = useIonContext();
 
