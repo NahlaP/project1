@@ -1,16 +1,444 @@
 
 
+// // dashboard/lib/api.js
+// // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
+// export const PUBLIC_HOST =
+//   process.env.NEXT_PUBLIC_PUBLIC_HOST || "https://ion7devtemplate.mavsketch.com";
+
+// const BASE = (
+//   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ||
+//   process.env.BACKEND_ORIGIN ||
+//   "http://127.0.0.1:5000"
+// ).replace(/\/$/, "");
+// // export { PUBLIC_HOST } from "./config";
+
+// // ✅ Export the resolved backend base (useful for debugging)
+// export const BACKEND = BASE;
+
+// const TOKEN_COOKIE =
+//   process.env.NEXT_PUBLIC_COOKIE_NAME ||
+//   process.env.COOKIE_NAME ||
+//   "auth_token";
+
+// /* ---------------- token helpers (cookie + localStorage fallback) ---------------- */
+// function getCookie(name) {
+//   if (typeof document === "undefined") return null;
+//   const m = document.cookie.match(
+//     new RegExp("(^| )" + name.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&") + "=([^;]+)")
+//   );
+//   return m ? decodeURIComponent(m[2]) : null;
+// }
+// function setCookie(name, value, days = 7) {
+//   if (typeof document === "undefined") return;
+//   const d = new Date();
+//   d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+//   document.cookie = `${name}=${encodeURIComponent(
+//     value
+//   )}; expires=${d.toUTCString()}; path=/; SameSite=Lax`;
+// }
+
+// export function setToken(token) {
+//   try {
+//     setCookie(TOKEN_COOKIE, token);
+//     if (typeof window !== "undefined") localStorage.setItem(TOKEN_COOKIE, token);
+//   } catch {}
+// }
+
+// export function getToken() {
+//   try {
+//     const c = getCookie(TOKEN_COOKIE);
+//     if (c) return c;
+//     if (typeof window !== "undefined") return localStorage.getItem(TOKEN_COOKIE);
+//   } catch {}
+//   return null;
+// }
+
+// export function clearToken() {
+//   try {
+//     setCookie(TOKEN_COOKIE, "", -1);
+//     if (typeof window !== "undefined") localStorage.removeItem(TOKEN_COOKIE);
+//   } catch {}
+// }
+
+// /** Decode userId from your demo token; fallback to "demo-user" */
+// export function getUserId() {
+//   try {
+//     const t = getToken();
+//     if (!t) return "demo-user";
+//     const payload = JSON.parse(atob((t.split(".")[1] || "").replace(/-/g, "+").replace(/_/g, "/")));
+//     return payload?.userId || "demo-user";
+//   } catch {
+//     return "demo-user";
+//   }
+// }
+
+// /* ---------------- request helpers ---------------- */
+// async function request(path, init = {}) {
+//   const headers = Object.assign({}, init.headers || {});
+//   const token = getToken();
+//   if (token) headers.Authorization = `Bearer ${token}`;
+
+//   const res = await fetch(`${BASE}${path}`, { ...init, headers });
+
+//   const type = res.headers.get("content-type") || "";
+//   const body = type.includes("application/json") ? await res.json() : await res.text();
+
+//   if (!res.ok) {
+//     const msg = (body && body.error) || res.statusText;
+//     throw new Error(msg || "Request failed");
+//   }
+//   return body;
+// }
+
+// async function upload(path, file, fieldName = "image") {
+//   const fd = new FormData();
+//   fd.append(fieldName, file);
+//   return request(path, { method: "POST", body: fd });
+// }
+
+// /* ---------------- API surface ---------------- */
+// export const api = {
+//   /* ===== Auth ===== */
+//   login(email, password) {
+//     return request("/api/auth/login", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ email, password }),
+//     });
+//   },
+//   signup(fullName, company, country, email, password) {
+//     return request("/api/auth/signup", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ fullName, company, country, email, password }),
+//     });
+//   },
+//   me() {
+//     return request("/api/auth/me");
+//   },
+
+//   /* ===== Plans (Choose Plan) ===== */
+//   listPlans() {
+//     return request("/api/plans");
+//   },
+//   getPrice(priceId) {
+//     return request(`/api/plans/price/${encodeURIComponent(priceId)}`);
+//   },
+
+//   /* ===== Billing (Elements) ===== */
+//   /**
+//    * Matches backend POST /api/billing/elements/start
+//    * pass email to guarantee Stripe customer has it
+//    */
+//   billingStartElements(
+//     priceId,
+//     { email, name, country, address1, city, postalCode } = {}
+//   ) {
+//     return request(`/api/billing/elements/start`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ priceId, email, name, country, address1, city, postalCode }),
+//     });
+//   },
+//   billingVerify(payload = {}) {
+//     return request(`/api/billing/verify`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+//   },
+
+//   /* ===== Templates & selection ===== */
+//   listTemplates() {
+//     return request("/api/templates");
+//   },
+//   upsertTemplate(payload) {
+//     return request("/api/templates", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+//   },
+//   selectTemplate(templateId, userId) {
+//     return request(`/api/templates/${templateId}/select`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ userId }),
+//     });
+//   },
+//   selectedTemplateForUser(userId) {
+//     return request(`/api/templates/user/${userId}/selected`);
+//   },
+//   resetTemplate(templateId, userId) {
+//     return request(`/api/templates/${templateId}/reset`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ userId }),
+//     });
+//   },
+//   async selectAndReset(templateId, userId) {
+//     await this.selectTemplate(templateId, userId);
+//     return this.resetTemplate(templateId, userId);
+//   },
+
+//   /** Helper: get the "Home" page id for a given user/template */
+//   async getHomePageId(userId, templateId) {
+//     const rows = await request(
+//       `/api/sections?userId=${encodeURIComponent(userId)}&templateId=${encodeURIComponent(
+//         templateId
+//       )}&type=page&slug=home`
+//     );
+//     const list = Array.isArray(rows) ? rows : rows?.data || [];
+//     const page =
+//       list.find(
+//         (r) =>
+//           r?.type === "page" &&
+//           ((r?.slug || "").toLowerCase() === "home" || (r?.title || "").toLowerCase() === "home")
+//       ) || null;
+//     return page?._id || null;
+//   },
+
+//   /* ===== Hero / About / Appointment / Services / Team / Testimonials / WhyChoose ===== */
+//   getHero(userId, templateId) {
+//     return request(`/api/hero/${userId}/${templateId}`);
+//   },
+//   saveHeroText(userId, templateId, content) {
+//     return request(`/api/hero/${userId}/${templateId}`, {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ content }),
+//     });
+//   },
+//   uploadHeroFile(userId, templateId, file) {
+//     return upload(`/api/hero/${userId}/${templateId}/image`, file, "image");
+//   },
+//   uploadHeroBase64(userId, templateId, dataUrl, filename = "hero.jpg") {
+//     return request(`/api/hero/${userId}/${templateId}/image-base64`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ filename, dataUrl }),
+//     });
+//   },
+//   resetHero(userId, templateId) {
+//     return request(`/api/hero/${userId}/${templateId}/reset`, { method: "POST" });
+//   },
+//   clearHeroImage(userId, templateId) {
+//     return request(`/api/hero/${userId}/${templateId}/clear-image`, { method: "POST" });
+//   },
+
+//   getAbout(userId, templateId) {
+//     return request(`/api/about/${userId}/${templateId}`);
+//   },
+//   saveAbout(userId, templateId, payload) {
+//     return request(`/api/about/${userId}/${templateId}`, {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+//   },
+//   uploadAboutImage(userId, templateId, file) {
+//     return upload(`/api/about/${userId}/${templateId}/image`, file, "image");
+//   },
+//   deleteAboutImage(userId, templateId) {
+//     return request(`/api/about/${userId}/${templateId}/image`, { method: "DELETE" });
+//   },
+
+//   getAppointment(userId, templateId) {
+//     return request(`/api/appointment/${userId}/${templateId}`);
+//   },
+//   saveAppointment(userId, templateId, payload) {
+//     return request(`/api/appointment/${userId}/${templateId}`, {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+//   },
+//   uploadAppointmentBg(file) {
+//     return upload(`/api/appointment/upload-bg`, file, "image");
+//   },
+//   clearAppointmentBg() {
+//     return request(`/api/appointment/clear-bg`, { method: "POST" });
+//   },
+
+//   getServices(userId, templateId) {
+//     return request(`/api/services/${userId}/${templateId}`);
+//   },
+//   upsertServices(userId, templateId, services) {
+//     return request(`/api/services/${userId}/${templateId}`, {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ services }),
+//     });
+//   },
+//   addService(userId, templateId, item) {
+//     return request(`/api/services/${userId}/${templateId}`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(item),
+//     });
+//   },
+//   updateService(userId, templateId, serviceId, item) {
+//     return request(`/api/services/${userId}/${templateId}/${serviceId}`, {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(item),
+//     });
+//   },
+//   deleteService(userId, templateId, serviceId) {
+//     return request(`/api/services/${userId}/${templateId}/${serviceId}`, {
+//       method: "DELETE",
+//     });
+//   },
+//   uploadServiceImage(userId, templateId, serviceId, file) {
+//     return upload(`/api/services/${userId}/${templateId}/${serviceId}/image`, file, "image");
+//   },
+//   deleteServiceImage(userId, templateId, serviceId) {
+//     return request(`/api/services/${userId}/${templateId}/${serviceId}/image`, {
+//       method: "DELETE",
+//     });
+//   },
+
+//   getTeam(userId, templateId) {
+//     return request(`/api/team/${userId}/${templateId}`);
+//   },
+//   createTeamMember(userId, templateId, body, file) {
+//     if (file) {
+//       const fd = new FormData();
+//       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
+//       fd.append("image", file);
+//       return request(`/api/team/${userId}/${templateId}`, { method: "POST", body: fd });
+//     }
+//     return request(`/api/team/${userId}/${templateId}`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(body || {}),
+//     });
+//   },
+//   updateTeamMember(id, body, file) {
+//     if (file) {
+//       const fd = new FormData();
+//       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
+//       fd.append("image", file);
+//       return request(`/api/team/${id}`, { method: "PATCH", body: fd });
+//     }
+//     return request(`/api/team/${id}`, {
+//       method: "PATCH",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(body || {}),
+//     });
+//   },
+//   deleteTeamMember(id) {
+//     return request(`/api/team/${id}`, { method: "DELETE" });
+//   },
+
+//   getTestimonials(userId, templateId) {
+//     return request(`/api/testimonial/${userId}/${templateId}`);
+//   },
+//   createTestimonial(userId, templateId, body, file) {
+//     if (file) {
+//       const fd = new FormData();
+//       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
+//       fd.append("image", file);
+//       return request(`/api/testimonial/${userId}/${templateId}`, { method: "POST", body: fd });
+//     }
+//     return request(`/api/testimonial/${userId}/${templateId}`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(body || {}),
+//     });
+//   },
+//   updateTestimonial(id, body, file) {
+//     if (file) {
+//       const fd = new FormData();
+//       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
+//       fd.append("image", file);
+//       return request(`/api/testimonial/${id}`, { method: "PATCH", body: fd });
+//     }
+//     return request(`/api/testimonial/${id}`, {
+//       method: "PATCH",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(body || {}),
+//     });
+//   },
+//   deleteTestimonial(id) {
+//     return request(`/api/testimonial/${id}`, { method: "DELETE" });
+//   },
+
+//   getWhyChoose(userId, templateId) {
+//     return request(`/api/whychoose/${userId}/${templateId}`);
+//   },
+//   saveWhyChoose(userId, templateId, payload) {
+//     return request(`/api/whychoose/${userId}/${templateId}`, {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+//   },
+//   uploadWhyChooseBg(userId, templateId, file) {
+//     return upload(`/api/whychoose/${userId}/${templateId}/bg`, file, "image");
+//   },
+//   deleteWhyChooseBg(userId, templateId) {
+//     return request(`/api/whychoose/${userId}/${templateId}/bg`, { method: "DELETE" });
+//   },
+
+//   /* ===== Optional: Save selected priceId before checkout ===== */
+//   async choosePlan(priceId) {
+//     try {
+//       return await request("/api/subscription/choose", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ priceId }),
+//       });
+//     } catch (e) {
+//       return { ok: false, message: e.message || "Choose plan route not implemented" };
+//     }
+//   },
+// };
+
+// // dev-time helpers
+// if (typeof window !== "undefined") {
+//   try {
+//     window.__ION7_BACKEND__ = BACKEND;
+//     window.api = api;
+//   } catch {}
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // dashboard/lib/api.js
 // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
+
 export const PUBLIC_HOST =
-  process.env.NEXT_PUBLIC_PUBLIC_HOST || "https://ion7devtemplate.mavsketch.com";
+  process.env.NEXT_PUBLIC_PUBLIC_HOST ||
+  "https://ion7devtemplate.mavsketch.com";
 
 const BASE = (
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ||
   process.env.BACKEND_ORIGIN ||
   "http://127.0.0.1:5000"
 ).replace(/\/$/, "");
-// export { PUBLIC_HOST } from "./config";
 
 // ✅ Export the resolved backend base (useful for debugging)
 export const BACKEND = BASE;
@@ -24,10 +452,15 @@ const TOKEN_COOKIE =
 function getCookie(name) {
   if (typeof document === "undefined") return null;
   const m = document.cookie.match(
-    new RegExp("(^| )" + name.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&") + "=([^;]+)")
+    new RegExp(
+      "(^| )" +
+        name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+        "=([^;]+)"
+    )
   );
   return m ? decodeURIComponent(m[2]) : null;
 }
+
 function setCookie(name, value, days = 7) {
   if (typeof document === "undefined") return;
   const d = new Date();
@@ -40,7 +473,8 @@ function setCookie(name, value, days = 7) {
 export function setToken(token) {
   try {
     setCookie(TOKEN_COOKIE, token);
-    if (typeof window !== "undefined") localStorage.setItem(TOKEN_COOKIE, token);
+    if (typeof window !== "undefined")
+      localStorage.setItem(TOKEN_COOKIE, token);
   } catch {}
 }
 
@@ -48,7 +482,8 @@ export function getToken() {
   try {
     const c = getCookie(TOKEN_COOKIE);
     if (c) return c;
-    if (typeof window !== "undefined") return localStorage.getItem(TOKEN_COOKIE);
+    if (typeof window !== "undefined")
+      return localStorage.getItem(TOKEN_COOKIE);
   } catch {}
   return null;
 }
@@ -56,7 +491,8 @@ export function getToken() {
 export function clearToken() {
   try {
     setCookie(TOKEN_COOKIE, "", -1);
-    if (typeof window !== "undefined") localStorage.removeItem(TOKEN_COOKIE);
+    if (typeof window !== "undefined")
+      localStorage.removeItem(TOKEN_COOKIE);
   } catch {}
 }
 
@@ -65,7 +501,9 @@ export function getUserId() {
   try {
     const t = getToken();
     if (!t) return "demo-user";
-    const payload = JSON.parse(atob((t.split(".")[1] || "").replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(
+      atob((t.split(".")[1] || "").replace(/-/g, "+").replace(/_/g, "/"))
+    );
     return payload?.userId || "demo-user";
   } catch {
     return "demo-user";
@@ -78,15 +516,32 @@ async function request(path, init = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers,
+    credentials: "include", // ✅ always send cookies too
+  });
 
   const type = res.headers.get("content-type") || "";
-  const body = type.includes("application/json") ? await res.json() : await res.text();
+  const body = type.includes("application/json")
+    ? await res.json()
+    : await res.text();
+
+  // ✅ If token missing/expired → redirect to signin
+  if (res.status === 401 && typeof window !== "undefined") {
+    clearToken();
+    const next = window.location.pathname;
+    window.location.href = `/authentication/signin?next=${encodeURIComponent(
+      next
+    )}`;
+    return;
+  }
 
   if (!res.ok) {
     const msg = (body && body.error) || res.statusText;
     throw new Error(msg || "Request failed");
   }
+
   return body;
 }
 
@@ -137,7 +592,15 @@ export const api = {
     return request(`/api/billing/elements/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId, email, name, country, address1, city, postalCode }),
+      body: JSON.stringify({
+        priceId,
+        email,
+        name,
+        country,
+        address1,
+        city,
+        postalCode,
+      }),
     });
   },
   billingVerify(payload = {}) {
@@ -184,7 +647,9 @@ export const api = {
   /** Helper: get the "Home" page id for a given user/template */
   async getHomePageId(userId, templateId) {
     const rows = await request(
-      `/api/sections?userId=${encodeURIComponent(userId)}&templateId=${encodeURIComponent(
+      `/api/sections?userId=${encodeURIComponent(
+        userId
+      )}&templateId=${encodeURIComponent(
         templateId
       )}&type=page&slug=home`
     );
@@ -193,7 +658,8 @@ export const api = {
       list.find(
         (r) =>
           r?.type === "page" &&
-          ((r?.slug || "").toLowerCase() === "home" || (r?.title || "").toLowerCase() === "home")
+          ((r?.slug || "").toLowerCase() === "home" ||
+            (r?.title || "").toLowerCase() === "home")
       ) || null;
     return page?._id || null;
   },
@@ -220,10 +686,14 @@ export const api = {
     });
   },
   resetHero(userId, templateId) {
-    return request(`/api/hero/${userId}/${templateId}/reset`, { method: "POST" });
+    return request(`/api/hero/${userId}/${templateId}/reset`, {
+      method: "POST",
+    });
   },
   clearHeroImage(userId, templateId) {
-    return request(`/api/hero/${userId}/${templateId}/clear-image`, { method: "POST" });
+    return request(`/api/hero/${userId}/${templateId}/clear-image`, {
+      method: "POST",
+    });
   },
 
   getAbout(userId, templateId) {
@@ -240,7 +710,9 @@ export const api = {
     return upload(`/api/about/${userId}/${templateId}/image`, file, "image");
   },
   deleteAboutImage(userId, templateId) {
-    return request(`/api/about/${userId}/${templateId}/image`, { method: "DELETE" });
+    return request(`/api/about/${userId}/${templateId}/image`, {
+      method: "DELETE",
+    });
   },
 
   getAppointment(userId, templateId) {
@@ -290,12 +762,17 @@ export const api = {
     });
   },
   uploadServiceImage(userId, templateId, serviceId, file) {
-    return upload(`/api/services/${userId}/${templateId}/${serviceId}/image`, file, "image");
+    return upload(
+      `/api/services/${userId}/${templateId}/${serviceId}/image`,
+      file,
+      "image"
+    );
   },
   deleteServiceImage(userId, templateId, serviceId) {
-    return request(`/api/services/${userId}/${templateId}/${serviceId}/image`, {
-      method: "DELETE",
-    });
+    return request(
+      `/api/services/${userId}/${templateId}/${serviceId}/image`,
+      { method: "DELETE" }
+    );
   },
 
   getTeam(userId, templateId) {
@@ -306,7 +783,10 @@ export const api = {
       const fd = new FormData();
       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
       fd.append("image", file);
-      return request(`/api/team/${userId}/${templateId}`, { method: "POST", body: fd });
+      return request(`/api/team/${userId}/${templateId}`, {
+        method: "POST",
+        body: fd,
+      });
     }
     return request(`/api/team/${userId}/${templateId}`, {
       method: "POST",
@@ -339,7 +819,10 @@ export const api = {
       const fd = new FormData();
       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
       fd.append("image", file);
-      return request(`/api/testimonial/${userId}/${templateId}`, { method: "POST", body: fd });
+      return request(`/api/testimonial/${userId}/${templateId}`, {
+        method: "POST",
+        body: fd,
+      });
     }
     return request(`/api/testimonial/${userId}/${templateId}`, {
       method: "POST",
@@ -352,7 +835,10 @@ export const api = {
       const fd = new FormData();
       Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v));
       fd.append("image", file);
-      return request(`/api/testimonial/${id}`, { method: "PATCH", body: fd });
+      return request(`/api/testimonial/${id}`, {
+        method: "PATCH",
+        body: fd,
+      });
     }
     return request(`/api/testimonial/${id}`, {
       method: "PATCH",
@@ -375,10 +861,16 @@ export const api = {
     });
   },
   uploadWhyChooseBg(userId, templateId, file) {
-    return upload(`/api/whychoose/${userId}/${templateId}/bg`, file, "image");
+    return upload(
+      `/api/whychoose/${userId}/${templateId}/bg`,
+      file,
+      "image"
+    );
   },
   deleteWhyChooseBg(userId, templateId) {
-    return request(`/api/whychoose/${userId}/${templateId}/bg`, { method: "DELETE" });
+    return request(`/api/whychoose/${userId}/${templateId}/bg`, {
+      method: "DELETE",
+    });
   },
 
   /* ===== Optional: Save selected priceId before checkout ===== */
@@ -390,7 +882,10 @@ export const api = {
         body: JSON.stringify({ priceId }),
       });
     } catch (e) {
-      return { ok: false, message: e.message || "Choose plan route not implemented" };
+      return {
+        ok: false,
+        message: e.message || "Choose plan route not implemented",
+      };
     }
   },
 };
@@ -402,13 +897,3 @@ if (typeof window !== "undefined") {
     window.api = api;
   } catch {}
 }
-
-
-
-
-
-
-
-
-
-

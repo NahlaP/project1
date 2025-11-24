@@ -1,15 +1,18 @@
+
+
+
 // // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarTop.js
-// import React, { useEffect, useState } from 'react';
-// import { Nav, Navbar, Dropdown } from 'react-bootstrap';
-// import { useRouter } from 'next/router';
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// import { faBell } from '@fortawesome/free-regular-svg-icons';
+// import React, { useEffect, useState } from "react";
+// import { Nav, Navbar, Dropdown } from "react-bootstrap";
+// import { useRouter } from "next/router";
+// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+// import { faBell } from "@fortawesome/free-regular-svg-icons";
 // import {
 //   faEllipsisVertical,
 //   faRightFromBracket,
 //   faSearch,
 //   faPowerOff,
-// } from '@fortawesome/free-solid-svg-icons';
+// } from "@fortawesome/free-solid-svg-icons";
 
 // const TINY_BP = 438;
 
@@ -20,14 +23,14 @@
 
 //   useEffect(() => {
 //     const onResize = () => {
-//       if (typeof window === 'undefined') return;
+//       if (typeof window === "undefined") return;
 //       setLocalCompact(window.innerWidth <= 993);
 //       setIsTiny(window.innerWidth <= TINY_BP);
 //     };
 //     onResize();
-//     if (typeof window !== 'undefined') {
-//       window.addEventListener('resize', onResize);
-//       return () => window.removeEventListener('resize', onResize);
+//     if (typeof window !== "undefined") {
+//       window.addEventListener("resize", onResize);
+//       return () => window.removeEventListener("resize", onResize);
 //     }
 //   }, []);
 
@@ -37,25 +40,25 @@
 //   const handleLogout = () => {
 //     try {
 //       // clear all likely token locations/keys
-//       if (typeof window !== 'undefined') {
-//         window.localStorage.removeItem('token');
-//         window.localStorage.removeItem('auth_token');
-//         window.sessionStorage.removeItem('token');
-//         window.sessionStorage.removeItem('auth_token');
+//       if (typeof window !== "undefined") {
+//         window.localStorage.removeItem("token");
+//         window.localStorage.removeItem("auth_token");
+//         window.sessionStorage.removeItem("token");
+//         window.sessionStorage.removeItem("auth_token");
 //       }
 
 //       // clear common auth cookies
-//       if (typeof document !== 'undefined') {
-//         document.cookie = 'auth=; Max-Age=0; path=/; SameSite=Lax';
-//         document.cookie = 'token=; Max-Age=0; path=/; SameSite=Lax';
-//         document.cookie = 'auth_token=; Max-Age=0; path=/; SameSite=Lax';
+//       if (typeof document !== "undefined") {
+//         document.cookie = "auth=; Max-Age=0; path=/; SameSite=Lax";
+//         document.cookie = "token=; Max-Age=0; path=/; SameSite=Lax";
+//         document.cookie = "auth_token=; Max-Age=0; path=/; SameSite=Lax";
 //       }
 //     } catch {
 //       // ignore
 //     }
 
 //     // go to Sign In route (file is pages/authentication/signin.jsx)
-//     router.replace('/authentication/signin');
+//     router.replace("/authentication/signin");
 //   };
 
 //   return (
@@ -63,19 +66,20 @@
 //       expand="lg"
 //       className="px-4 nav-header-custom"
 //       style={{
-//         left: compact ? 0 : '256px',
-//         width: compact ? '100%' : 'calc(100% - 256px)',
+//         left: compact ? 0 : "256px",
+//         width: compact ? "100%" : "calc(100% - 256px)",
 //       }}
 //     >
 //       <div className="d-flex justify-content-between align-items-center w-100 gap-2">
-//         <div style={{ width: 44, flex: '0 0 auto' }} />
+//         <div style={{ width: 44, flex: "0 0 auto" }} />
 
 //         {/* Right Side */}
 //         <Nav
 //           className="d-flex align-items-center gap-3 flex-nowrap"
-//           style={{ flex: '0 0 auto' }}
+//           style={{ flex: "0 0 auto" }}
 //         >
 //           {isTiny ? (
+//             // -------------- MOBILE: ellipsis dropdown --------------
 //             <Dropdown align="end">
 //               <Dropdown.Toggle
 //                 as="button"
@@ -84,19 +88,23 @@
 //                   width: 36,
 //                   height: 36,
 //                   borderRadius: 12,
-//                   background: '#fff',
-//                   border: '1px solid #e0e0e0',
-//                   alignItems: 'center',
-//                   justifyContent: 'center',
+//                   background: "#fff",
+//                   border: "1px solid #e0e0e0",
+//                   alignItems: "center",
+//                   justifyContent: "center",
 //                 }}
 //               >
 //                 <FontAwesomeIcon
 //                   icon={faEllipsisVertical}
-//                   style={{ fontSize: 16, color: '#111' }}
+//                   style={{ fontSize: 16, color: "#111" }}
 //                 />
 //               </Dropdown.Toggle>
 
-//               <Dropdown.Menu align="end" className="p-2" style={{ minWidth: 260 }}>
+//               <Dropdown.Menu
+//                 align="end"
+//                 className="p-2"
+//                 style={{ minWidth: 260 }}
+//               >
 //                 <div className="mb-2">
 //                   <div className="position-relative">
 //                     <input
@@ -105,23 +113,23 @@
 //                       placeholder="Search..."
 //                       style={{
 //                         height: 38,
-//                         background: '#fff',
-//                         border: '1px solid #e0e0e0',
-//                         boxShadow: 'none',
-//                         width: '100%',
+//                         background: "#fff",
+//                         border: "1px solid #e0e0e0",
+//                         boxShadow: "none",
+//                         width: "100%",
 //                       }}
 //                     />
 
 //                     <FontAwesomeIcon
 //                       icon={faSearch}
 //                       style={{
-//                         position: 'absolute',
+//                         position: "absolute",
 //                         left: 12,
-//                         top: '50%',
-//                         transform: 'translateY(-50%)',
+//                         top: "50%",
+//                         transform: "translateY(-50%)",
 //                         fontSize: 12,
-//                         color: '#777',
-//                         pointerEvents: 'none',
+//                         color: "#777",
+//                         pointerEvents: "none",
 //                       }}
 //                       aria-hidden
 //                     />
@@ -130,23 +138,28 @@
 
 //                 <div
 //                   className="d-flex align-items-center justify-content-between p-2 rounded"
-//                   style={{ background: '#fafafa', border: '1px solid #eee' }}
+//                   style={{ background: "#fafafa", border: "1px solid #eee" }}
 //                 >
 //                   <div className="d-flex align-items-center gap-2">
 //                     <div
 //                       className="position-relative rounded-circle bg-white d-flex align-items-center justify-content-center"
-//                       style={{ width: 32, height: 32, padding: 8, border: '1px solid #eee' }}
+//                       style={{
+//                         width: 32,
+//                         height: 32,
+//                         padding: 8,
+//                         border: "1px solid #eee",
+//                       }}
 //                     >
 //                       <FontAwesomeIcon
 //                         icon={faBell}
-//                         style={{ color: '#222', fontSize: 12 }}
+//                         style={{ color: "#222", fontSize: 12 }}
 //                       />
 //                       <span
 //                         className="position-absolute bg-danger rounded-circle"
 //                         style={{
 //                           width: 6,
 //                           height: 6,
-//                           border: '1.5px solid white',
+//                           border: "1.5px solid white",
 //                           top: 3,
 //                           right: 3,
 //                         }}
@@ -159,7 +172,7 @@
 
 //                 <div
 //                   className="d-flex align-items-center gap-2 mt-2 p-2 rounded"
-//                   style={{ background: '#fafafa', border: '1px solid #eee' }}
+//                   style={{ background: "#fafafa", border: "1px solid #eee" }}
 //                 >
 //                   <img
 //                     src="https://i.pravatar.cc/40"
@@ -176,30 +189,32 @@
 
 //                 <div className="mt-2">
 //                   <button className="logout-button" onClick={handleLogout}>
-//                     {/* <FontAwesomeIcon icon={faRightFromBracket} /> */}
 //                     <FontAwesomeIcon icon={faPowerOff} />
 //                   </button>
 //                 </div>
 //               </Dropdown.Menu>
 //             </Dropdown>
 //           ) : (
-//             <>
-//               <div className="navbar-profile">
-//                 <img
-//                   src="images/avatar/avatar-1.jpg"
-//                   alt="Profile"
-//                   className="rounded-circle"
-//                 />
-//                 <div className="user-info">
-//                   <strong className="fs-6">Marco Botton</strong>
-//                   <small className="text-muted">Admin</small>
-//                 </div>
+//             // -------------- DESKTOP: Marco pill + ONE logout icon --------------
+//             <div className="navbar-profile">
+//               <img
+//                 src="images/avatar/avatar-1.jpg"
+//                 alt="Profile"
+//                 className="rounded-circle"
+//               />
+//               <div className="user-info">
+//                 <strong className="fs-6">Marco Botton</strong>
+//                 <small className="text-muted">Admin</small>
 //               </div>
 
-//               <button className="logout-button" onClick={handleLogout}>
+//               {/* only one logout icon, inside the pill */}
+//               <button
+//                 className="logout-button logout-button-inline"
+//                 onClick={handleLogout}
+//               >
 //                 <FontAwesomeIcon icon={faPowerOff} />
 //               </button>
-//             </>
+//             </div>
 //           )}
 //         </Nav>
 //       </div>
@@ -222,16 +237,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarTop.js
 import React, { useEffect, useState } from "react";
 import { Nav, Navbar, Dropdown } from "react-bootstrap";
@@ -240,10 +245,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell } from "@fortawesome/free-regular-svg-icons";
 import {
   faEllipsisVertical,
-  faRightFromBracket,
   faSearch,
   faPowerOff,
 } from "@fortawesome/free-solid-svg-icons";
+
+// ✅ import your real helpers
+import { api, clearToken } from "../../lib/api";
 
 const TINY_BP = 438;
 
@@ -267,28 +274,20 @@ const NavbarTop = ({ isMobile }) => {
 
   const compact = isMobile || localCompact;
 
-  // -------- Logout ----------
-  const handleLogout = () => {
+  // -------- Logout (FIXED) ----------
+  const handleLogout = async () => {
     try {
-      // clear all likely token locations/keys
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("token");
-        window.localStorage.removeItem("auth_token");
-        window.sessionStorage.removeItem("token");
-        window.sessionStorage.removeItem("auth_token");
-      }
-
-      // clear common auth cookies
-      if (typeof document !== "undefined") {
-        document.cookie = "auth=; Max-Age=0; path=/; SameSite=Lax";
-        document.cookie = "token=; Max-Age=0; path=/; SameSite=Lax";
-        document.cookie = "auth_token=; Max-Age=0; path=/; SameSite=Lax";
-      }
-    } catch {
-      // ignore
+      // 1) clear server httpOnly cookie
+      await api.logout();
+    } catch (e) {
+      // if backend is down, still clear front-end
+      console.warn("logout api failed", e);
     }
 
-    // go to Sign In route (file is pages/authentication/signin.jsx)
+    // 2) clear front-end tokens (localStorage + JS cookies)
+    clearToken();
+
+    // 3) go to Sign In
     router.replace("/authentication/signin");
   };
 
