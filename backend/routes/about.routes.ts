@@ -1,6 +1,5 @@
 
 
-// og
 
 // import express from "express";
 // import * as about from "../controllers/about.controller";
@@ -14,7 +13,7 @@
 //   return upload.single("image")(req, res, next);
 // };
 
-// // REST-style
+// // REST
 // router.get("/:userId/:templateId", about.getAbout);
 // router.put("/:userId/:templateId", about.upsertAbout);
 // router.post("/:userId/:templateId/reset", about.resetAbout);
@@ -42,27 +41,23 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+// backend/routes/about.routes.ts
 import express from "express";
 import * as about from "../controllers/about.controller";
-import { upload } from "../middleware/upload";
+
+// ✅ import uploadImage for auto Media recording
+// keep upload too (still used for other custom middlewares if needed)
+import { upload, uploadImage } from "../middleware/upload";
 
 const router = express.Router();
 
 // Save uploads under sections/about/
 const aboutUpload = (req: any, res: any, next: any) => {
   req.params = { ...(req.params || {}), folder: "sections/about" };
-  return upload.single("image")(req, res, next);
+
+  // ✅ BEFORE: return upload.single("image")(req, res, next);
+  // ✅ NOW: use uploadImage (same single("image") + auto Media record)
+  return uploadImage(req, res, next);
 };
 
 // REST
@@ -85,6 +80,7 @@ const setDefaults = (req: any, _res: any, next: any) => {
   if (!req.params.templateId) req.params.templateId = "gym-template-1";
   next();
 };
+
 router.post("/upload-image", setDefaults, aboutUpload, about.uploadAboutImage);
 router.post("/save", setDefaults, about.upsertAbout);
 

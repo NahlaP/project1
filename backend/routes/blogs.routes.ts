@@ -1,5 +1,6 @@
 
 
+// // C:\Users\97158\Desktop\project1 dev\project1\backend\routes\blogs.routes.ts
 // import express from "express";
 // import {
 //   getBlogs,
@@ -9,6 +10,7 @@
 //   deleteBlog,
 //   uploadBlogImage,
 //   deleteBlogImage,
+//   resetBlogs,
 // } from "../controllers/blogs.controller";
 // import { upload } from "../middleware/upload";
 
@@ -29,14 +31,14 @@
 // router.put("/:userId/:templateId/:postId", updateBlog);
 // router.delete("/:userId/:templateId/:postId", deleteBlog);
 
+// // Reset like Projects
+// router.post("/:userId/:templateId/reset", resetBlogs);
+
 // // Images
 // router.post("/:userId/:templateId/:postId/image", blogImageUpload, uploadBlogImage);
 // router.delete("/:userId/:templateId/:postId/image", deleteBlogImage);
 
 // export default router;
-
-
-
 
 
 
@@ -54,7 +56,9 @@ import {
   deleteBlogImage,
   resetBlogs,
 } from "../controllers/blogs.controller";
-import { upload } from "../middleware/upload";
+
+// ✅ use uploadImage for auto Media recording (keep upload too)
+import { upload, uploadImage } from "../middleware/upload";
 
 const router = express.Router();
 
@@ -63,7 +67,12 @@ const blogImageUpload = (req: any, res: any, next: any) => {
   const { postId } = req.params;
   const folder = `sections/blogs/${postId || "misc"}`;
   req.params = { ...(req.params || {}), folder };
-  return upload.single("image")(req, res, next);
+
+  // BEFORE:
+  // return upload.single("image")(req, res, next);
+
+  // AFTER: same upload + auto Media library record
+  return uploadImage(req, res, next);
 };
 
 // CRUD

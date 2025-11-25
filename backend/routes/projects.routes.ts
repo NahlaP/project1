@@ -1,3 +1,10 @@
+
+
+
+
+
+
+// // C:\Users\97158\Desktop\project1\backend\routes\projects.routes.ts
 // import express from "express";
 // import * as projects from "../controllers/projects.controller";
 // import { upload } from "../middleware/upload";
@@ -14,12 +21,15 @@
 // router.get("/:userId/:templateId", projects.getProjects);
 // router.put("/:userId/:templateId", projects.upsertProjects);
 
+// // RESET to template defaults (Hero/About style)
+// router.post("/:userId/:templateId/reset", projects.resetProjects);
+
 // // Image per project index
 // router.post("/:userId/:templateId/image/:index", projUpload, projects.uploadProjectImage);
 // router.delete("/:userId/:templateId/image/:index", projects.deleteProjectImage);
 
-// export default router;
-
+// // Export router itself (CommonJS-style) so `import * as routes` works with app.use()
+// export = router;
 
 
 
@@ -35,14 +45,21 @@
 // C:\Users\97158\Desktop\project1\backend\routes\projects.routes.ts
 import express from "express";
 import * as projects from "../controllers/projects.controller";
-import { upload } from "../middleware/upload";
+
+// ✅ Import uploadImage (keep upload too because other routes may use it)
+import { upload, uploadImage } from "../middleware/upload";
 
 const router = express.Router();
 
 // Keep uploads under sections/projects/
 const projUpload = (req: any, res: any, next: any) => {
   req.params = { ...(req.params || {}), folder: "sections/projects" };
-  return upload.single("image")(req, res, next);
+
+  // BEFORE:
+  // return upload.single("image")(req, res, next);
+
+  // AFTER: uploadImage = same upload + auto Media record
+  return uploadImage(req, res, next);
 };
 
 // REST
@@ -53,8 +70,15 @@ router.put("/:userId/:templateId", projects.upsertProjects);
 router.post("/:userId/:templateId/reset", projects.resetProjects);
 
 // Image per project index
-router.post("/:userId/:templateId/image/:index", projUpload, projects.uploadProjectImage);
-router.delete("/:userId/:templateId/image/:index", projects.deleteProjectImage);
+router.post(
+  "/:userId/:templateId/image/:index",
+  projUpload,
+  projects.uploadProjectImage
+);
+router.delete(
+  "/:userId/:templateId/image/:index",
+  projects.deleteProjectImage
+);
 
-// Export router itself (CommonJS-style) so `import * as routes` works with app.use()
+// Export router itself (CommonJS-style)
 export = router;

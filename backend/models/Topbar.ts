@@ -1,21 +1,4 @@
-// import mongoose from "mongoose";
 
-// const topbarSchema = new mongoose.Schema({
-//   userId: { type: String, required: true },
-//   templateId: { type: String, required: true },
-//   logoText: { type: String, default: "WELDORK" },
-//   logoSize: { type: Number, default: 20 }, // 👈 Add this
-//   address: { type: String },
-//   email: { type: String },
-//   phone: { type: String },
-//   socialLinks: {
-//     facebook: { type: String },
-//     twitter: { type: String },
-//     linkedin: { type: String },
-//   },
-// });
-
-// export default mongoose.model("Topbar", topbarSchema);
 import mongoose from "mongoose";
 
 const topbarSchema = new mongoose.Schema({

@@ -1,33 +1,4 @@
 
-// import mongoose, { Schema, Document } from 'mongoose';
-
-// export interface ITestimonial extends Document {
-//   userId: string;
-//   templateId: string;
-//   name: string;
-//   profession?: string;
-//   message: string;
-//   rating: number;
-//   imageUrl?: string;
-// }
-
-// const TestimonialSchema = new Schema<ITestimonial>(
-//   {
-//     userId: { type: String, required: true },
-//     templateId: { type: String, required: true },
-//     name: { type: String, required: true },
-//     profession: { type: String },
-//     message: { type: String, required: true },
-//     rating: { type: Number, default: 5 },
-//     imageUrl: { type: String }
-//   },
-//   { timestamps: true }
-// );
-
-// export default mongoose.model<ITestimonial>('Testimonial', TestimonialSchema);
-
-
-
 
 
 import mongoose, { Schema, Document } from "mongoose";
