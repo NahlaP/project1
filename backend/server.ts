@@ -120,6 +120,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
    Core routes
    ----------------------------------------------------------- */
 safeMount("/api/auth",           () => require("./routes/auth.routes"));
+safeMount("/api/auth", () => require("./routes/changeauth.routes"));
 safeMount("/api/plans",          () => require("./routes/plans.routes"));
 
 /* Billing (runtime APIs) */
