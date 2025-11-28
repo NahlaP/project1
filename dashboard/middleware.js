@@ -264,6 +264,14 @@ function isPublic(pathname) {
   );
 }
 
+// In production we want absolute redirects on the real domain.
+// IMPORTANT: use HTTP here because there is no HTTPS on the server yet.
+const PROD_ORIGIN =
+  process.env.NODE_ENV === "production"
+    ? process.env.NEXT_PUBLIC_APP_ORIGIN ||
+      "http://ion7dashboard.mavsketch.com"
+    : "";
+
 export function middleware(req) {
   const { pathname, search } = req.nextUrl;
 
@@ -298,6 +306,7 @@ export function middleware(req) {
   if (token && isAuthPage) {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
@@ -312,18 +321,18 @@ export function middleware(req) {
   if (!token) {
     const nextParam = pathname + (search || "");
 
-    // Force production domain redirect
-    if (process.env.NODE_ENV === "production") {
-      const redirectUrl =
-        `https://ion7dashboard.mavsketch.com/authentication/signin` +
-        `?next=${encodeURIComponent(nextParam)}`;
-      return NextResponse.redirect(redirectUrl);
+    if (PROD_ORIGIN) {
+      // Production: absolute URL with HTTP origin
+      const target =
+        `${PROD_ORIGIN}/authentication/signin` +
+        (nextParam ? `?next=${encodeURIComponent(nextParam)}` : "");
+      return NextResponse.redirect(target);
     }
 
-    // Dev (localhost)
+    // Dev: relative URL (localhost)
     const url = req.nextUrl.clone();
     url.pathname = "/authentication/signin";
-    url.search = `?next=${encodeURIComponent(nextParam)}`;
+    url.search = nextParam ? `?next=${encodeURIComponent(nextParam)}` : "";
     return NextResponse.redirect(url);
   }
 
