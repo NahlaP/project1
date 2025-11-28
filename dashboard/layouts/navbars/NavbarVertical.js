@@ -198,6 +198,221 @@
 
 
 
+// // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarVertical.js
+// import Link from 'next/link';
+// import { useRouter } from 'next/router';
+// import SimpleBar from 'simplebar-react';
+// import 'simplebar/dist/simplebar.min.css';
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+// import {
+//   faHeadset,
+//   faBars,
+//   faChartBar,
+//   faFile,
+//   faImage,
+//   faUser,
+//   faCommentDots,
+//   faGear,
+//   faEye,
+//   faShieldHalved,
+//   faEnvelope,            // <-- NEW
+// } from '@fortawesome/free-solid-svg-icons';
+// import { useState, useEffect } from 'react';
+
+// const BREAKPOINT = 1120;
+// const NAVBAR_H = 68;
+
+// const iconMap = {
+//   'bar-chart': faChartBar,
+//   'file': faFile,
+//   'image': faImage,
+//   'user': faUser,
+//   'message-circle': faCommentDots,
+//   'settings': faGear,
+//   'eye': faEye,
+//   'shield': faShieldHalved,
+//   'envelope': faEnvelope,        // <-- NEW
+// };
+
+// const SidebarItem = ({ icon, label, href }) => {
+//   const router = useRouter();
+//   const faIcon = iconMap[icon] || faFile;
+
+//   const currentPath = router.asPath ? router.asPath.split(/[?#]/)[0] : '';
+//   const isActive = currentPath === href || currentPath.startsWith(`${href}/`);
+
+//   if (isActive) {
+//     return (
+//       <div
+//         className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 active-nav-custom rounded-pill fw-semibold`}
+//         style={{ textDecoration: 'none', cursor: 'default' }}
+//         aria-current="page"
+//       >
+//         <FontAwesomeIcon icon={faIcon} className="fs-5" />
+//         <span>{label}</span>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <Link href={href} prefetch={false} legacyBehavior>
+//       <a
+//         className="d-flex align-items-center gap-3 px-4 py-2 mb-1 nav-text"
+//         style={{ textDecoration: 'none' }}
+//       >
+//         <FontAwesomeIcon icon={faIcon} className="fs-5" />
+//         <span>{label}</span>
+//       </a>
+//     </Link>
+//   );
+// };
+
+// const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
+
+//   useEffect(() => {
+//     const handleResize = () => {
+//       const compact = window.innerWidth <= BREAKPOINT;
+//       setIsCompact(compact);
+//       setIsOpen(!compact);
+//     };
+
+//     handleResize();
+//     window.addEventListener('resize', handleResize);
+//     return () => window.removeEventListener('resize', handleResize);
+//   }, []);
+
+//   useEffect(() => {
+//     if (typeof document === 'undefined') return;
+//     document.body.style.overflow = isCompact && isOpen ? 'hidden' : '';
+//     return () => {
+//       document.body.style.overflow = '';
+//     };
+//   }, [isCompact, isOpen]);
+
+//   return (
+//     <>
+//       <div
+//         className='bg-wrapper-custom'
+//       >
+//         <div className="blob blob1"></div>
+//         <div className="blob blob2"></div>
+//         <div className="blob blob3"></div>
+//         <div className="blob blob4"></div>
+//         <div className="blob blob5"></div>
+
+//         <div className="bg-inner-custom"></div>
+//       </div>
+
+//       {/* Sidebar */}
+//       <aside
+//         className={`side-nav-custom d-flex flex-column position-fixed ${isCompact ? "side-nav-compact" : ""} ${isOpen ? "open" : ""}`}
+//       >
+//         <div className="nav-logo">
+//           <img
+//             src="/images/svg/ION7-icon.png"
+//             alt="ION7"
+//           />
+//         </div>
+//         <div className="simple-bar-wrapper">
+//           <SimpleBar className="simple-bar" style={{ height: '100%' }}>
+//             {/* Main Menu */}
+//             <div className="px-3 pt-2">
+//               <p className="nav-title px-2 mb-2">Main Menu</p>
+//               <SidebarItem icon="bar-chart" label="Dashboard" href="/dashboard" />
+//               <SidebarItem icon="image" label="Media" href="/media" />
+//               <SidebarItem icon="envelope" label="Email Manager" href="/email-manager" />
+//             </div>
+
+//             {/* Settings */}
+//             <div className="px-3 pt-4">
+//               <p className="nav-title px-2 mb-2">Settings</p>
+
+//               {/* 👇 This goes to your account details + change email/password page */}
+//               <SidebarItem icon="settings" label="Account Settings" href="/settings" />
+
+//               <SidebarItem icon="user" label="Users" href="/users" />
+
+//               {/* My Subscription link */}
+//               <SidebarItem
+//                 icon="file"
+//                 label="My Subscription"
+//                 href="/my-subscription"
+//               />
+//             </div>
+
+//             {/* Support Box */}
+//             <div className="px-4 py-4 mt-auto">
+//               <div className="support-wrapper">
+//                 <svg className="frost" viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'>
+//                   <filter id='noiseFilter'>
+//                     <feTurbulence 
+//                       type='fractalNoise' 
+//                       baseFrequency='20.43' 
+//                       numOctaves='400' 
+//                       stitchTiles='stitch'/>
+//                   </filter>
+//                   <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
+//                 </svg>
+//                 <div
+//                   className="fw-semibold mb-2 d-flex align-items-center"
+//                   style={{ fontSize: 14, gap: 6 }}
+//                 >
+//                   <FontAwesomeIcon icon={faHeadset} style={{ width: 14, height: 14 }} />
+//                   <span>Need help?</span>
+//                 </div>
+//                 <div className="mb-3 text-center" style={{ fontSize: 13, lineHeight: 1.4 }}>
+//                   Contact our support team for assistance
+//                 </div>
+//                 <button className="w-100">
+//                   Contact Support
+//                 </button>
+//               </div>
+//             </div>
+//           </SimpleBar>
+//         </div>
+//       </aside>
+
+//       {isCompact && isOpen && (
+//         <div
+//           onClick={() => setIsOpen(false)}
+//           style={{
+//             position: 'fixed',
+//             inset: 0,
+//             background: 'rgba(0,0,0,.35)',
+//             zIndex: 1040
+//           }}
+//         />
+//       )}
+//     </>
+//   );
+// };
+
+// export default SidebarDashly;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarVertical.js
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -215,23 +430,23 @@ import {
   faGear,
   faEye,
   faShieldHalved,
-  faEnvelope,            // <-- NEW
+  faEnvelope, // NEW
 } from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
 
 const BREAKPOINT = 1120;
-const NAVBAR_H = 68;
+const NAVBAR_H = 68; // (if you use it elsewhere later)
 
 const iconMap = {
   'bar-chart': faChartBar,
-  'file': faFile,
-  'image': faImage,
-  'user': faUser,
+  file: faFile,
+  image: faImage,
+  user: faUser,
   'message-circle': faCommentDots,
-  'settings': faGear,
-  'eye': faEye,
-  'shield': faShieldHalved,
-  'envelope': faEnvelope,        // <-- NEW
+  settings: faGear,
+  eye: faEye,
+  shield: faShieldHalved,
+  envelope: faEnvelope,
 };
 
 const SidebarItem = ({ icon, label, href }) => {
@@ -244,7 +459,7 @@ const SidebarItem = ({ icon, label, href }) => {
   if (isActive) {
     return (
       <div
-        className={`d-flex align-items-center gap-3 px-4 py-2 mb-1 active-nav-custom rounded-pill fw-semibold`}
+        className="d-flex align-items-center gap-3 px-4 py-2 mb-1 active-nav-custom rounded-pill fw-semibold"
         style={{ textDecoration: 'none', cursor: 'default' }}
         aria-current="page"
       >
@@ -267,19 +482,31 @@ const SidebarItem = ({ icon, label, href }) => {
   );
 };
 
-const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
+// ⭐ SidebarDashly now has INTERNAL state with optional overrides from parent
+const SidebarDashly = (props) => {
+  // internal defaults
+  const [localIsOpen, setLocalIsOpen] = useState(true);
+  const [localIsCompact, setLocalIsCompact] = useState(false);
+
+  // if parent passes props, use them; otherwise use internal state
+  const isOpen = props.isOpen ?? localIsOpen;
+  const setIsOpen = props.setIsOpen ?? setLocalIsOpen;
+  const isCompact = props.isCompact ?? localIsCompact;
+  const setIsCompact = props.setIsCompact ?? setLocalIsCompact;
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleResize = () => {
       const compact = window.innerWidth <= BREAKPOINT;
       setIsCompact(compact);
       setIsOpen(!compact);
     };
 
-    handleResize();
+    handleResize(); // run once on mount
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [setIsCompact, setIsOpen]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -291,9 +518,7 @@ const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
 
   return (
     <>
-      <div
-        className='bg-wrapper-custom'
-      >
+      <div className="bg-wrapper-custom">
         <div className="blob blob1"></div>
         <div className="blob blob2"></div>
         <div className="blob blob3"></div>
@@ -305,13 +530,12 @@ const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
 
       {/* Sidebar */}
       <aside
-        className={`side-nav-custom d-flex flex-column position-fixed ${isCompact ? "side-nav-compact" : ""} ${isOpen ? "open" : ""}`}
+        className={`side-nav-custom d-flex flex-column position-fixed ${
+          isCompact ? 'side-nav-compact' : ''
+        } ${isOpen ? 'open' : ''}`}
       >
         <div className="nav-logo">
-          <img
-            src="/images/svg/ION7-icon.png"
-            alt="ION7"
-          />
+          <img src="/images/svg/ION7-icon.png" alt="ION7" />
         </div>
         <div className="simple-bar-wrapper">
           <SimpleBar className="simple-bar" style={{ height: '100%' }}>
@@ -327,31 +551,27 @@ const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
             <div className="px-3 pt-4">
               <p className="nav-title px-2 mb-2">Settings</p>
 
-              {/* 👇 This goes to your account details + change email/password page */}
+              {/* Account details + change email/password page */}
               <SidebarItem icon="settings" label="Account Settings" href="/settings" />
-
               <SidebarItem icon="user" label="Users" href="/users" />
 
               {/* My Subscription link */}
-              <SidebarItem
-                icon="file"
-                label="My Subscription"
-                href="/my-subscription"
-              />
+              <SidebarItem icon="file" label="My Subscription" href="/my-subscription" />
             </div>
 
             {/* Support Box */}
             <div className="px-4 py-4 mt-auto">
               <div className="support-wrapper">
-                <svg className="frost" viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'>
-                  <filter id='noiseFilter'>
-                    <feTurbulence 
-                      type='fractalNoise' 
-                      baseFrequency='20.43' 
-                      numOctaves='400' 
-                      stitchTiles='stitch'/>
+                <svg className="frost" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+                  <filter id="noiseFilter">
+                    <feTurbulence
+                      type="fractalNoise"
+                      baseFrequency="20.43"
+                      numOctaves="400"
+                      stitchTiles="stitch"
+                    />
                   </filter>
-                  <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
+                  <rect width="100%" height="100%" filter="url(#noiseFilter)" />
                 </svg>
                 <div
                   className="fw-semibold mb-2 d-flex align-items-center"
@@ -363,9 +583,7 @@ const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
                 <div className="mb-3 text-center" style={{ fontSize: 13, lineHeight: 1.4 }}>
                   Contact our support team for assistance
                 </div>
-                <button className="w-100">
-                  Contact Support
-                </button>
+                <button className="w-100">Contact Support</button>
               </div>
             </div>
           </SimpleBar>
@@ -379,7 +597,7 @@ const SidebarDashly = ({isOpen, setIsOpen, isCompact, setIsCompact}) => {
             position: 'fixed',
             inset: 0,
             background: 'rgba(0,0,0,.35)',
-            zIndex: 1040
+            zIndex: 1040,
           }}
         />
       )}

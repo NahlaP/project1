@@ -1,6 +1,11 @@
 
 
-// og
+
+
+
+
+
+// // og everything works fine but not cpanel 
 // // dashboard/pages/dashboard/index.js
 // import React, { useEffect, useMemo, useState } from "react";
 // import { useRouter } from "next/router";
@@ -544,7 +549,9 @@
 //                                   : "Select this template to enable reset"
 //                               }
 //                             >
-//                               {isActive ? "Reset to default" : "Reset (select first)"}
+//                               {isActive
+//                                 ? "Reset to default"
+//                                 : "Reset (select first)"}
 //                             </button>
 //                           </div>
 //                         </div>
@@ -749,6 +756,12 @@
 //   const [homePageId, setHomePageId] = useState(null);
 //   const [previewUrl, setPreviewUrl] = useState("");
 
+//   // 🔹 NEW: subscription card data (only for billing date + days remaining)
+//   const [subscription, setSubscription] = useState({
+//     nextBillingDate: null,
+//     daysRemaining: null,
+//   });
+
 //   const toggleMenu = () => setShowMenu((prev) => !prev);
 
 //   const palette = [
@@ -798,10 +811,34 @@
 //     let cancelled = false;
 //     (async () => {
 //       try {
-//         const profile = await api.me();
+//         const profile = await api.me(); // includes { user, meta, subscription }
 //         if (cancelled) return;
 
 //         setMe(profile);
+
+//         // 🔹 Compute billing date + remaining days from Stripe subscription
+//         const sub = profile.subscription;
+//         let nextBillingDate = null;
+//         let daysRemaining = null;
+
+//         if (sub && sub.current_period_end) {
+//           const end = new Date(sub.current_period_end * 1000);
+//           nextBillingDate = end.toLocaleDateString(undefined, {
+//             year: "numeric",
+//             month: "short",
+//             day: "2-digit",
+//           });
+
+//           const today = new Date();
+//           const diffMs = end.getTime() - today.getTime();
+//           daysRemaining =
+//             diffMs > 0 ? Math.ceil(diffMs / (1000 * 60 * 60 * 24)) : 0;
+//         }
+
+//         setSubscription({
+//           nextBillingDate,
+//           daysRemaining,
+//         });
 
 //         const userId = getUserId();
 //         const sel = await api.selectedTemplateForUser(userId);
@@ -1165,16 +1202,22 @@
 //                                 d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"
 //                               />
 //                             </svg>
-//                             29.99 <small>/month</small>
+//                             199.00 <small>/month</small>
 //                           </h4>
 //                           <div className="col-info-wrapper">
 //                             <div className="col-info">
 //                               <span className="bold">Next billing date</span>
-//                               <span>Nov 01, 2025</span>
+//                               <span>
+//                                 {subscription.nextBillingDate || "--"}
+//                               </span>
 //                             </div>
 //                             <div className="col-info">
 //                               <span className="bold">Days Remaining</span>
-//                               <span>6 Days</span>
+//                               <span>
+//                                 {subscription.daysRemaining != null
+//                                   ? `${subscription.daysRemaining} Days`
+//                                   : "--"}
+//                               </span>
 //                             </div>
 //                           </div>
 
@@ -1489,8 +1532,7 @@
 //                     </div>
 //                   </Col>
 
-//                   {/* Storage Used */}
-//                   <Col xs={12} md={4} lg={4} xl={4}>
+//               <Col xs={12} md={4} lg={4} xl={4}>
 //                     <div className="anim-card-wrapper dark-bg cap-xl">
 //                       <div className="anim-card">
 //                         <div className="border-shadow-top" />
@@ -1811,14 +1853,7 @@
 
 
 
-
-
-
-
-
-
-
-// // shows subscription fine not billing data
+// // original everything works but not showing 
 // // dashboard/pages/dashboard/index.js
 // import React, { useEffect, useMemo, useState } from "react";
 // import { useRouter } from "next/router";
@@ -1989,7 +2024,7 @@
 // }
 
 // /* -------------------------------------------------------------------------- */
-// /* Template Chooser Card – anim-card “Themes” style                           */
+// /* Template Chooser Card – “Themes” style                                     */
 // /* -------------------------------------------------------------------------- */
 
 // function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
@@ -2001,7 +2036,7 @@
 //   const [saving, setSaving] = useState(false);
 //   const [error, setError] = useState("");
 
-//   // reset modal (manual reset still available)
+//   // reset modal
 //   const [confirmOpen, setConfirmOpen] = useState(false);
 //   const [confirmTpl, setConfirmTpl] = useState({
 //     id: null,
@@ -2076,23 +2111,18 @@
 //       await api.selectTemplate(templateId, userId);
 //       setSelected(templateId);
 
-//       // version tag cookie
 //       const tplObj =
 //         templates.find((t) => t.templateId === templateId) || null;
 //       const verTag = defaultVersionFor(tplObj);
 
-//       // sync cookie
 //       setTemplateCookie(templateId, verTag, userId);
 
-//       // silently ensure defaults so "Edit" works immediately
 //       const pageId = await ensureHomeFor(userId, templateId, verTag);
 //       onHomeReady?.(pageId || null);
 
-//       // update preview URL
 //       const url = buildTemplateUrl(userId, templateId, verTag);
 //       onPreviewUrlChange?.(url);
 
-//       // optional ping to static host (kept for backwards compat)
 //       if (PUBLIC_HOST) {
 //         fetch(
 //           `${PUBLIC_HOST}/?uid=${encodeURIComponent(
@@ -2127,7 +2157,6 @@
 //     try {
 //       setResetting(true);
 
-//       // POST /api/template-reset/:userId/:templateId?ver=<tag>
 //       const url = `${backendBaseUrl}/api/template-reset/${encodeURIComponent(
 //         userId
 //       )}/${encodeURIComponent(confirmTpl.id)}?ver=${encodeURIComponent(
@@ -2154,11 +2183,9 @@
 //         );
 //       }
 
-//       // keep cookie & (optionally) static host in sync
 //       if (selected === confirmTpl.id) {
 //         setTemplateCookie(confirmTpl.id, confirmTpl.tag, userId);
 
-//         // update preview URL after reset too (still same URL, but safe)
 //         const url = buildTemplateUrl(userId, confirmTpl.id, confirmTpl.tag);
 //         onPreviewUrlChange?.(url);
 
@@ -2193,7 +2220,6 @@
 //     }
 //   }
 
-//   // Open the proper editor for the template that’s selected
 //   async function openEditorForSelected() {
 //     try {
 //       const tplId = selected;
@@ -2204,7 +2230,6 @@
 //           `/editorpages/page/${pageId}?templateId=${encodeURIComponent(tplId)}`
 //         );
 //       } else {
-//         // Try to seed once if user somehow got here before seeding finished
 //         const tplObj =
 //           templates.find((t) => t.templateId === tplId) || {};
 //         const verTag = defaultVersionFor(tplObj);
@@ -2222,7 +2247,6 @@
 
 //   return (
 //     <>
-//       {/* Template chooser card */}
 //       <div className="anim-card-wrapper dark-bg cap-med template-card">
 //         <div className="anim-card">
 //           <div className="border-shadow-top"></div>
@@ -2302,7 +2326,6 @@
 //                           </div>
 
 //                           <div className="mt-2 d-flex flex-column gap-2">
-//                             {/* Apply Theme / Select */}
 //                             <button
 //                               className="w-100"
 //                               onClick={() => choose(t.templateId)}
@@ -2315,7 +2338,6 @@
 //                                 : "Apply theme"}
 //                             </button>
 
-//                             {/* Preview + Edit row */}
 //                             <div className="d-flex gap-2">
 //                               <button
 //                                 type="button"
@@ -2349,7 +2371,6 @@
 //                               </button>
 //                             </div>
 
-//                             {/* Reset button */}
 //                             <button
 //                               type="button"
 //                               className="btn btn-xs btn-outline-danger w-100"
@@ -2445,7 +2466,6 @@
 //         </Modal.Footer>
 //       </Modal>
 
-//       {/* Toast */}
 //       <ToastContainer position="bottom-end" className="p-3">
 //         <Toast
 //           onClose={() => setToast((t) => ({ ...t, show: false }))}
@@ -2460,93 +2480,6 @@
 //     </>
 //   );
 // }
-
-// /* -------------------------------------------------------------------------- */
-// /* Dummy data for charts (can wire to real API later)                         */
-// /* -------------------------------------------------------------------------- */
-
-// const email_account = [
-//   {
-//     username: "marco",
-//     domain: "mavsketch.com",
-//     storage_used: 1536,
-//     label: "1.5GB",
-//     storage_allocation: 0,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "nahla",
-//     domain: "mavsketch.com",
-//     storage_used: 204.8,
-//     label: "204.9MB",
-//     storage_allocation: 2,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "miguel",
-//     domain: "mavsketch.com",
-//     storage_used: 523,
-//     label: "523MB",
-//     storage_allocation: 1,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "info",
-//     domain: "mavsketch.com",
-//     storage_used: 2048,
-//     label: "2GB",
-//     storage_allocation: 0,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "marco2",
-//     domain: "mavsketch.com",
-//     storage_used: 1536,
-//     label: "1.5GB",
-//     storage_allocation: 0,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "nahla2",
-//     domain: "mavsketch.com",
-//     storage_used: 204.8,
-//     label: "204.9MB",
-//     storage_allocation: 2,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "miguel2",
-//     domain: "mavsketch.com",
-//     storage_used: 523,
-//     label: "523MB",
-//     storage_allocation: 1,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "info2",
-//     domain: "mavsketch.com",
-//     storage_used: 2048,
-//     label: "2GB",
-//     storage_allocation: 0,
-//     storage_unit: "MB",
-//   },
-//   {
-//     username: "thirdy",
-//     domain: "mavsketch.com",
-//     storage_used: 2048,
-//     label: "2GB",
-//     storage_allocation: 0,
-//     storage_unit: "MB",
-//   },
-// ];
-
-// const storage = [
-//   {
-//     used: 2,
-//     storage_allocation: 10,
-//     storage_unit: "GB",
-//   },
-// ];
 
 // /* -------------------------------------------------------------------------- */
 // /* Main Dashboard                                                             */
@@ -2568,27 +2501,34 @@
 //   const [homePageId, setHomePageId] = useState(null);
 //   const [previewUrl, setPreviewUrl] = useState("");
 
-//   // NEW: subscription info for Current Subscription card
-//   const [subInfo, setSubInfo] = useState({
-//     status: "loading",
-//     label: "No Active Plan",
-//     amount: null,
-//     currency: "AED",
+//   // subscription widget (billing date + days remaining)
+//   const [subscription, setSubscription] = useState({
+//     nextBillingDate: null,
+//     daysRemaining: null,
+//   });
+
+//   // 🔹 Email Manager state (from backend)
+//   const [emailState, setEmailState] = useState({
+//     loading: true,
+//     error: null,
+//     summary: null,
+//     accounts: [],
+//     lists: [],
 //   });
 
 //   const toggleMenu = () => setShowMenu((prev) => !prev);
 
 //   const palette = [
-//     "rgba(120, 113, 108, 1)", // Warm gray
-//     "rgba(147, 197, 253, 1)", // Soft blue
-//     "rgba(186, 230, 253, 1)", // Light blue
-//     "rgba(209, 250, 229, 1)", // Mint green
-//     "rgba(254, 215, 170, 1)", // Peach
-//     "rgba(221, 214, 254, 1)", // Lavender
-//     "rgba(253, 230, 138, 1)", // Pale yellow
-//     "rgba(204, 251, 241, 1)", // Seafoam
-//     "rgba(229, 231, 235, 1)", // Cool gray
-//     "rgba(254, 205, 211, 1)", // Blush pink
+//     "rgba(120, 113, 108, 1)",
+//     "rgba(147, 197, 253, 1)",
+//     "rgba(186, 230, 253, 1)",
+//     "rgba(209, 250, 229, 1)",
+//     "rgba(254, 215, 170, 1)",
+//     "rgba(221, 214, 254, 1)",
+//     "rgba(253, 230, 138, 1)",
+//     "rgba(204, 251, 241, 1)",
+//     "rgba(229, 231, 235, 1)",
+//     "rgba(254, 205, 211, 1)",
 //   ];
 
 //   useEffect(() => {
@@ -2620,55 +2560,40 @@
 //     }
 //   }, []);
 
-//   // Load current user, subscription info, and ensure a homepage exists
+//   // Load current user and ensure a homepage exists for their selected template
 //   useEffect(() => {
 //     let cancelled = false;
 //     (async () => {
 //       try {
-//         const profile = await api.me();
+//         const profile = await api.me(); // includes { user, meta, subscription }
 //         if (cancelled) return;
 
 //         setMe(profile);
 
-//         const user = profile?.user || profile || {};
-//         const userId = getUserId();
+//         const sub = profile.subscription;
+//         let nextBillingDate = null;
+//         let daysRemaining = null;
 
-//         // ---- subscription info (Current Subscription card) ----
-//         if (user?.subscriptionStatus === "active" && user?.priceId) {
-//           try {
-//             const price = await api.getPrice(user.priceId);
-//             if (!cancelled && price) {
-//               const amount =
-//                 typeof price.unit_amount === "number"
-//                   ? price.unit_amount / 100
-//                   : null;
-//               setSubInfo({
-//                 status: "active",
-//                 label: price.nickname || "Active Plan",
-//                 amount,
-//                 currency: price.currency || "AED",
-//               });
-//             }
-//           } catch (e) {
-//             if (!cancelled) {
-//               setSubInfo({
-//                 status: user.subscriptionStatus || "none",
-//                 label: "No Active Plan",
-//                 amount: null,
-//                 currency: "AED",
-//               });
-//             }
-//           }
-//         } else if (!cancelled) {
-//           setSubInfo({
-//             status: user?.subscriptionStatus || "none",
-//             label: "No Active Plan",
-//             amount: null,
-//             currency: "AED",
+//         if (sub && sub.current_period_end) {
+//           const end = new Date(sub.current_period_end * 1000);
+//           nextBillingDate = end.toLocaleDateString(undefined, {
+//             year: "numeric",
+//             month: "short",
+//             day: "2-digit",
 //           });
+
+//           const today = new Date();
+//           const diffMs = end.getTime() - today.getTime();
+//           daysRemaining =
+//             diffMs > 0 ? Math.ceil(diffMs / (1000 * 60 * 60 * 24)) : 0;
 //         }
 
-//         // ---- template selection + homepage ----
+//         setSubscription({
+//           nextBillingDate,
+//           daysRemaining,
+//         });
+
+//         const userId = getUserId();
 //         const sel = await api.selectedTemplateForUser(userId);
 //         const tplId =
 //           sel?.data?.templateId || sel?.templateId || "sir-template-1";
@@ -2698,17 +2623,58 @@
 //     };
 //   }, [router]);
 
+//   // 🔹 Fetch email summary from backend
+//   useEffect(() => {
+//     let cancelled = false;
+
+//     (async () => {
+//       try {
+//         const token = getTokenFromCookie();
+
+//         const res = await fetch(
+//           `${backendBaseUrl}/api/email-manager/summary`,
+//           {
+//             credentials: "include",
+//             headers: {
+//               Accept: "application/json",
+//               ...(token ? { Authorization: `Bearer ${token}` } : {}),
+//             },
+//           }
+//         );
+
+//         if (!res.ok) {
+//           throw new Error(`${res.status} ${res.statusText}`);
+//         }
+
+//         const json = await res.json();
+//         if (cancelled) return;
+
+//         setEmailState({
+//           loading: false,
+//           error: null,
+//           summary: json.summary || null,
+//           accounts: json.accounts || [],
+//           lists: json.lists || [],
+//         });
+//       } catch (err) {
+//         if (cancelled) return;
+//         console.error("[Dashboard] email summary error", err);
+//         setEmailState((prev) => ({
+//           ...prev,
+//           loading: false,
+//           error: err?.message || "Failed to load email summary",
+//         }));
+//       }
+//     })();
+
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, []);
+
 //   const userName = me?.user?.fullName || "there";
 //   const userId = getUserId();
 
-//   const subscriptionLabel =
-//     subInfo.status === "active"
-//       ? subInfo.label || "Active Plan"
-//       : "No Active Plan";
-//   const subscriptionPrice =
-//     subInfo.amount != null ? subInfo.amount.toFixed(2) : "--";
-
-//   // For "View Site" / "Preview Changes" – always prefer PUBLIC_HOST
 //   const openPreview = () => {
 //     if (PUBLIC_HOST) {
 //       window.open(
@@ -2721,7 +2687,6 @@
 //     }
 //   };
 
-//   // helper: show decimals only when needed
 //   const formatSmart = (value, decimals = 1) => {
 //     if (value == null || Number.isNaN(Number(value))) return "";
 //     const n = Number(value);
@@ -2729,7 +2694,7 @@
 //     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(decimals);
 //   };
 
-//   /* ---------------- Email storage donut ---------------- */
+//   /* ---------------- Email Capacity donut data (from cPanel accounts) ------- */
 
 //   const [chartData, setChartData] = useState({
 //     labels: [],
@@ -2744,13 +2709,45 @@
 //     ],
 //   });
 
-//   useEffect(() => {
-//     const labels = email_account.map((acc) => acc.username || "unknown");
-//     const customLabel = email_account.map((acc) => acc.label || "unknown");
-//     const values = email_account.map((acc) => {
-//       const v = parseFloat(acc.storage_used);
-//       return Number.isFinite(v) ? v : 0;
+//     useEffect(() => {
+//     const accounts = Array.isArray(emailState.accounts)
+//       ? emailState.accounts
+//       : [];
+
+//     if (!accounts.length) {
+//       setChartData((prev) => ({
+//         ...prev,
+//         labels: [],
+//         datasets: [
+//           {
+//             ...prev.datasets[0],
+//             data: [],
+//             backgroundColor: [],
+//             borderColor: [],
+//           },
+//         ],
+//       }));
+//       return;
+//     }
+
+//     const labels = accounts.map(
+//       (acc) => acc.email || acc.user || acc.login || "unknown"
+//     );
+
+//     // ✅ diskused is already MB; only use _diskused (bytes) as fallback
+//     const valuesMb = accounts.map((acc) => {
+//       if (acc.diskused != null && acc.diskused !== "") {
+//         const mb = Number(acc.diskused);
+//         return Number.isFinite(mb) ? mb : 0;
+//       }
+//       if (acc._diskused != null) {
+//         const mb = Number(acc._diskused) / (1024 * 1024);
+//         return Number.isFinite(mb) ? mb : 0;
+//       }
+//       return 0;
 //     });
+
+//     const customLabel = valuesMb.map((v) => `${formatSmart(v, 2)}MB`);
 
 //     const bg = labels.map((_, i) =>
 //       palette[i % palette.length].replace("1)", "0.2)")
@@ -2763,7 +2760,7 @@
 //         {
 //           label: "Storage used",
 //           customLabel,
-//           data: values,
+//           data: valuesMb,
 //           backgroundColor: bg,
 //           borderColor,
 //           borderWidth: 1.5,
@@ -2773,7 +2770,8 @@
 //         },
 //       ],
 //     });
-//   }, []); // email_account is constant
+//   }, [emailState.accounts]);
+
 
 //   const totalStorageMB = (chartData?.datasets?.[0]?.data || []).reduce(
 //     (s, n) => s + (Number(n) || 0),
@@ -2781,7 +2779,22 @@
 //   );
 //   const totalStorageGB = totalStorageMB / 1024;
 
-//   /* ---------------- Main storage (half donut) ---------------- */
+//   /* ---------------- Main storage (half donut) from summary ----------------- */
+
+//   // Backend gives MB
+//   const storageLimitMb =
+//     emailState.summary?.storage?.limitMb ??
+//     Number(process.env.NEXT_PUBLIC_EMAIL_STORAGE_LIMIT_MB || 5120); // default 5GB
+//   const storageUsedMb = emailState.summary?.storage?.usedMb ?? 0;
+//   const storageRemainingMb =
+//     emailState.summary?.storage?.remainingMb ??
+//     Math.max(0, storageLimitMb - storageUsedMb);
+
+//   const storageAllocGB = storageLimitMb / 1024;
+//   const storageUsedGB = storageUsedMb / 1024;
+//   const storageRemainingGB = storageRemainingMb / 1024;
+//   const storageRemainingPercent =
+//     storageAllocGB > 0 ? (storageRemainingGB / storageAllocGB) * 100 : 0;
 
 //   const [storageData, setStorageData] = useState({
 //     labels: [],
@@ -2796,26 +2809,20 @@
 //     ],
 //   });
 
-//   const storageValues = [
-//     storage[0].used,
-//     storage[0].storage_allocation - storage[0].used,
-//   ];
-
 //   useEffect(() => {
+//     const used = Math.max(0, storageUsedGB);
+//     const remaining = Math.max(0, storageAllocGB - used);
+
 //     setStorageData({
 //       labels: ["Used Storage", "Storage Available"],
 //       datasets: [
 //         {
 //           label: "Storage",
-//           data: storageValues,
+//           data: [used, remaining],
 //           backgroundColor: function (context) {
 //             const chart = context.chart;
 //             const { ctx, chartArea } = chart;
-
-//             if (!chartArea) {
-//               return;
-//             }
-
+//             if (!chartArea) return;
 //             const gradient = ctx.createLinearGradient(
 //               0,
 //               chartArea.bottom,
@@ -2824,7 +2831,6 @@
 //             );
 //             gradient.addColorStop(0, "rgba(213, 255, 64, 1)");
 //             gradient.addColorStop(1, "rgba(215, 68, 5, 1)");
-
 //             return [gradient, "rgba(225, 225, 225, 1)"];
 //           },
 //           borderColor: ["rgba(213, 255, 64, 0)", "rgba(225, 225, 225, 0)"],
@@ -2835,15 +2841,9 @@
 //         },
 //       ],
 //     });
-//   }, []);
+//   }, [storageUsedGB, storageAllocGB]);
 
-//   const storageUsed = Number(storage?.[0]?.used || 0); // GB
-//   const storageAlloc = Number(storage?.[0]?.storage_allocation || 1); // GB
-//   const storageRemainingGB = Math.max(0, storageAlloc - storageUsed);
-//   const storageRemainingPercent =
-//     storageAlloc > 0 ? (storageRemainingGB / storageAlloc) * 100 : 0;
-
-//   /* ---------------- Visitors line chart ---------------- */
+//   /* ---------------- Visitors line chart (dummy for now) -------------------- */
 
 //   const lineData = {
 //     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
@@ -2855,11 +2855,9 @@
 //         backgroundColor: (context) => {
 //           const { chart } = context;
 //           const { ctx, chartArea } = chart;
-
 //           if (!chartArea) {
 //             return;
 //           }
-
 //           const gradient = ctx.createLinearGradient(
 //             0,
 //             chartArea.top,
@@ -2921,6 +2919,15 @@
 //       },
 //     },
 //   };
+
+//   // Email accounts summary (for text & %)
+//   const accountsLimit =
+//     emailState.summary?.accounts?.limit ??
+//     Number(process.env.NEXT_PUBLIC_EMAIL_ACCOUNT_LIMIT || 10);
+//   const accountsUsed = emailState.summary?.accounts?.used ?? 0;
+//   const accountsRemaining = Math.max(0, accountsLimit - accountsUsed);
+//   const accountsPercent =
+//     accountsLimit > 0 ? (accountsUsed / accountsLimit) * 100 : 0;
 
 //   return (
 //     <>
@@ -3011,7 +3018,7 @@
 //                           </div>
 //                           <div className="d-flex flex-wrap gap-2 mb-3">
 //                             <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">
-//                               {subscriptionLabel}
+//                               Pro Plan
 //                             </span>
 //                             <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">
 //                               Monthly
@@ -3034,16 +3041,22 @@
 //                                 d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"
 //                               />
 //                             </svg>
-//                             {subscriptionPrice} <small>/month</small>
+//                             199.00 <small>/month</small>
 //                           </h4>
 //                           <div className="col-info-wrapper">
 //                             <div className="col-info">
 //                               <span className="bold">Next billing date</span>
-//                               <span>--</span>
+//                               <span>
+//                                 {subscription.nextBillingDate || "--"}
+//                               </span>
 //                             </div>
 //                             <div className="col-info">
 //                               <span className="bold">Days Remaining</span>
-//                               <span>--</span>
+//                               <span>
+//                                 {subscription.daysRemaining != null
+//                                   ? `${subscription.daysRemaining} Days`
+//                                   : "--"}
+//                               </span>
 //                             </div>
 //                           </div>
 
@@ -3058,7 +3071,7 @@
 //                     </Card>
 //                   </Col>
 
-//                   {/* My Products */}
+//                   {/* My Products (dummy numbers for now) */}
 //                   <Col xs={12} md={5} lg={5} xl={5}>
 //                     <div className="anim-card-wrapper primary-bg cap-med">
 //                       <div className="anim-card">
@@ -3339,7 +3352,7 @@
 //                             </div>
 //                           </div>
 
-//                           <div className={`button-wrapper d-flex flex-column gap-2`}>
+//                           <div className="button-wrapper d-flex flex-column gap-2">
 //                             <button
 //                               type="button"
 //                               className="primary-btn w-100"
@@ -3358,7 +3371,7 @@
 //                     </div>
 //                   </Col>
 
-//                   {/* Storage Used */}
+//                   {/* Storage Used (Email storage total) */}
 //                   <Col xs={12} md={4} lg={4} xl={4}>
 //                     <div className="anim-card-wrapper dark-bg cap-xl">
 //                       <div className="anim-card">
@@ -3391,7 +3404,11 @@
 //                           <div>
 //                             <div className="d-flex justify-content-end">
 //                               <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-//                                 {`${((8.2 / 50) * 100).toFixed(2)}%`}
+//                                 {`${formatSmart(
+//                                   storageAllocGB > 0
+//                                     ? (storageUsedGB / storageAllocGB) * 100
+//                                     : 0
+//                                 )}%`}
 //                               </span>
 //                             </div>
 
@@ -3400,8 +3417,20 @@
 //                               className="mb-0"
 //                               style={{ fontSize: "0.9rem" }}
 //                             >
-//                               {`${formatSmart(storageUsed)}GB used of ${storageAlloc}GB total`}
+//                               {`${formatSmart(
+//                                 storageUsedGB
+//                               )}GB used of ${formatSmart(
+//                                 storageAllocGB
+//                               )}GB total`}
 //                             </p>
+//                             {emailState.error && (
+//                               <p
+//                                 className="mb-0 text-warning"
+//                                 style={{ fontSize: "0.8rem" }}
+//                               >
+//                                 Failed to load email summary ({emailState.error})
+//                               </p>
+//                             )}
 //                           </div>
 //                           <div>
 //                             <div className="chart-container-halfdoughnut">
@@ -3441,7 +3470,7 @@
 //                                             context.dataset.label || "";
 //                                           if (label) label += " ";
 //                                           if (context.parsed !== null) {
-//                                             label += context.parsed;
+//                                             label += context.parsed.toFixed(2);
 //                                           }
 //                                           label += "GB";
 //                                           return label;
@@ -3456,7 +3485,7 @@
 //                               />
 //                               <div className="chart-center-text">
 //                                 <h5 className="highlight">
-//                                   {formatSmart(storageUsed)}
+//                                   {formatSmart(storageUsedGB)}
 //                                   <small className="highlight-sm fs-6 align-middle">
 //                                     {" "}
 //                                     /GB
@@ -3484,7 +3513,11 @@
 //                         </Card.Body>
 //                       </div>
 //                       <figcaption>
-//                         <span>{`${((8.2 / 50) * 100).toFixed(2)}%`}</span>
+//                         <span>{`${formatSmart(
+//                           storageAllocGB > 0
+//                             ? (storageUsedGB / storageAllocGB) * 100
+//                             : 0
+//                         )}%`}</span>
 //                       </figcaption>
 //                     </div>
 //                   </Col>
@@ -3522,7 +3555,7 @@
 //                           <div>
 //                             <div className="d-flex justify-content-end">
 //                               <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-//                                 {`${((8.2 / 50) * 100).toFixed(2)}%`}
+//                                 {`${formatSmart(accountsPercent)}%`}
 //                               </span>
 //                             </div>
 //                             <h6 className="card-title mb-1">
@@ -3532,8 +3565,18 @@
 //                               className="mb-0"
 //                               style={{ fontSize: "0.9rem" }}
 //                             >
-//                               13 used of 14 accounts total
+//                               {accountsUsed} used of {accountsLimit} accounts
+//                               total
 //                             </p>
+//                             {emailState.error && (
+//                               <p
+//                                 className="mb-0 text-warning"
+//                                 style={{ fontSize: "0.8rem" }}
+//                               >
+//                                 Failed to load email summary (
+//                                 {emailState.error})
+//                               </p>
+//                             )}
 //                           </div>
 //                           <div>
 //                             <div className="chart-container-doughnut">
@@ -3632,7 +3675,7 @@
 //                         </Card.Body>
 //                       </div>
 //                       <figcaption>
-//                         <span>{`${((13 / 14) * 100).toFixed(2)}%`}</span>
+//                         <span>{`${formatSmart(accountsPercent)}%`}</span>
 //                       </figcaption>
 //                     </div>
 //                   </Col>
@@ -3669,6 +3712,89 @@
 //     </>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3931,7 +4057,7 @@ async function ensureHomeFor(userId, templateId, verTag) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Template Chooser Card – redesigned with your “Themes” anim-card style      */
+/* Template Chooser Card – “Themes” style                                     */
 /* -------------------------------------------------------------------------- */
 
 function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
@@ -3943,7 +4069,7 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // reset modal (manual reset still available)
+  // reset modal
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTpl, setConfirmTpl] = useState({
     id: null,
@@ -4018,23 +4144,18 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
       await api.selectTemplate(templateId, userId);
       setSelected(templateId);
 
-      // version tag cookie
       const tplObj =
         templates.find((t) => t.templateId === templateId) || null;
       const verTag = defaultVersionFor(tplObj);
 
-      // sync cookie
       setTemplateCookie(templateId, verTag, userId);
 
-      // silently ensure defaults so "Edit" works immediately
       const pageId = await ensureHomeFor(userId, templateId, verTag);
       onHomeReady?.(pageId || null);
 
-      // update preview URL
       const url = buildTemplateUrl(userId, templateId, verTag);
       onPreviewUrlChange?.(url);
 
-      // optional ping to static host (kept for backwards compat)
       if (PUBLIC_HOST) {
         fetch(
           `${PUBLIC_HOST}/?uid=${encodeURIComponent(
@@ -4069,7 +4190,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
     try {
       setResetting(true);
 
-      // POST /api/template-reset/:userId/:templateId?ver=<tag>
       const url = `${backendBaseUrl}/api/template-reset/${encodeURIComponent(
         userId
       )}/${encodeURIComponent(confirmTpl.id)}?ver=${encodeURIComponent(
@@ -4096,11 +4216,9 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
         );
       }
 
-      // keep cookie & (optionally) static host in sync
       if (selected === confirmTpl.id) {
         setTemplateCookie(confirmTpl.id, confirmTpl.tag, userId);
 
-        // update preview URL after reset too (still same URL, but safe)
         const url = buildTemplateUrl(userId, confirmTpl.id, confirmTpl.tag);
         onPreviewUrlChange?.(url);
 
@@ -4135,7 +4253,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
     }
   }
 
-  // Open the proper editor for the template that’s selected
   async function openEditorForSelected() {
     try {
       const tplId = selected;
@@ -4146,7 +4263,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
           `/editorpages/page/${pageId}?templateId=${encodeURIComponent(tplId)}`
         );
       } else {
-        // Try to seed once if user somehow got here before seeding finished
         const tplObj =
           templates.find((t) => t.templateId === tplId) || {};
         const verTag = defaultVersionFor(tplObj);
@@ -4164,7 +4280,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
 
   return (
     <>
-      {/* NEW: anim-card "Themes" style for Choose Your Template */}
       <div className="anim-card-wrapper dark-bg cap-med template-card">
         <div className="anim-card">
           <div className="border-shadow-top"></div>
@@ -4244,7 +4359,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                           </div>
 
                           <div className="mt-2 d-flex flex-column gap-2">
-                            {/* Apply Theme / Select */}
                             <button
                               className="w-100"
                               onClick={() => choose(t.templateId)}
@@ -4257,7 +4371,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                                 : "Apply theme"}
                             </button>
 
-                            {/* Preview + Edit row */}
                             <div className="d-flex gap-2">
                               <button
                                 type="button"
@@ -4291,7 +4404,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                               </button>
                             </div>
 
-                            {/* Reset button */}
                             <button
                               type="button"
                               className="btn btn-xs btn-outline-danger w-100"
@@ -4320,7 +4432,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
               <button
                 type="button"
                 className="primary-btn w-100"
-                // you can wire this later if you have a "View All Templates" page
                 onClick={() => {}}
               >
                 View All Templates
@@ -4335,7 +4446,7 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
         </figcaption>
       </div>
 
-      {/* Confirm Reset Modal (unchanged logic) */}
+      {/* Confirm Reset Modal */}
       <Modal
         show={confirmOpen}
         onHide={() => (!resetting ? setConfirmOpen(false) : null)}
@@ -4388,7 +4499,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
         </Modal.Footer>
       </Modal>
 
-      {/* Toast (unchanged) */}
       <ToastContainer position="bottom-end" className="p-3">
         <Toast
           onClose={() => setToast((t) => ({ ...t, show: false }))}
@@ -4403,93 +4513,6 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
     </>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* Dummy data for charts (can wire to real API later)                         */
-/* -------------------------------------------------------------------------- */
-
-const email_account = [
-  {
-    username: "marco",
-    domain: "mavsketch.com",
-    storage_used: 1536,
-    label: "1.5GB",
-    storage_allocation: 0,
-    storage_unit: "MB",
-  },
-  {
-    username: "nahla",
-    domain: "mavsketch.com",
-    storage_used: 204.8,
-    label: "204.9MB",
-    storage_allocation: 2,
-    storage_unit: "MB",
-  },
-  {
-    username: "miguel",
-    domain: "mavsketch.com",
-    storage_used: 523,
-    label: "523MB",
-    storage_allocation: 1,
-    storage_unit: "MB",
-  },
-  {
-    username: "info",
-    domain: "mavsketch.com",
-    storage_used: 2048,
-    label: "2GB",
-    storage_allocation: 0,
-    storage_unit: "MB",
-  },
-  {
-    username: "marco2",
-    domain: "mavsketch.com",
-    storage_used: 1536,
-    label: "1.5GB",
-    storage_allocation: 0,
-    storage_unit: "MB",
-  },
-  {
-    username: "nahla2",
-    domain: "mavsketch.com",
-    storage_used: 204.8,
-    label: "204.9MB",
-    storage_allocation: 2,
-    storage_unit: "MB",
-  },
-  {
-    username: "miguel2",
-    domain: "mavsketch.com",
-    storage_used: 523,
-    label: "523MB",
-    storage_allocation: 1,
-    storage_unit: "MB",
-  },
-  {
-    username: "info2",
-    domain: "mavsketch.com",
-    storage_used: 2048,
-    label: "2GB",
-    storage_allocation: 0,
-    storage_unit: "MB",
-  },
-  {
-    username: "thirdy",
-    domain: "mavsketch.com",
-    storage_used: 2048,
-    label: "2GB",
-    storage_allocation: 0,
-    storage_unit: "MB",
-  },
-];
-
-const storage = [
-  {
-    used: 2,
-    storage_allocation: 10,
-    storage_unit: "GB",
-  },
-];
 
 /* -------------------------------------------------------------------------- */
 /* Main Dashboard                                                             */
@@ -4511,25 +4534,41 @@ export default function DashboardHome() {
   const [homePageId, setHomePageId] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
 
-  // 🔹 NEW: subscription card data (only for billing date + days remaining)
+  // subscription widget (billing date + days remaining)
   const [subscription, setSubscription] = useState({
     nextBillingDate: null,
     daysRemaining: null,
   });
 
+  // 🔹 Email Manager state (from backend)
+  const [emailState, setEmailState] = useState({
+    loading: true,
+    error: null,
+    summary: null,
+    accounts: [],
+    lists: [],
+  });
+
+  // 🔹 Storage state (S3/EC2 + Stripe allowance) from /api/storage/summary
+  const [storageState, setStorageState] = useState({
+    loading: true,
+    error: null,
+    storage: null,
+  });
+
   const toggleMenu = () => setShowMenu((prev) => !prev);
 
   const palette = [
-    "rgba(120, 113, 108, 1)", // Warm gray
-    "rgba(147, 197, 253, 1)", // Soft blue
-    "rgba(186, 230, 253, 1)", // Light blue
-    "rgba(209, 250, 229, 1)", // Mint green
-    "rgba(254, 215, 170, 1)", // Peach
-    "rgba(221, 214, 254, 1)", // Lavender
-    "rgba(253, 230, 138, 1)", // Pale yellow
-    "rgba(204, 251, 241, 1)", // Seafoam
-    "rgba(229, 231, 235, 1)", // Cool gray
-    "rgba(254, 205, 211, 1)", // Blush pink
+    "rgba(120, 113, 108, 1)",
+    "rgba(147, 197, 253, 1)",
+    "rgba(186, 230, 253, 1)",
+    "rgba(209, 250, 229, 1)",
+    "rgba(254, 215, 170, 1)",
+    "rgba(221, 214, 254, 1)",
+    "rgba(253, 230, 138, 1)",
+    "rgba(204, 251, 241, 1)",
+    "rgba(229, 231, 235, 1)",
+    "rgba(254, 205, 211, 1)",
   ];
 
   useEffect(() => {
@@ -4571,7 +4610,6 @@ export default function DashboardHome() {
 
         setMe(profile);
 
-        // 🔹 Compute billing date + remaining days from Stripe subscription
         const sub = profile.subscription;
         let nextBillingDate = null;
         let daysRemaining = null;
@@ -4600,7 +4638,6 @@ export default function DashboardHome() {
         const tplId =
           sel?.data?.templateId || sel?.templateId || "sir-template-1";
 
-        // we don't know the tag here; fetch its default from listTemplates
         const list = await api.listTemplates();
         const tplObj =
           (list?.data || []).find((t) => t.templateId === tplId) || {
@@ -4612,11 +4649,9 @@ export default function DashboardHome() {
         if (!cancelled) {
           setHomePageId(pId || null);
 
-          // also pre-populate preview URL on first load
           const url = buildTemplateUrl(userId, tplId, verTag);
           setPreviewUrl(url);
 
-          // also keep cookie in sync here
           setTemplateCookie(tplId, verTag, userId);
         }
       } catch (e) {
@@ -4628,10 +4663,102 @@ export default function DashboardHome() {
     };
   }, [router]);
 
+  // 🔹 Fetch email summary from backend
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const token = getTokenFromCookie();
+
+        const res = await fetch(
+          `${backendBaseUrl}/api/email-manager/summary`,
+          {
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`${res.status} ${res.statusText}`);
+        }
+
+        const json = await res.json();
+        if (cancelled) return;
+
+        setEmailState({
+          loading: false,
+          error: null,
+          summary: json.summary || null,
+          accounts: json.accounts || [],
+          lists: json.lists || [],
+        });
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[Dashboard] email summary error", err);
+        setEmailState((prev) => ({
+          ...prev,
+          loading: false,
+          error: err?.message || "Failed to load email summary",
+        }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 🔹 Fetch storage summary (S3 usage + Stripe allowance)
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const token = getTokenFromCookie();
+
+        const res = await fetch(`${backendBaseUrl}/api/storage/summary`, {
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+
+        if (!res.ok || json.ok === false) {
+          throw new Error(json.error || `HTTP ${res.status}`);
+        }
+
+        setStorageState({
+          loading: false,
+          error: null,
+          storage: json.storage || null,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[Dashboard] storage summary error", err);
+        setStorageState((prev) => ({
+          ...prev,
+          loading: false,
+          error: err?.message || "Failed to load storage summary",
+        }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const userName = me?.user?.fullName || "there";
   const userId = getUserId();
 
-  // For "View Site" / "Preview Changes" – always prefer PUBLIC_HOST
   const openPreview = () => {
     if (PUBLIC_HOST) {
       window.open(
@@ -4644,7 +4771,6 @@ export default function DashboardHome() {
     }
   };
 
-  // helper: show decimals only when needed
   const formatSmart = (value, decimals = 1) => {
     if (value == null || Number.isNaN(Number(value))) return "";
     const n = Number(value);
@@ -4652,7 +4778,7 @@ export default function DashboardHome() {
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(decimals);
   };
 
-  /* ---------------- Email storage donut ---------------- */
+  /* ---------------- Email Capacity donut data (from cPanel accounts) ------- */
 
   const [chartData, setChartData] = useState({
     labels: [],
@@ -4668,12 +4794,44 @@ export default function DashboardHome() {
   });
 
   useEffect(() => {
-    const labels = email_account.map((acc) => acc.username || "unknown");
-    const customLabel = email_account.map((acc) => acc.label || "unknown");
-    const values = email_account.map((acc) => {
-      const v = parseFloat(acc.storage_used);
-      return Number.isFinite(v) ? v : 0;
+    const accounts = Array.isArray(emailState.accounts)
+      ? emailState.accounts
+      : [];
+
+    if (!accounts.length) {
+      setChartData((prev) => ({
+        ...prev,
+        labels: [],
+        datasets: [
+          {
+            ...prev.datasets[0],
+            data: [],
+            backgroundColor: [],
+            borderColor: [],
+          },
+        ],
+      }));
+      return;
+    }
+
+    const labels = accounts.map(
+      (acc) => acc.email || acc.user || acc.login || "unknown"
+    );
+
+    // ✅ diskused is already MB; only use _diskused (bytes) as fallback
+    const valuesMb = accounts.map((acc) => {
+      if (acc.diskused != null && acc.diskused !== "") {
+        const mb = Number(acc.diskused);
+        return Number.isFinite(mb) ? mb : 0;
+      }
+      if (acc._diskused != null) {
+        const mb = Number(acc._diskused) / (1024 * 1024);
+        return Number.isFinite(mb) ? mb : 0;
+      }
+      return 0;
     });
+
+    const customLabel = valuesMb.map((v) => `${formatSmart(v, 2)}MB`);
 
     const bg = labels.map((_, i) =>
       palette[i % palette.length].replace("1)", "0.2)")
@@ -4686,7 +4844,7 @@ export default function DashboardHome() {
         {
           label: "Storage used",
           customLabel,
-          data: values,
+          data: valuesMb,
           backgroundColor: bg,
           borderColor,
           borderWidth: 1.5,
@@ -4696,7 +4854,7 @@ export default function DashboardHome() {
         },
       ],
     });
-  }, []); // email_account is constant
+  }, [emailState.accounts]);
 
   const totalStorageMB = (chartData?.datasets?.[0]?.data || []).reduce(
     (s, n) => s + (Number(n) || 0),
@@ -4704,7 +4862,38 @@ export default function DashboardHome() {
   );
   const totalStorageGB = totalStorageMB / 1024;
 
-  /* ---------------- Main storage (half donut) ---------------- */
+  /* ---------------- Main storage (half donut) from summary ----------------- */
+
+  // We now use S3/EC2 + Stripe allowance from /api/storage/summary
+  let storageAllocGB = 0;
+  let storageUsedGB = 0;
+  let storageRemainingGB = 0;
+  let storageRemainingPercent = 0;
+
+  if (storageState.storage) {
+    storageAllocGB = storageState.storage.totalGb ?? 0;
+    storageUsedGB = storageState.storage.usedGb ?? 0;
+    storageRemainingGB =
+      storageState.storage.remainingGb ??
+      Math.max(0, storageAllocGB - storageUsedGB);
+    storageRemainingPercent =
+      storageAllocGB > 0
+        ? (storageRemainingGB / storageAllocGB) * 100
+        : 0;
+  } else {
+    // Fallback if API fails: use env default (5GB)
+    const fallbackLimitMb = Number(
+      process.env.NEXT_PUBLIC_EMAIL_STORAGE_LIMIT_MB || 5120
+    );
+    const fallbackGb = fallbackLimitMb / 1024;
+    storageAllocGB = fallbackGb;
+    storageUsedGB = 0;
+    storageRemainingGB = fallbackGb;
+    storageRemainingPercent = 100;
+  }
+
+  const storageUsedPercent =
+    storageAllocGB > 0 ? (storageUsedGB / storageAllocGB) * 100 : 0;
 
   const [storageData, setStorageData] = useState({
     labels: [],
@@ -4719,26 +4908,20 @@ export default function DashboardHome() {
     ],
   });
 
-  const storageValues = [
-    storage[0].used,
-    storage[0].storage_allocation - storage[0].used,
-  ];
-
   useEffect(() => {
+    const used = Math.max(0, storageUsedGB);
+    const remaining = Math.max(0, storageAllocGB - used);
+
     setStorageData({
       labels: ["Used Storage", "Storage Available"],
       datasets: [
         {
           label: "Storage",
-          data: storageValues,
+          data: [used, remaining],
           backgroundColor: function (context) {
             const chart = context.chart;
             const { ctx, chartArea } = chart;
-
-            if (!chartArea) {
-              return;
-            }
-
+            if (!chartArea) return;
             const gradient = ctx.createLinearGradient(
               0,
               chartArea.bottom,
@@ -4747,7 +4930,6 @@ export default function DashboardHome() {
             );
             gradient.addColorStop(0, "rgba(213, 255, 64, 1)");
             gradient.addColorStop(1, "rgba(215, 68, 5, 1)");
-
             return [gradient, "rgba(225, 225, 225, 1)"];
           },
           borderColor: ["rgba(213, 255, 64, 0)", "rgba(225, 225, 225, 0)"],
@@ -4758,15 +4940,9 @@ export default function DashboardHome() {
         },
       ],
     });
-  }, []);
+  }, [storageUsedGB, storageAllocGB]);
 
-  const storageUsed = Number(storage?.[0]?.used || 0); // GB
-  const storageAlloc = Number(storage?.[0]?.storage_allocation || 1); // GB
-  const storageRemainingGB = Math.max(0, storageAlloc - storageUsed);
-  const storageRemainingPercent =
-    storageAlloc > 0 ? (storageRemainingGB / storageAlloc) * 100 : 0;
-
-  /* ---------------- Visitors line chart ---------------- */
+  /* ---------------- Visitors line chart (dummy for now) -------------------- */
 
   const lineData = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
@@ -4778,11 +4954,9 @@ export default function DashboardHome() {
         backgroundColor: (context) => {
           const { chart } = context;
           const { ctx, chartArea } = chart;
-
           if (!chartArea) {
             return;
           }
-
           const gradient = ctx.createLinearGradient(
             0,
             chartArea.top,
@@ -4844,6 +5018,15 @@ export default function DashboardHome() {
       },
     },
   };
+
+  // Email accounts summary (for text & %)
+  const accountsLimit =
+    emailState.summary?.accounts?.limit ??
+    Number(process.env.NEXT_PUBLIC_EMAIL_ACCOUNT_LIMIT || 10);
+  const accountsUsed = emailState.summary?.accounts?.used ?? 0;
+  const accountsRemaining = Math.max(0, accountsLimit - accountsUsed);
+  const accountsPercent =
+    accountsLimit > 0 ? (accountsUsed / accountsLimit) * 100 : 0;
 
   return (
     <>
@@ -4987,7 +5170,7 @@ export default function DashboardHome() {
                     </Card>
                   </Col>
 
-                  {/* My Products */}
+                  {/* My Products (dummy numbers for now) */}
                   <Col xs={12} md={5} lg={5} xl={5}>
                     <div className="anim-card-wrapper primary-bg cap-med">
                       <div className="anim-card">
@@ -5268,7 +5451,7 @@ export default function DashboardHome() {
                             </div>
                           </div>
 
-                          <div className={`button-wrapper d-flex flex-column gap-2`}>
+                          <div className="button-wrapper d-flex flex-column gap-2">
                             <button
                               type="button"
                               className="primary-btn w-100"
@@ -5287,7 +5470,8 @@ export default function DashboardHome() {
                     </div>
                   </Col>
 
-              <Col xs={12} md={4} lg={4} xl={4}>
+                  {/* Storage Used (S3/EC2 + Stripe allowance) */}
+                  <Col xs={12} md={4} lg={4} xl={4}>
                     <div className="anim-card-wrapper dark-bg cap-xl">
                       <div className="anim-card">
                         <div className="border-shadow-top" />
@@ -5319,7 +5503,7 @@ export default function DashboardHome() {
                           <div>
                             <div className="d-flex justify-content-end">
                               <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-                                {`${((8.2 / 50) * 100).toFixed(2)}%`}
+                                {`${formatSmart(storageUsedPercent)}%`}
                               </span>
                             </div>
 
@@ -5328,8 +5512,21 @@ export default function DashboardHome() {
                               className="mb-0"
                               style={{ fontSize: "0.9rem" }}
                             >
-                              {`${formatSmart(storageUsed)}GB used of ${storageAlloc}GB total`}
+                              {`${formatSmart(
+                                storageUsedGB
+                              )}GB used of ${formatSmart(
+                                storageAllocGB
+                              )}GB total`}
                             </p>
+                            {storageState.error && (
+                              <p
+                                className="mb-0 text-warning"
+                                style={{ fontSize: "0.8rem" }}
+                              >
+                                Failed to load storage summary (
+                                {storageState.error})
+                              </p>
+                            )}
                           </div>
                           <div>
                             <div className="chart-container-halfdoughnut">
@@ -5369,7 +5566,7 @@ export default function DashboardHome() {
                                             context.dataset.label || "";
                                           if (label) label += " ";
                                           if (context.parsed !== null) {
-                                            label += context.parsed;
+                                            label += context.parsed.toFixed(2);
                                           }
                                           label += "GB";
                                           return label;
@@ -5384,7 +5581,7 @@ export default function DashboardHome() {
                               />
                               <div className="chart-center-text">
                                 <h5 className="highlight">
-                                  {formatSmart(storageUsed)}
+                                  {formatSmart(storageUsedGB)}
                                   <small className="highlight-sm fs-6 align-middle">
                                     {" "}
                                     /GB
@@ -5412,7 +5609,7 @@ export default function DashboardHome() {
                         </Card.Body>
                       </div>
                       <figcaption>
-                        <span>{`${((8.2 / 50) * 100).toFixed(2)}%`}</span>
+                        <span>{`${formatSmart(storageUsedPercent)}%`}</span>
                       </figcaption>
                     </div>
                   </Col>
@@ -5450,7 +5647,7 @@ export default function DashboardHome() {
                           <div>
                             <div className="d-flex justify-content-end">
                               <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-                                {`${((8.2 / 50) * 100).toFixed(2)}%`}
+                                {`${formatSmart(accountsPercent)}%`}
                               </span>
                             </div>
                             <h6 className="card-title mb-1">
@@ -5460,8 +5657,18 @@ export default function DashboardHome() {
                               className="mb-0"
                               style={{ fontSize: "0.9rem" }}
                             >
-                              13 used of 14 accounts total
+                              {accountsUsed} used of {accountsLimit} accounts
+                              total
                             </p>
+                            {emailState.error && (
+                              <p
+                                className="mb-0 text-warning"
+                                style={{ fontSize: "0.8rem" }}
+                              >
+                                Failed to load email summary (
+                                {emailState.error})
+                              </p>
+                            )}
                           </div>
                           <div>
                             <div className="chart-container-doughnut">
@@ -5560,7 +5767,7 @@ export default function DashboardHome() {
                         </Card.Body>
                       </div>
                       <figcaption>
-                        <span>{`${((13 / 14) * 100).toFixed(2)}%`}</span>
+                        <span>{`${formatSmart(accountsPercent)}%`}</span>
                       </figcaption>
                     </div>
                   </Col>
@@ -5597,3 +5804,20 @@ export default function DashboardHome() {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -122,11 +122,13 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 safeMount("/api/auth",           () => require("./routes/auth.routes"));
 safeMount("/api/auth", () => require("./routes/changeauth.routes"));
 safeMount("/api/plans",          () => require("./routes/plans.routes"));
-
+safeMount("/api/email-manager", () => require("./routes/emailManager.routes"));
 /* Billing (runtime APIs) */
 safeMount("/api/billing",        () => require("./routes/billing.elements.routes"));
 safeMount("/api/billing",        () => require("./routes/billing.verify.routes"));
-
+// STORAGE ROUTES (safe mount)
+safeMount("/api/storage", () => require("./routes/storage.routes"));
+safeMount("/api/visitors", () => require("./routes/visitor.routes"));
 /* App feature routes */
 safeMount("/api/templates",      () => require("./routes/template.routes"));
 safeMount("/api/upload",         () => require("./routes/upload.routes"));

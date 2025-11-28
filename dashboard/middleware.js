@@ -51,33 +51,117 @@
 
 
 
+// // dashboard/middleware.js
+// import { NextResponse } from "next/server";
+
+// // Public auth + marketing routes
+// const PUBLIC_PATHS = [
+//   "/",
+//   "/authentication/signin",
+//   "/authentication/signup",
+//   "/authentication/forgot-password",
+//   "/welcome",
+//   "/_next",
+//   "/favicon.ico",
+//   "/images",
+//   "/fonts",
+// ];
+
+// // Only these routes require auth
+// const PROTECTED_PREFIXES = ["/dashboard", "/editorpages"];
+
+// function isPublic(pathname) {
+//   return PUBLIC_PATHS.some(
+//     (p) => pathname === p || pathname.startsWith(p + "/")
+//   );
+// }
+
+// function isProtected(pathname) {
+//   return PROTECTED_PREFIXES.some(
+//     (p) => pathname === p || pathname.startsWith(p + "/")
+//   );
+// }
+
+// export function middleware(req) {
+//   const { pathname } = req.nextUrl;
+
+//   // If not protected, allow always
+//   if (!isProtected(pathname)) return NextResponse.next();
+
+//   // Allow public routes (signin/signup/etc.)
+//   if (isPublic(pathname)) return NextResponse.next();
+
+//   // ✅ Read JWT from correct cookies
+//   const cookieName =
+//     process.env.NEXT_PUBLIC_COOKIE_NAME ||
+//     process.env.COOKIE_NAME ||
+//     "auth_token";
+
+//   const token =
+//     req.cookies.get(cookieName)?.value ||
+//     req.cookies.get("auth_token")?.value ||
+//     req.cookies.get("ion7dev_auth")?.value ||
+//     "";
+
+//   // If logged in and hitting signin, go dashboard
+//   if (token && pathname === "/authentication/signin") {
+//     const url = req.nextUrl.clone();
+//     url.pathname = "/dashboard";
+//     return NextResponse.redirect(url);
+//   }
+
+//   // No token → force to signin
+//   if (!token) {
+//     const url = req.nextUrl.clone();
+//     url.pathname = "/authentication/signin";
+//     url.searchParams.set("next", pathname);
+//     return NextResponse.redirect(url);
+//   }
+
+//   return NextResponse.next();
+// }
+
+// // ✅ Run middleware ONLY for dashboard/editor
+// export const config = {
+//   matcher: ["/dashboard/:path*", "/editorpages/:path*"],
+// };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // dashboard/middleware.js
 import { NextResponse } from "next/server";
 
-// Public auth + marketing routes
+// Public pages (no auth required)
 const PUBLIC_PATHS = [
-  "/",
+  "/",                                  // Landing / marketing
+  "/welcome",                           // Post-payment setup screen
   "/authentication/signin",
   "/authentication/signup",
   "/authentication/forgot-password",
-  "/welcome",
-  "/_next",
-  "/favicon.ico",
-  "/images",
-  "/fonts",
+  "/authentication/reset-password",
 ];
 
-// Only these routes require auth
-const PROTECTED_PREFIXES = ["/dashboard", "/editorpages"];
-
+// Helper: is this path public?
 function isPublic(pathname) {
   return PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(p + "/")
-  );
-}
-
-function isProtected(pathname) {
-  return PROTECTED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
 }
@@ -85,13 +169,18 @@ function isProtected(pathname) {
 export function middleware(req) {
   const { pathname } = req.nextUrl;
 
-  // If not protected, allow always
-  if (!isProtected(pathname)) return NextResponse.next();
+  // Skip Next.js assets & API routes (handled separately)
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico"
+  ) {
+    return NextResponse.next();
+  }
 
-  // Allow public routes (signin/signup/etc.)
-  if (isPublic(pathname)) return NextResponse.next();
-
-  // ✅ Read JWT from correct cookies
+  // -----------------------------
+  // Read token from cookies
+  // -----------------------------
   const cookieName =
     process.env.NEXT_PUBLIC_COOKIE_NAME ||
     process.env.COOKIE_NAME ||
@@ -103,14 +192,23 @@ export function middleware(req) {
     req.cookies.get("ion7dev_auth")?.value ||
     "";
 
-  // If logged in and hitting signin, go dashboard
-  if (token && pathname === "/authentication/signin") {
+  const isAuthPage =
+    pathname === "/authentication/signin" ||
+    pathname.startsWith("/authentication");
+
+  // ✅ If logged in and going to signin/signup → send to dashboard
+  if (token && isAuthPage) {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // No token → force to signin
+  // ✅ Public routes: always allowed
+  if (isPublic(pathname)) {
+    return NextResponse.next();
+  }
+
+  // ✅ Everything else MUST have a token
   if (!token) {
     const url = req.nextUrl.clone();
     url.pathname = "/authentication/signin";
@@ -118,10 +216,11 @@ export function middleware(req) {
     return NextResponse.redirect(url);
   }
 
+  // Authenticated → allow page
   return NextResponse.next();
 }
 
-// ✅ Run middleware ONLY for dashboard/editor
+// Run middleware for all non-static, non-API routes
 export const config = {
-  matcher: ["/dashboard/:path*", "/editorpages/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
