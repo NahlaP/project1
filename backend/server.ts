@@ -123,6 +123,10 @@ safeMount("/api/auth",           () => require("./routes/auth.routes"));
 safeMount("/api/auth", () => require("./routes/changeauth.routes"));
 safeMount("/api/plans",          () => require("./routes/plans.routes"));
 safeMount("/api/email-manager", () => require("./routes/emailManager.routes"));
+
+safeMount("/api/domain",         () => require("./routes/domain.routes"));
+
+
 /* Billing (runtime APIs) */
 safeMount("/api/billing",        () => require("./routes/billing.elements.routes"));
 safeMount("/api/billing",        () => require("./routes/billing.verify.routes"));
