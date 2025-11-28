@@ -556,7 +556,7 @@ const SidebarDashly = (props) => {
               <SidebarItem icon="user" label="Users" href="/users" />
 
               {/* My Subscription link */}
-              <SidebarItem icon="file" label="My Subscription" href="/my-subscription" />
+              {/* <SidebarItem icon="file" label="My Subscription" href="/my-subscription" /> */}
             </div>
 
             {/* Support Box */}
