@@ -380,11 +380,30 @@ const PUBLIC_PATHS = [
   "/authentication/reset-password",
 ];
 
-// Helper: is this path public?
 function isPublic(pathname) {
   return PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
+}
+
+// Force domain for production redirects
+const DASH_HOST =
+  process.env.NEXT_PUBLIC_DASH_HOST ||
+  "ion7dashboard.mavsketch.com"; // <— your real domain
+
+function buildUrl(req, pathname, search = "") {
+  const url = req.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = search;
+
+  // In production, override whatever host/protocol the proxy gives
+  if (process.env.NODE_ENV === "production") {
+    url.hostname = DASH_HOST.replace(/^https?:\/\//, "");
+    url.protocol = "https:"; // front-end is behind HTTPS on cPanel
+    url.port = ""; // no explicit port
+  }
+
+  return url;
 }
 
 export function middleware(req) {
@@ -419,30 +438,25 @@ export function middleware(req) {
 
   // ✅ If logged in and going to signin/signup → send to dashboard
   if (token && isAuthPage) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
+    const url = buildUrl(req, "/dashboard", "");
     return NextResponse.redirect(url);
   }
 
-  // ✅ Public routes: always allowed
+  // ✅ Public routes always allowed
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
   // -----------------------------
   // ❌ NO TOKEN → redirect to signin
-  // (always using same host as current request)
   // -----------------------------
   if (!token) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/authentication/signin";
-
     const nextParam = pathname + (search || "");
-    url.search = nextParam
+    const searchStr = nextParam
       ? `?next=${encodeURIComponent(nextParam)}`
       : "";
 
+    const url = buildUrl(req, "/authentication/signin", searchStr);
     return NextResponse.redirect(url);
   }
 
@@ -450,7 +464,6 @@ export function middleware(req) {
   return NextResponse.next();
 }
 
-// Run middleware for all non-static, non-API routes
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
