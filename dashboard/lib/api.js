@@ -1319,6 +1319,9 @@ const TOKEN_COOKIE =
   process.env.COOKIE_NAME ||
   "auth_token";
 
+
+
+
 /* ---------------- token helpers (cookie + localStorage fallback) ---------------- */
 function getCookie(name) {
   if (typeof document === "undefined") return null;
