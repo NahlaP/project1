@@ -1314,11 +1314,14 @@ const BASE = (
 // ✅ Export the resolved backend base (useful for debugging)
 export const BACKEND = BASE;
 
-const TOKEN_COOKIE =
-  process.env.NEXT_PUBLIC_COOKIE_NAME ||
-  process.env.COOKIE_NAME ||
-  "auth_token";
+// const TOKEN_COOKIE =
+//   process.env.NEXT_PUBLIC_COOKIE_NAME ||
+//   process.env.COOKIE_NAME ||
+//   "auth_token";
 
+
+const TOKEN_COOKIE =
+  process.env.NEXT_PUBLIC_COOKIE_NAME; 
 
 
 
