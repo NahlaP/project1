@@ -1,4 +1,4 @@
-
+// local fine
 
 // // works fine original local
 // // dashboard/lib/api.js
@@ -660,11 +660,8 @@
 
 
 
-
-
-
 // dashboard/lib/api.js
-// NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179:5000  (or http://127.0.0.1:5000 for local)
+// NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
 
 export const PUBLIC_HOST =
   process.env.NEXT_PUBLIC_PUBLIC_HOST ||
@@ -679,11 +676,11 @@ const BASE = (
 // ✅ Export the resolved backend base (useful for debugging)
 export const BACKEND = BASE;
 
-// ✅ IMPORTANT: use fallbacks, and default to ion7dev_auth
+// ✅ Use env cookie name but keep safe fallback
 const TOKEN_COOKIE =
   process.env.NEXT_PUBLIC_COOKIE_NAME ||
   process.env.COOKIE_NAME ||
-  "ion7dev_auth";
+  "auth_token";
 
 /* ---------------- token helpers (cookie + localStorage fallback) ---------------- */
 function getCookie(name) {
@@ -893,6 +890,14 @@ export const api = {
     return request("/api/auth/me");
   },
 
+  // ✅ Logout used by NavbarTop
+  logout() {
+    return request("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+
   // 🔹 Settings page helpers
   updateProfile(data) {
     // { fullName, company, country }
@@ -926,6 +931,10 @@ export const api = {
   },
 
   /* ===== Billing (Elements) ===== */
+  /**
+   * Matches backend POST /api/billing/elements/start
+   * pass email to guarantee Stripe customer has it
+   */
   billingStartElements(
     priceId,
     { email, name, country, address1, city, postalCode } = {}

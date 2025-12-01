@@ -1,3 +1,4 @@
+// // local fine
 
 
 
@@ -9,10 +10,12 @@
 // import { faBell } from "@fortawesome/free-regular-svg-icons";
 // import {
 //   faEllipsisVertical,
-//   faRightFromBracket,
 //   faSearch,
 //   faPowerOff,
 // } from "@fortawesome/free-solid-svg-icons";
+
+// // ✅ import your real helpers
+// import { api, clearToken } from "../../lib/api";
 
 // const TINY_BP = 438;
 
@@ -36,28 +39,20 @@
 
 //   const compact = isMobile || localCompact;
 
-//   // -------- Logout ----------
-//   const handleLogout = () => {
+//   // -------- Logout (FIXED) ----------
+//   const handleLogout = async () => {
 //     try {
-//       // clear all likely token locations/keys
-//       if (typeof window !== "undefined") {
-//         window.localStorage.removeItem("token");
-//         window.localStorage.removeItem("auth_token");
-//         window.sessionStorage.removeItem("token");
-//         window.sessionStorage.removeItem("auth_token");
-//       }
-
-//       // clear common auth cookies
-//       if (typeof document !== "undefined") {
-//         document.cookie = "auth=; Max-Age=0; path=/; SameSite=Lax";
-//         document.cookie = "token=; Max-Age=0; path=/; SameSite=Lax";
-//         document.cookie = "auth_token=; Max-Age=0; path=/; SameSite=Lax";
-//       }
-//     } catch {
-//       // ignore
+//       // 1) clear server httpOnly cookie
+//       await api.logout();
+//     } catch (e) {
+//       // if backend is down, still clear front-end
+//       console.warn("logout api failed", e);
 //     }
 
-//     // go to Sign In route (file is pages/authentication/signin.jsx)
+//     // 2) clear front-end tokens (localStorage + JS cookies)
+//     clearToken();
+
+//     // 3) go to Sign In
 //     router.replace("/authentication/signin");
 //   };
 
@@ -237,6 +232,13 @@
 
 
 
+
+
+
+
+
+
+
 // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarTop.js
 import React, { useEffect, useState } from "react";
 import { Nav, Navbar, Dropdown } from "react-bootstrap";
@@ -249,8 +251,8 @@ import {
   faPowerOff,
 } from "@fortawesome/free-solid-svg-icons";
 
-// ✅ import your real helpers
-import { api, clearToken } from "../../lib/api";
+// ✅ only import api – api.logout will clear token + cookie
+import { api } from "../../lib/api";
 
 const TINY_BP = 438;
 
@@ -265,7 +267,9 @@ const NavbarTop = ({ isMobile }) => {
       setLocalCompact(window.innerWidth <= 993);
       setIsTiny(window.innerWidth <= TINY_BP);
     };
+
     onResize();
+
     if (typeof window !== "undefined") {
       window.addEventListener("resize", onResize);
       return () => window.removeEventListener("resize", onResize);
@@ -277,18 +281,20 @@ const NavbarTop = ({ isMobile }) => {
   // -------- Logout (FIXED) ----------
   const handleLogout = async () => {
     try {
-      // 1) clear server httpOnly cookie
+      // 1) tell backend to clear httpOnly cookie + any server state
       await api.logout();
     } catch (e) {
-      // if backend is down, still clear front-end
+      // if backend is down, still continue
       console.warn("logout api failed", e);
     }
 
-    // 2) clear front-end tokens (localStorage + JS cookies)
-    clearToken();
-
-    // 3) go to Sign In
-    router.replace("/authentication/signin");
+    // 2) HARD redirect so old dashboard React tree is destroyed
+    if (typeof window !== "undefined") {
+      window.location.href = "/authentication/signin";
+    } else {
+      // SSR fallback (should almost never hit)
+      router.replace("/authentication/signin");
+    }
   };
 
   return (
