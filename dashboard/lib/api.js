@@ -664,30 +664,26 @@
 
 
 // dashboard/lib/api.js
-// For LOCAL dev set:
-//   NEXT_PUBLIC_BACKEND_ORIGIN=http://127.0.0.1:5000
-// On EC2 PROD keep NEXT_PUBLIC_BACKEND_ORIGIN empty so BASE = "" (same-origin).
+// NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179:5000  (or http://127.0.0.1:5000 for local)
 
 export const PUBLIC_HOST =
   process.env.NEXT_PUBLIC_PUBLIC_HOST ||
   "https://ion7devtemplate.mavsketch.com";
 
-// IMPORTANT:
-// - In browser we ONLY look at NEXT_PUBLIC_BACKEND_ORIGIN.
-// - BACKEND_ORIGIN is used only on the server (next.config.js rewrites).
-// - If NEXT_PUBLIC_BACKEND_ORIGIN is empty, BASE === "" → same-origin /api calls.
 const BASE = (
-  process.env.NEXT_PUBLIC_BACKEND_ORIGIN || ""
+  process.env.NEXT_PUBLIC_BACKEND_ORIGIN ||
+  process.env.BACKEND_ORIGIN ||
+  "http://127.0.0.1:5000"
 ).replace(/\/$/, "");
 
-// ✅ Export the resolved backend base (useful for debugging in dev tools)
+// ✅ Export the resolved backend base (useful for debugging)
 export const BACKEND = BASE;
 
-// Cookie name we use on the frontend (JS-visible cookie)
+// ✅ IMPORTANT: use fallbacks, and default to ion7dev_auth
 const TOKEN_COOKIE =
   process.env.NEXT_PUBLIC_COOKIE_NAME ||
   process.env.COOKIE_NAME ||
-  "auth_token";
+  "ion7dev_auth";
 
 /* ---------------- token helpers (cookie + localStorage fallback) ---------------- */
 function getCookie(name) {
@@ -713,7 +709,6 @@ function setCookie(name, value, days = 7) {
 
 export function setToken(token) {
   try {
-    if (!TOKEN_COOKIE) return;
     setCookie(TOKEN_COOKIE, token);
     if (typeof window !== "undefined")
       localStorage.setItem(TOKEN_COOKIE, token);
@@ -722,7 +717,6 @@ export function setToken(token) {
 
 export function getToken() {
   try {
-    if (!TOKEN_COOKIE) return null;
     const c = getCookie(TOKEN_COOKIE);
     if (c) return c;
     if (typeof window !== "undefined")
@@ -733,7 +727,6 @@ export function getToken() {
 
 export function clearToken() {
   try {
-    if (!TOKEN_COOKIE) return;
     setCookie(TOKEN_COOKIE, "", -1);
     if (typeof window !== "undefined")
       localStorage.removeItem(TOKEN_COOKIE);
@@ -806,9 +799,7 @@ async function request(path, init = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const url = `${BASE}${path}`; // BASE == "" → same-origin in prod
-
-  const res = await fetch(url, {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers,
     credentials: "include", // ✅ always send cookies too
@@ -884,19 +875,13 @@ export const api = {
   },
 
   /* ===== Auth ===== */
-  // after login, save token in JS cookie/localStorage so Authorization header is set
-  async login(email, password) {
-    const res = await request("/api/auth/login", {
+  login(email, password) {
+    return request("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (res && res.token) {
-      setToken(res.token);
-    }
-    return res;
   },
-
   signup(fullName, company, country, email, password) {
     return request("/api/auth/signup", {
       method: "POST",
@@ -904,7 +889,6 @@ export const api = {
       body: JSON.stringify({ fullName, company, country, email, password }),
     });
   },
-
   me() {
     return request("/api/auth/me");
   },
@@ -942,10 +926,6 @@ export const api = {
   },
 
   /* ===== Billing (Elements) ===== */
-  /**
-   * Matches backend POST /api/billing/elements/start
-   * pass email to guarantee Stripe customer has it
-   */
   billingStartElements(
     priceId,
     { email, name, country, address1, city, postalCode } = {}
@@ -1099,7 +1079,7 @@ export const api = {
     });
   },
 
-  // appointment background upload/clear
+  // ✅ appointment background upload/clear
   uploadAppointmentBg(userId, templateId, file) {
     return upload(
       `/api/appointment/${userId}/${templateId}/image`,
