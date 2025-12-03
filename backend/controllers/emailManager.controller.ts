@@ -169,37 +169,26 @@
 import { Request, Response } from "express";
 import { cpanelUapi } from "../utils/cpanel";
 
-// Match how you actually use it in dashboard.controller (req as any).user.id
-type AuthedReq = Request & {
-  user?: {
-    id?: string;
-    userId?: string;
-    email?: string;
-  };
-};
-
 const EMAIL_ACCOUNT_LIMIT = Number(process.env.EMAIL_ACCOUNT_LIMIT || 10);
 // total quota in MB (for the GB meter)
-const EMAIL_STORAGE_LIMIT_MB = Number(process.env.EMAIL_STORAGE_LIMIT_MB || 5120);
+const EMAIL_STORAGE_LIMIT_MB = Number(
+  process.env.EMAIL_STORAGE_LIMIT_MB || 5120
+);
 
 function toNumber(value: any): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 }
 
-export async function getEmailSummary(req: AuthedReq, res: Response) {
+export async function getEmailSummary(req: Request, res: Response) {
   try {
-    // 🔹 behave like dashboard.controller: prefer user.id
-    const userId =
-      (req as any).user?.id ||
-      (req as any).user?.userId ||
-      req.user?.id ||
-      req.user?.userId;
+    // 🔍 mirror dashboard style
+    const user: any = (req as any).user || {};
+    const userId = user.id || user.userId;
+    console.log("[Email] getEmailSummary user =", userId, user);
 
-    if (!userId) {
-      console.warn("[Email] getEmailSummary missing user id. req.user =", (req as any).user);
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    // ❌ DO NOT 401 here – requireAuth already did that.
+    // if (!userId) { ... }  <-- removed
 
     // ---------------- Accounts ----------------
     const popsRes = await cpanelUapi("Email", "list_pops_with_disk");
@@ -222,9 +211,9 @@ export async function getEmailSummary(req: AuthedReq, res: Response) {
     // - _diskused = bytes
     let totalUsedMb = 0;
     accounts.forEach((acc) => {
-      let usedMb = toNumber(acc.diskused);
+      let usedMb = toNumber(acc.diskused); // MB
       if (!usedMb && acc._diskused != null) {
-        usedMb = toNumber(acc._diskused) / (1024 * 1024);
+        usedMb = toNumber(acc._diskused) / (1024 * 1024); // bytes → MB
       }
       totalUsedMb += usedMb;
     });
@@ -270,18 +259,11 @@ export async function getEmailSummary(req: AuthedReq, res: Response) {
   }
 }
 
-export async function getEmailAccounts(req: AuthedReq, res: Response) {
+export async function getEmailAccounts(req: Request, res: Response) {
   try {
-    const userId =
-      (req as any).user?.id ||
-      (req as any).user?.userId ||
-      req.user?.id ||
-      req.user?.userId;
-
-    if (!userId) {
-      console.warn("[Email] getEmailAccounts missing user id. req.user =", (req as any).user);
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    const user: any = (req as any).user || {};
+    const userId = user.id || user.userId;
+    console.log("[Email] getEmailAccounts user =", userId);
 
     const popsRes = await cpanelUapi("Email", "list_pops_with_disk");
     const accounts: any[] = Array.isArray(popsRes?.data) ? popsRes.data : [];
@@ -293,18 +275,11 @@ export async function getEmailAccounts(req: AuthedReq, res: Response) {
   }
 }
 
-export async function getEmailLists(req: AuthedReq, res: Response) {
+export async function getEmailLists(req: Request, res: Response) {
   try {
-    const userId =
-      (req as any).user?.id ||
-      (req as any).user?.userId ||
-      req.user?.id ||
-      req.user?.userId;
-
-    if (!userId) {
-      console.warn("[Email] getEmailLists missing user id. req.user =", (req as any).user);
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    const user: any = (req as any).user || {};
+    const userId = user.id || user.userId;
+    console.log("[Email] getEmailLists user =", userId);
 
     const listsRes = await cpanelUapi("Email", "list_lists");
     const lists: any[] = Array.isArray(listsRes?.data) ? listsRes.data : [];
