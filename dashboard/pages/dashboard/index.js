@@ -7012,9 +7012,18 @@ export default function DashboardHome() {
       return;
     }
 
-    const labels = accounts.map(
-      (acc) => acc.email || acc.user || acc.login || "unknown"
-    );
+    // const labels = accounts.map(
+    //   (acc) => acc.email || acc.user || acc.login || "unknown"
+    // );
+      const labels = accounts.map((acc) => {
+    const raw = acc.email || acc.user || acc.login || "unknown";
+    if (!raw) return "unknown";
+
+    // strip domain → only show name (before @)
+    const str = String(raw);
+    const atIndex = str.indexOf("@");
+    return atIndex !== -1 ? str.slice(0, atIndex) : str;
+  });
 
     // diskused is already MB; only use _diskused (bytes) as fallback
     const valuesMb = accounts.map((acc) => {
