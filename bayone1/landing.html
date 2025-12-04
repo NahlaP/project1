@@ -1293,44 +1293,94 @@
 </script>
 
 <script>
-/* ============ ION7: VISITOR TRACKING ============ */
+/* ============ ION7: VISITOR TRACKING (UNIQUE) ============ */
 (function () {
   try {
     var qs = new URLSearchParams(window.location.search || "");
     var userId = qs.get("uid") || "demo-user";
     var templateId = qs.get("tpl") || "sir-template-1";
 
-    // Same proxy you already use above
+    // If somehow no user, don't spam backend
+    if (!userId) return;
+
+    // Same proxy you already use for other APIs
     var API_PROXY = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
 
-    // Build backend path
-    var path = "/api/analytics/visit/"
-      + encodeURIComponent(userId)
-      + "/"
-      + encodeURIComponent(templateId);
+    /* ---------- 1) Persistent visitorId in localStorage ---------- */
+    var VISITOR_KEY = "ion7_visitor_id";
+    var visitorId = null;
 
+    try {
+      visitorId = window.localStorage.getItem(VISITOR_KEY);
+    } catch (e) {
+      // ignore
+    }
+
+    if (!visitorId) {
+      var gen;
+      if (window.crypto && window.crypto.randomUUID) {
+        gen = window.crypto.randomUUID();
+      } else {
+        gen =
+          "v-" +
+          Date.now().toString(36) +
+          "-" +
+          Math.random().toString(36).slice(2);
+      }
+      visitorId = gen;
+      try {
+        window.localStorage.setItem(VISITOR_KEY, visitorId);
+      } catch (e) {
+        // ignore if storage is blocked
+      }
+    }
+
+    if (!visitorId) return;
+
+    /* ---------- 2) Session guard (avoid refresh spam) ---------- */
+    var sessionKey = "ion7_visit_logged_" + userId + "_" + templateId;
+    try {
+      if (window.sessionStorage.getItem(sessionKey)) {
+        // already sent this session → don't send again
+        return;
+      }
+      window.sessionStorage.setItem(sessionKey, "1");
+    } catch (e) {
+      // if sessionStorage fails, we still continue (backend will dedupe)
+    }
+
+    /* ---------- 3) Build backend URL via PHP proxy ---------- */
+    var backendPath = "/api/visitors/track"; // 👈 your Express route
     var url =
       API_PROXY +
       "?path=" +
-      encodeURIComponent(path) +
+      encodeURIComponent(backendPath) +
       "&t=" +
       Date.now();
 
+    /* ---------- 4) Payload sent to backend ---------- */
     var payload = {
-      page: window.location.pathname + window.location.search,
-      referrer: document.referrer || ""
+      visitorId: visitorId,
+      userId: userId,
+      templateId: templateId,
+      path: window.location.pathname + window.location.search,
+      referrer: document.referrer || "",
+      userAgent: navigator.userAgent || ""
     };
 
     fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
       body: JSON.stringify(payload),
-      // mode: "no-cors" // only if CORS gives trouble, but then you won't see JSON
+      credentials: "include"
     }).catch(function (e) {
-      console.warn("visit tracking failed", e);
+      console.warn("ION7 visitor tracking failed", e);
     });
   } catch (e) {
-    console.warn("visitor script error", e);
+    console.warn("ION7 visitor script error", e);
   }
 })();
 </script>

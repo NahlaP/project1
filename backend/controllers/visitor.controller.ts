@@ -1,3 +1,122 @@
+// // backend/controllers/visitor.controller.ts
+// import { Request, Response } from "express";
+// import { Visitor } from "../models/Visitor";
+
+// /**
+//  * PUBLIC
+//  * POST /api/visitors/track
+//  * Called from S3 templates → NO AUTH
+//  */
+// export async function trackVisitor(req: Request, res: Response) {
+//   try {
+//     const {
+//       visitorId,
+//       userId,
+//       templateId,
+//       path,
+//       userAgent: uaOverride,
+//     } = req.body;
+
+//     const ip =
+//       req.headers["x-forwarded-for"]?.toString().split(",")[0] ||
+//       req.socket.remoteAddress ||
+//       "unknown";
+
+//     const userAgent = uaOverride || req.headers["user-agent"] || "unknown";
+
+//     // must have at least a visitorId + userId
+//     if (!visitorId || !userId) {
+//       return res.status(200).json({ ok: true, skipped: true });
+//     }
+
+//     await Visitor.create({
+//       visitorId,
+//       ip,
+//       userAgent,
+//       userId,
+//       templateId: templateId || null,
+//     });
+
+//     return res.json({ ok: true });
+//   } catch (err) {
+//     console.error("trackVisitor error", err);
+//     // never break the public site
+//     return res.status(200).json({ ok: false });
+//   }
+// }
+
+// /**
+//  * AUTH REQUIRED
+//  * GET /api/visitors/stats
+//  * Used by dashboard "Site Visitors" widget
+//  */
+// export async function getVisitorStats(req: Request, res: Response) {
+//   try {
+//     // same pattern as your other widgets (current-subscription, my-products)
+//     const authedUser =
+//       (req as any).user?.id ||
+//       (req as any).user?.userId ||
+//       (req as any).userId ||
+//       (req.query.userId as string | undefined);
+
+//     if (!authedUser) {
+//       return res.status(400).json({ ok: false, error: "userId is required" });
+//     }
+
+//     const days = Number(req.query.days ?? 30);
+//     const windowDays = Number.isFinite(days) && days > 0 ? days : 30;
+
+//     const since = new Date();
+//     since.setDate(since.getDate() - windowDays);
+
+//     // 🔹 SIMPLE: fetch docs and group in Node (no fancy Mongo operators)
+//     const docs = await Visitor.find({
+//       userId: authedUser,
+//       createdAt: { $gte: since },
+//     })
+//       .sort({ createdAt: 1 })
+//       .lean();
+
+//     const byDay: Record<string, number> = {};
+
+//     for (const v of docs) {
+//       if (!v.createdAt) continue;
+//       const d = new Date(v.createdAt);
+//       if (Number.isNaN(d.getTime())) continue;
+
+//       const key = d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+//       byDay[key] = (byDay[key] || 0) + 1;
+//     }
+
+//     const labels = Object.keys(byDay).sort();
+//     const values = labels.map((k) => byDay[k]);
+//     const total = values.reduce((a, b) => a + b, 0);
+
+//     return res.json({
+//       ok: true,
+//       data: { labels, values, total },
+//     });
+//   } catch (err) {
+//     console.error("getVisitorStats error", err);
+//     return res
+//       .status(500)
+//       .json({ ok: false, error: "Failed to load visitor stats" });
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // backend/controllers/visitor.controller.ts
 import { Request, Response } from "express";
 import { Visitor } from "../models/Visitor";
@@ -6,6 +125,10 @@ import { Visitor } from "../models/Visitor";
  * PUBLIC
  * POST /api/visitors/track
  * Called from S3 templates → NO AUTH
+ *
+ * Dedup logic:
+ * - Same visitorId + userId + templateId + IP
+ * - Only 1 record per calendar day (UTC)
  */
 export async function trackVisitor(req: Request, res: Response) {
   try {
@@ -15,10 +138,10 @@ export async function trackVisitor(req: Request, res: Response) {
       templateId,
       path,
       userAgent: uaOverride,
-    } = req.body;
+    } = req.body || {};
 
     const ip =
-      req.headers["x-forwarded-for"]?.toString().split(",")[0] ||
+      req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
       req.socket.remoteAddress ||
       "unknown";
 
@@ -29,12 +152,33 @@ export async function trackVisitor(req: Request, res: Response) {
       return res.status(200).json({ ok: true, skipped: true });
     }
 
+    // start of today (UTC) for dedupe window
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    // 🔁 check if already logged today for this combo
+    const existing = await Visitor.findOne({
+      visitorId,
+      userId,
+      templateId: templateId || null,
+      ip,
+      createdAt: { $gte: todayStart },
+    }).lean();
+
+    if (existing) {
+      // already counted today → don't create new row
+      return res.status(200).json({ ok: true, skipped: true });
+    }
+
+    // ✅ log NEW unique visitor for the day
     await Visitor.create({
       visitorId,
       ip,
       userAgent,
       userId,
       templateId: templateId || null,
+      path: path || null,
+      createdAt: new Date(),
     });
 
     return res.json({ ok: true });
@@ -48,11 +192,10 @@ export async function trackVisitor(req: Request, res: Response) {
 /**
  * AUTH REQUIRED
  * GET /api/visitors/stats
- * Used by dashboard "Site Visitors" widget
+ * (optional, you can still keep this if you use it)
  */
 export async function getVisitorStats(req: Request, res: Response) {
   try {
-    // same pattern as your other widgets (current-subscription, my-products)
     const authedUser =
       (req as any).user?.id ||
       (req as any).user?.userId ||
@@ -69,7 +212,6 @@ export async function getVisitorStats(req: Request, res: Response) {
     const since = new Date();
     since.setDate(since.getDate() - windowDays);
 
-    // 🔹 SIMPLE: fetch docs and group in Node (no fancy Mongo operators)
     const docs = await Visitor.find({
       userId: authedUser,
       createdAt: { $gte: since },
