@@ -1292,6 +1292,49 @@
 })();
 </script>
 
+<script>
+/* ============ ION7: VISITOR TRACKING ============ */
+(function () {
+  try {
+    var qs = new URLSearchParams(window.location.search || "");
+    var userId = qs.get("uid") || "demo-user";
+    var templateId = qs.get("tpl") || "sir-template-1";
+
+    // Same proxy you already use above
+    var API_PROXY = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+
+    // Build backend path
+    var path = "/api/analytics/visit/"
+      + encodeURIComponent(userId)
+      + "/"
+      + encodeURIComponent(templateId);
+
+    var url =
+      API_PROXY +
+      "?path=" +
+      encodeURIComponent(path) +
+      "&t=" +
+      Date.now();
+
+    var payload = {
+      page: window.location.pathname + window.location.search,
+      referrer: document.referrer || ""
+    };
+
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload),
+      // mode: "no-cors" // only if CORS gives trouble, but then you won't see JSON
+    }).catch(function (e) {
+      console.warn("visit tracking failed", e);
+    });
+  } catch (e) {
+    console.warn("visitor script error", e);
+  }
+})();
+</script>
+
   <!-- ======================================================== -->
 
 </body>

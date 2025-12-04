@@ -1,16 +1,11 @@
-// backend/routes/visitor.routes.ts
 import { Router } from "express";
-import {
-  trackVisitor,
-  visitorsSummary,
-} from "../controllers/visitor.controller";
+import { requireAuth } from "../middleware/auth.middleware";
+import { trackVisitor, getVisitorStats } from "../controllers/visitor.controller";
 
-const r = Router();
+const router = Router();
 
-// POST /api/visitors/track
-r.post("/track", trackVisitor);
+router.post("/track", trackVisitor);    // public for S3 site
+router.get("/stats", requireAuth, getVisitorStats); // dashboard only
 
-// GET /api/visitors/summary?appUserId=...&templateId=...
-r.get("/summary", visitorsSummary);
+export default router;
 
-export default r;

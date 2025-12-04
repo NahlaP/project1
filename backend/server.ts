@@ -354,6 +354,7 @@ safeMount("/api/billing", () => require("./routes/billing.verify.routes"));
 // STORAGE ROUTES (safe mount)
 safeMount("/api/storage", () => require("./routes/storage.routes"));
 safeMount("/api/visitors", () => require("./routes/visitor.routes"));
+safeMount("/api/analytics", () => require("./routes/analytics.routes"));
 
 /* App feature routes */
 safeMount("/api/templates", () => require("./routes/template.routes"));
