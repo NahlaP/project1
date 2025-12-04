@@ -3659,14 +3659,7 @@ export default function DashboardHome() {
                                 options={siteVisitorsOptions}
                               />
                             </div>
-                            <div className="d-flex justify-content-between mt-2">
-                              <span className="small text-white-50">
-                                Total visitors: {visitorStats.total}
-                              </span>
-                              <span className="small text-white-50">
-                                Analytics from /api/analytics/summary
-                              </span>
-                            </div>
+                           
                           </div>
                         </Card.Body>
                       </div>

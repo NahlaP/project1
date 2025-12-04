@@ -1,82 +1,162 @@
 // backend/controllers/analytics.controller.ts
 import { Request, Response } from "express";
-import TemplateVisit from "../models/TemplateVisit";
+import { Visitor } from "../models/Visitor"; // same model you used in visitor.controller
 
-function todayYmd() {
-  const d = new Date();
-  const y = d.getUTCFullYear();
-  const m = (d.getUTCMonth() + 1).toString().padStart(2, "0");
-  const day = d.getUTCDate().toString().padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+type AuthedReq = Request & {
+  user?: { id?: string; userId?: string };
+};
 
 /**
+ * PUBLIC
  * POST /api/analytics/visit/:userId/:templateId
- * Body (optional): { page?: string, referrer?: string }
+ * Called from S3 templates via PHP proxy (no auth cookie needed)
  */
-export async function trackVisit(req: Request, res: Response) {
+export async function recordVisit(req: Request, res: Response) {
   try {
-    const { userId, templateId } = req.params;
-    const { page, referrer } = req.body || {};
+    const { userId: uidParam, templateId: tplParam } = req.params as {
+      userId?: string;
+      templateId?: string;
+    };
 
-    if (!userId || !templateId) {
-      return res.status(400).json({ error: "userId and templateId are required" });
+    const {
+      visitorId,
+      userId: bodyUid,
+      templateId: bodyTpl,
+      page,
+      referrer,
+      userAgent: uaOverride,
+    } = (req.body || {}) as {
+      visitorId?: string;
+      userId?: string;
+      templateId?: string;
+      page?: string;
+      referrer?: string;
+      userAgent?: string;
+    };
+
+    const userId = uidParam || bodyUid;
+    const templateId = tplParam || bodyTpl;
+
+    if (!userId || !templateId || !visitorId) {
+      // Never break public site – just skip
+      return res.status(200).json({ ok: true, skipped: true });
     }
 
-    const date = todayYmd();
+    const ip =
+      (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0] ||
+      req.socket.remoteAddress ||
+      "unknown";
 
-    const doc = await TemplateVisit.findOneAndUpdate(
-      { userId, templateId, date },
-      {
-        $inc: { count: 1 },
-        $setOnInsert: {
-          page: page || "",
-          referrer: referrer || "",
-        },
-      },
-      { new: true, upsert: true }
-    );
+    const userAgent = uaOverride || (req.headers["user-agent"] as string) || "unknown";
 
-    return res.json({ ok: true, visit: doc });
+    // ✅ DEDUPE: one row per (userId, templateId, visitorId, ip, day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existing = await Visitor.findOne({
+      userId,
+      templateId,
+      visitorId,
+      ip,
+      createdAt: { $gte: today },
+    }).lean();
+
+    if (existing) {
+      return res.status(200).json({ ok: true, skipped: true });
+    }
+
+    await Visitor.create({
+      userId,
+      templateId,
+      visitorId,
+      ip,
+      userAgent,
+      path: page || null,
+      referrer: referrer || null,
+      createdAt: new Date(),
+    });
+
+    return res.json({ ok: true });
   } catch (err) {
-    console.error("trackVisit error:", err);
-    return res.status(500).json({ error: "Failed to track visit" });
+    console.error("recordVisit error", err);
+    return res.status(200).json({ ok: false });
   }
 }
 
 /**
- * GET /api/analytics/summary/:userId/:templateId
- * Optional query: ?from=2025-01-01&to=2025-12-31
+ * AUTH REQUIRED
+ * GET /api/analytics/summary/:userId/:templateId?days=30
+ * Used by dashboard "Site Visitors" widget
  */
-export async function getVisitSummary(req: Request, res: Response) {
+export async function getVisitSummary(req: AuthedReq, res: Response) {
   try {
-    const { userId, templateId } = req.params;
-    const { from, to } = req.query as { from?: string; to?: string };
+    const { userId: uidParam, templateId: tplParam } = req.params as {
+      userId?: string;
+      templateId?: string;
+    };
 
-    if (!userId || !templateId) {
-      return res.status(400).json({ error: "userId and templateId are required" });
+    // you already auth via middleware; but we still honor the param
+    const authedUser =
+      req.user?.id ||
+      req.user?.userId ||
+      (req as any).userId ||
+      (req.query.userId as string | undefined) ||
+      uidParam;
+
+    const templateId = tplParam || (req.query.templateId as string | undefined);
+
+    if (!authedUser || !templateId) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "userId and templateId are required" });
     }
 
-    const match: any = { userId, templateId };
+    const days = Number(req.query.days ?? 30);
+    const windowDays = Number.isFinite(days) && days > 0 ? days : 30;
 
-    if (from || to) {
-      match.date = {};
-      if (from) match.date.$gte = from;
-      if (to) match.date.$lte = to;
+    const since = new Date();
+    since.setDate(since.getDate() - windowDays);
+    since.setHours(0, 0, 0, 0);
+
+    // Fetch all visits for this user+template in the window
+    const docs = await Visitor.find({
+      userId: authedUser,
+      templateId,
+      createdAt: { $gte: since },
+    })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const byDay: Record<string, number> = {};
+
+    for (const v of docs) {
+      if (!v.createdAt) continue;
+      const d = new Date(v.createdAt);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      byDay[key] = (byDay[key] || 0) + 1;
     }
 
-    const docs = await TemplateVisit.find(match).sort({ date: 1 }).lean();
+    const labels = Object.keys(byDay).sort();
+    const daysArray = labels.map((date) => ({
+      date,
+      count: byDay[date],
+    }));
 
-    const total = docs.reduce((sum, d) => sum + (d.count || 0), 0);
+    const totalVisitors = daysArray.reduce((sum, d) => sum + d.count, 0);
 
     return res.json({
-      userId,
-      templateId,
-      totalVisitors: total,
-      days: docs,
+      ok: true,
+      data: {
+        totalVisitors,
+        days: daysArray,
+      },
     });
   } catch (err) {
-    console.error("getVisitSummary error:", err);
-    return res.status(500).json({ error: "Failed to get visit summary" });
+    console.error("getVisitSummary error", err);
+    return res.status(500).json({
+      ok: false,
+      error: "Failed to load analytics summary",
+    });
   }
 }
