@@ -1,100 +1,209 @@
-// // backend/services/resellerclub.service.ts
+// backend/services/resellerclub.service.ts
 
-// // Use Node's built-in fetch (Node 18+).
-// // If your TypeScript complains, make sure "lib" in tsconfig includes "dom" OR just keep this as any.
-// const fetchFn: typeof fetch = (globalThis as any).fetch;
+// Use Node's built-in fetch (Node 18+)
+const fetchFn: typeof fetch = (globalThis as any).fetch;
 
-// const {
-//   RESELLERCLUB_API_BASE,
-//   RESELLERCLUB_USERID,
-//   RESELLERCLUB_API_KEY,
-// } = process.env;
+// Simple AED price table – adjust later to real values
+const TLD_PRICE_TABLE_AED: Record<string, number> = {
+  com: 45,
+  net: 40,
+  org: 38,
+  ae: 70,
+};
 
-// // Default to live HTTP API if env not set
-// const API_BASE = (RESELLERCLUB_API_BASE || "https://httpapi.com/api").replace(
-//   /\/+$/,
-//   ""
-// );
+export type RawAvailabilityMap = Record<
+  string,
+  { status: string; classkey?: string; actiontype?: string; entityid?: number }
+>;
 
-// function assertConfig() {
-//   if (!RESELLERCLUB_USERID || !RESELLERCLUB_API_KEY) {
-//     throw new Error(
-//       "ResellerClub API not configured. Set RESELLERCLUB_USERID and RESELLERCLUB_API_KEY in .env"
-//     );
-//   }
-// }
+export type DomainAvailability = {
+  domain: string;
+  status: "available" | "taken" | "unknown";
+  rawStatus: string;
+};
 
-// function buildUrl(path: string, params: URLSearchParams) {
-//   assertConfig();
+export type DomainQuote = DomainAvailability & {
+  tld: string;
+  priceAed: number | null;
+  includedAed: number;
+  extraAed: number;
+  isFreeWithPlan: boolean;
+};
 
-//   params.set("auth-userid", RESELLERCLUB_USERID!);
-//   params.set("api-key", RESELLERCLUB_API_KEY!);
+/**
+ * Get config fresh from process.env every time.
+ * This avoids issues with early destructuring.
+ */
+function getConfig() {
+  const apiBaseRaw =
+    process.env.RESELLERCLUB_API_BASE || "https://httpapi.com/api";
+  const apiBase = apiBaseRaw.replace(/\/+$/, "");
 
-//   return `${API_BASE}${path}?${params.toString()}`;
-// }
+  const userId = process.env.RESELLERCLUB_USERID;
+  const apiKey = process.env.RESELLERCLUB_API_KEY;
+  const includedAed = Number(process.env.DOMAIN_INCLUDED_AED || 50);
 
-// /**
-//  * Check domain availability using ResellerClub HTTP API.
-//  *
-//  * Example:
-//  *  domainName = "mavsketch"
-//  *  tlds = ["com", "net"]
-//  */
-// export async function checkDomainAvailability(
-//   domainName: string,
-//   tlds: string[] = ["com"]
-// ) {
-//   const cleanName = domainName.trim().toLowerCase();
-//   if (!cleanName) {
-//     throw new Error("domainName is required");
-//   }
+  if (!userId || !apiKey) {
+    // Debug log so we can see what's actually there
+    console.error("❌ ResellerClub ENV MISSING:", {
+      RESELLERCLUB_API_BASE: process.env.RESELLERCLUB_API_BASE,
+      RESELLERCLUB_USERID: userId,
+      RESELLERCLUB_API_KEY: apiKey
+        ? apiKey.slice(0, 4) + "****"
+        : undefined,
+    });
+    throw new Error(
+      "ResellerClub API not configured. Set RESELLERCLUB_USERID and RESELLERCLUB_API_KEY in .env"
+    );
+  }
 
-//   const params = new URLSearchParams();
-//   params.set("domain-name", cleanName);
+  return {
+    apiBase,
+    userId,
+    apiKey,
+    includedAed,
+  };
+}
 
-//   tlds.forEach((tld) => {
-//     const cleanTld = tld.replace(/^\./, "").trim().toLowerCase();
-//     if (cleanTld) params.append("tlds", cleanTld);
-//   });
+/**
+ * Build URL with auth params.
+ */
+function buildUrl(path: string, params: URLSearchParams) {
+  const { apiBase, userId, apiKey } = getConfig();
 
-//   const url = buildUrl("/domains/available.json", params);
+  params.set("auth-userid", userId);
+  params.set("api-key", apiKey);
 
-//   console.log(
-//     "[ResellerClub] Availability check:",
-//     url.replace(RESELLERCLUB_API_KEY!, "****")
-//   );
+  return `${apiBase}${path}?${params.toString()}`;
+}
 
-//   if (!fetchFn) {
-//     throw new Error(
-//       "global fetch is not available. Make sure you are running on Node.js 18+."
-//     );
-//   }
+/**
+ * Low-level: call ResellerClub /domains/available.json
+ */
+export async function checkDomainAvailabilityRaw(
+  domainName: string,
+  tlds: string[] = ["com"]
+): Promise<RawAvailabilityMap> {
+  const cleanName = domainName.trim().toLowerCase();
+  if (!cleanName) {
+    throw new Error("domainName is required");
+  }
 
-//   const res = await fetchFn(url, { method: "GET" });
+  const params = new URLSearchParams();
+  params.set("domain-name", cleanName);
 
-//   let json: any = {};
-//   try {
-//     json = await res.json();
-//   } catch (e) {
-//     console.error("[ResellerClub] Failed to parse JSON:", e);
-//   }
+  tlds.forEach((tld) => {
+    const cleanTld = tld.replace(/^\./, "").trim().toLowerCase();
+    if (cleanTld) params.append("tlds", cleanTld);
+  });
 
-//   if (!res.ok) {
-//     console.error("[ResellerClub] HTTP error", res.status, json);
-//     throw new Error(
-//       `ResellerClub availability HTTP ${res.status} - ${
-//         json?.message || JSON.stringify(json)
-//       }`
-//     );
-//   }
+  const url = buildUrl("/domains/available.json", params);
 
-//   // Example Response:
-//   // {
-//   //   "example.com": { "status": "available", ... },
-//   //   "example.net": { "status": "regthroughothers", ... }
-//   // }
-//   return json as Record<
-//     string,
-//     { status: string; classkey?: string; actiontype?: string; entityid?: number }
-//   >;
-// }
+  console.log(
+    "[ResellerClub] Availability check:",
+    url.replace(
+      process.env.RESELLERCLUB_API_KEY || "",
+      "****"
+    )
+  );
+
+  if (!fetchFn) {
+    throw new Error(
+      "global fetch is not available. Make sure you are running on Node.js 18+."
+    );
+  }
+
+  const res = await fetchFn(url, { method: "GET" });
+
+  let json: any = {};
+  try {
+    json = await res.json();
+  } catch (e) {
+    console.error("[ResellerClub] Failed to parse JSON:", e);
+  }
+
+  if (!res.ok) {
+    console.error("[ResellerClub] HTTP error", res.status, json);
+    throw new Error(
+      `ResellerClub availability HTTP ${res.status} - ${
+        json?.message || JSON.stringify(json)
+      }`
+    );
+  }
+
+  return json as RawAvailabilityMap;
+}
+
+/**
+ * Convenience: returns a simple list for UI.
+ */
+export async function checkDomainAvailability(
+  domainName: string,
+  tlds: string[] = ["com"]
+): Promise<DomainAvailability[]> {
+  const raw = await checkDomainAvailabilityRaw(domainName, tlds);
+  const result: DomainAvailability[] = [];
+
+  for (const [fullDomain, info] of Object.entries(raw)) {
+    const rawStatus = info?.status || "unknown";
+    const status: DomainAvailability["status"] =
+      rawStatus === "available" ? "available" : rawStatus ? "taken" : "unknown";
+
+    result.push({
+      domain: fullDomain,
+      status,
+      rawStatus,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Get availability + simple price + “free up to DOMAIN_INCLUDED_AED” logic
+ * for a single TLD.
+ */
+export async function getDomainQuote(
+  domainName: string,
+  tld: string
+): Promise<DomainQuote> {
+  const { includedAed } = getConfig();
+
+  const cleanTld = tld.replace(/^\./, "").toLowerCase();
+  const availabilityList = await checkDomainAvailability(domainName, [
+    cleanTld,
+  ]);
+
+  const fullDomain = `${domainName.toLowerCase()}.${cleanTld}`;
+  const availability =
+    availabilityList.find((d) => d.domain === fullDomain) ??
+    ({
+      domain: fullDomain,
+      status: "unknown",
+      rawStatus: "unknown",
+    } as DomainAvailability);
+
+  const priceAed = TLD_PRICE_TABLE_AED[cleanTld] ?? null;
+
+  let isFreeWithPlan = false;
+  let extraAed = 0;
+
+  if (priceAed != null) {
+    if (priceAed <= includedAed) {
+      isFreeWithPlan = true;
+      extraAed = 0;
+    } else {
+      isFreeWithPlan = false;
+      extraAed = priceAed - includedAed;
+    }
+  }
+
+  return {
+    ...availability,
+    tld: cleanTld,
+    priceAed,
+    includedAed,
+    extraAed,
+    isFreeWithPlan,
+  };
+}
