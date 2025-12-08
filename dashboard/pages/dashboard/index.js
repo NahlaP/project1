@@ -2,7 +2,12 @@
 
 
 
-// // original
+
+
+
+
+
+
 
 // // dashboard/pages/dashboard/index.js
 // import React, { useEffect, useState } from "react";
@@ -46,6 +51,7 @@
 // import { api, getUserId, PUBLIC_HOST } from "../../lib/api";
 // import { setTemplateCookie } from "../../lib/templateCookie";
 // import { backendBaseUrl } from "../../lib/config";
+// import { fetchTemplateVisitorSummary } from "../../lib/apiAnalytics"; // ✅ NEW
 
 // /* -------------------------------------------------------------------------- */
 // /* Chart.js setup                                                             */
@@ -173,10 +179,91 @@
 // }
 
 // /* -------------------------------------------------------------------------- */
+// /* Site Visitors helpers (real data)                                          */
+// /* -------------------------------------------------------------------------- */
+
+// function buildSiteVisitorsLineData(labels, values) {
+//   return {
+//     labels,
+//     datasets: [
+//       {
+//         label: "Visitors",
+//         data: values,
+//         customLabel: values.map((v) => String(v ?? 0)),
+//         fill: "origin",
+//         backgroundColor: (context) => {
+//           const { chart } = context;
+//           const { ctx, chartArea } = chart;
+//           if (!chartArea) return;
+//           const gradient = ctx.createLinearGradient(
+//             0,
+//             chartArea.top,
+//             0,
+//             chartArea.bottom
+//           );
+//           gradient.addColorStop(0, "rgba(213, 255, 64, 0.3)");
+//           gradient.addColorStop(1, "rgba(213, 255, 64, 0)");
+//           return gradient;
+//         },
+//         borderColor: "#d5ff40",
+//         borderWidth: 1,
+//         tension: 0.4,
+//       },
+//     ],
+//   };
+// }
+
+// const siteVisitorsOptions = {
+//   responsive: true,
+//   layout: {
+//     padding: {
+//       right: 20,
+//       top: 20,
+//     },
+//   },
+//   plugins: {
+//     legend: { display: false },
+//     title: { display: false },
+//     datalabels: {
+//       color: "#fff",
+//       anchor: "top",
+//       align: "top",
+//       formatter: (value, context) => {
+//         const idx = context?.dataIndex;
+//         const labels = context?.chart?.data?.labels || [];
+//         const label = labels[idx] ?? "";
+//         const customLabels =
+//           context?.chart?.data?.datasets[0]?.customLabel || [];
+//         const customLabel = customLabels[idx] || "";
+//         return customLabel ? `${customLabel}` : String(value);
+//       },
+//     },
+//   },
+//   scales: {
+//     x: {
+//       grid: { display: false },
+//       border: { display: false },
+//       ticks: { color: "#ffffff77" },
+//     },
+//     y: {
+//       beginAtZero: true,
+//       grid: { display: true },
+//       border: { display: false },
+//       ticks: { display: false, color: "transparent" },
+//     },
+//   },
+// };
+
+// /* -------------------------------------------------------------------------- */
 // /* Template Chooser Card – “Themes” style                                     */
 // /* -------------------------------------------------------------------------- */
 
-// function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
+// function TemplateChooserCard({
+//   userId,
+//   onHomeReady,
+//   onPreviewUrlChange,
+//   onTemplateChange, // ✅ NEW
+// }) {
 //   const router = useRouter();
 
 //   const [loading, setLoading] = useState(true);
@@ -226,6 +313,11 @@
 //           setTemplates(data);
 //           setSelected(activeTpl);
 
+//           // 🔔 notify parent which template is active
+//           if (activeTpl && onTemplateChange) {
+//             onTemplateChange(activeTpl);
+//           }
+
 //           // ensure home exists for the selected template (first visit experience)
 //           if (activeTpl) {
 //             const tplObj =
@@ -252,7 +344,7 @@
 //     return () => {
 //       off = true;
 //     };
-//   }, [userId, onHomeReady, onPreviewUrlChange]);
+//   }, [userId, onHomeReady, onPreviewUrlChange, onTemplateChange]);
 
 //   async function choose(templateId) {
 //     try {
@@ -265,6 +357,11 @@
 //       const verTag = defaultVersionFor(tplObj);
 
 //       setTemplateCookie(templateId, verTag, userId);
+
+//       // 🔔 notify parent that template changed
+//       if (onTemplateChange) {
+//         onTemplateChange(templateId);
+//       }
 
 //       const pageId = await ensureHomeFor(userId, templateId, verTag);
 //       onHomeReady?.(pageId || null);
@@ -335,7 +432,11 @@
 //       if (selected === confirmTpl.id) {
 //         setTemplateCookie(confirmTpl.id, confirmTpl.tag, userId);
 
-//         const url = buildTemplateUrl(userId, confirmTpl.id, confirmTpl.tag);
+//         const url = buildTemplateUrl(
+//           userId,
+//           confirmTpl.id,
+//           confirmTpl.tag
+//         );
 //         onPreviewUrlChange?.(url);
 
 //         if (PUBLIC_HOST) {
@@ -376,7 +477,9 @@
 //       const pageId = await api.getHomePageId(userId, tplId);
 //       if (pageId) {
 //         router.push(
-//           `/editorpages/page/${pageId}?templateId=${encodeURIComponent(tplId)}`
+//           `/editorpages/page/${pageId}?templateId=${encodeURIComponent(
+//             tplId
+//           )}`
 //         );
 //       } else {
 //         const tplObj =
@@ -385,7 +488,9 @@
 //         const id = await ensureHomeFor(userId, tplId, verTag);
 //         if (id)
 //           router.push(
-//             `/editorpages/page/${id}?templateId=${encodeURIComponent(tplId)}`
+//             `/editorpages/page/${id}?templateId=${encodeURIComponent(
+//               tplId
+//             )}`
 //           );
 //         else alert("Home page not found for this template.");
 //       }
@@ -429,14 +534,18 @@
 //             </div>
 
 //             <div className="template-card-wrapper mt-3">
-//               {loading && <div className="text-muted">Loading templates…</div>}
+//               {loading && (
+//                 <div className="text-muted">Loading templates…</div>
+//               )}
 //               {error && <div className="text-danger">{error}</div>}
 
 //               {!loading &&
 //                 !error &&
 //                 templates.map((t) => {
 //                   const isActive = selected === t.templateId;
-//                   const versions = Array.isArray(t.versions) ? t.versions : [];
+//                   const versions = Array.isArray(t.versions)
+//                     ? t.versions
+//                     : [];
 //                   const verLabel =
 //                     t.currentTag ||
 //                     versions?.[0]?.tag ||
@@ -649,6 +758,7 @@
 //   const [me, setMe] = useState(null); // { user, next, meta }
 //   const [homePageId, setHomePageId] = useState(null);
 //   const [previewUrl, setPreviewUrl] = useState("");
+//   const [selectedTemplateId, setSelectedTemplateId] = useState(null); // ✅ NEW
 
 //   // subscription widget (billing date + days remaining)
 //   const [subscription, setSubscription] = useState({
@@ -677,6 +787,17 @@
 //     loading: true,
 //     error: null,
 //     data: null,
+//   });
+
+//   // Site visitors state
+//   const [siteVisitorsChart, setSiteVisitorsChart] = useState(() =>
+//     buildSiteVisitorsLineData([], [])
+//   );
+//   const [visitorStats, setVisitorStats] = useState({
+//     loading: true,
+//     error: null,
+//     total: 0,
+//     changePercent: 0,
 //   });
 
 //   const toggleMenu = () => setShowMenu((prev) => !prev);
@@ -760,6 +881,9 @@
 //         const sel = await api.selectedTemplateForUser(userId);
 //         const tplId =
 //           sel?.data?.templateId || sel?.templateId || "sir-template-1";
+
+//         // 🔔 store selected template for analytics
+//         setSelectedTemplateId(tplId);
 
 //         const list = await api.listTemplates();
 //         const tplObj =
@@ -908,6 +1032,77 @@
 //     };
 //   }, []);
 
+//   // ✅ Fetch REAL visitor stats from /api/analytics/summary/:userId/:templateId
+//   useEffect(() => {
+//     let cancelled = false;
+
+//     (async () => {
+//       const uid = getUserId();
+//       if (!uid || !selectedTemplateId) {
+//         setVisitorStats({
+//           loading: false,
+//           error: null,
+//           total: 0,
+//           changePercent: 0,
+//         });
+//         setSiteVisitorsChart(buildSiteVisitorsLineData([], []));
+//         return;
+//       }
+
+//       try {
+//         const data = await fetchTemplateVisitorSummary(
+//           uid,
+//           selectedTemplateId
+//         );
+
+//         if (cancelled) return;
+
+//         const days = Array.isArray(data.days) ? data.days : [];
+//         const labels = days.map((d) => d.date || "");
+//         const values = days.map((d) => Number(d.count) || 0);
+
+//         setSiteVisitorsChart(buildSiteVisitorsLineData(labels, values));
+
+//         const total =
+//           typeof data.totalVisitors === "number"
+//             ? data.totalVisitors
+//             : values.reduce((s, n) => s + n, 0);
+
+//         let changePercent = 0;
+//         if (values.length >= 2) {
+//           const first = Number(values[0]) || 0;
+//           const last = Number(values[values.length - 1]) || 0;
+//           if (first === 0) {
+//             changePercent = last > 0 ? 100 : 0;
+//           } else {
+//             changePercent = ((last - first) / first) * 100;
+//           }
+//         }
+
+//         setVisitorStats({
+//           loading: false,
+//           error: null,
+//           total,
+//           changePercent,
+//         });
+//       } catch (err) {
+//         if (cancelled) return;
+//         console.error("[Dashboard] visitor stats error", err);
+//         setVisitorStats({
+//           loading: false,
+//           error: err?.message || "Failed to load visitor stats",
+//           total: 0,
+//           changePercent: 0,
+//         });
+//         setSiteVisitorsChart(buildSiteVisitorsLineData([], []));
+//       }
+//     })();
+
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [selectedTemplateId]);
+
 //   const userName = me?.user?.fullName || "there";
 //   const userId = getUserId();
 
@@ -927,7 +1122,9 @@
 //     if (value == null || Number.isNaN(Number(value))) return "";
 //     const n = Number(value);
 //     const rounded = Number(n.toFixed(decimals));
-//     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(decimals);
+//     return Number.isInteger(rounded)
+//       ? String(rounded)
+//       : rounded.toFixed(decimals);
 //   };
 
 //   const formatDate = (value) => {
@@ -988,20 +1185,15 @@
 //       return;
 //     }
 
-//     // const labels = accounts.map(
-//     //   (acc) => acc.email || acc.user || acc.login || "unknown"
-//     // );
-//       const labels = accounts.map((acc) => {
-//     const raw = acc.email || acc.user || acc.login || "unknown";
-//     if (!raw) return "unknown";
+//     const labels = accounts.map((acc) => {
+//       const raw = acc.email || acc.user || acc.login || "unknown";
+//       if (!raw) return "unknown";
 
-//     // strip domain → only show name (before @)
-//     const str = String(raw);
-//     const atIndex = str.indexOf("@");
-//     return atIndex !== -1 ? str.slice(0, atIndex) : str;
-//   });
+//       const str = String(raw);
+//       const atIndex = str.indexOf("@");
+//       return atIndex !== -1 ? str.slice(0, atIndex) : str;
+//     });
 
-//     // diskused is already MB; only use _diskused (bytes) as fallback
 //     const valuesMb = accounts.map((acc) => {
 //       if (acc.diskused != null && acc.diskused !== "") {
 //         const mb = Number(acc.diskused);
@@ -1047,7 +1239,6 @@
 
 //   /* ---------------- Main storage (half donut) from summary ----------------- */
 
-//   // We now use S3/EC2 + Stripe allowance from /api/storage/summary
 //   let storageAllocGB = 0;
 //   let storageUsedGB = 0;
 //   let storageRemainingGB = 0;
@@ -1064,7 +1255,6 @@
 //         ? (storageRemainingGB / storageAllocGB) * 100
 //         : 0;
 //   } else {
-//     // Fallback if API fails: use env default (5GB)
 //     const fallbackLimitMb = Number(
 //       process.env.NEXT_PUBLIC_EMAIL_STORAGE_LIMIT_MB || 5120
 //     );
@@ -1115,7 +1305,10 @@
 //             gradient.addColorStop(1, "rgba(215, 68, 5, 1)");
 //             return [gradient, "rgba(225, 225, 225, 1)"];
 //           },
-//           borderColor: ["rgba(213, 255, 64, 0)", "rgba(225, 225, 225, 0)"],
+//           borderColor: [
+//             "rgba(213, 255, 64, 0)",
+//             "rgba(225, 225, 225, 0)",
+//           ],
 //           borderWidth: 1.5,
 //           borderRadius: 4,
 //           offset: 10,
@@ -1124,83 +1317,6 @@
 //       ],
 //     });
 //   }, [storageUsedGB, storageAllocGB]);
-
-//   /* ---------------- Visitors line chart (dummy for now) -------------------- */
-
-//   const lineData = {
-//     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-//     datasets: [
-//       {
-//         label: "Visitors",
-//         data: [0, 29, 80, 41, 10, 89],
-//         fill: "origin",
-//         backgroundColor: (context) => {
-//           const { chart } = context;
-//           const { ctx, chartArea } = chart;
-//           if (!chartArea) {
-//             return;
-//           }
-//           const gradient = ctx.createLinearGradient(
-//             0,
-//             chartArea.top,
-//             0,
-//             chartArea.bottom
-//           );
-//           const topColor = "rgba(213, 255, 64, 0.3)";
-//           const bottomColor = "rgba(213, 255, 64, 0)";
-
-//           gradient.addColorStop(0, topColor);
-//           gradient.addColorStop(1, bottomColor);
-
-//           return gradient;
-//         },
-//         borderColor: "#d5ff40",
-//         borderWidth: 1.0,
-//         tension: 0.4,
-//       },
-//     ],
-//   };
-
-//   const lineOptions = {
-//     responsive: true,
-//     layout: {
-//       padding: {
-//         right: 20,
-//         top: 20,
-//       },
-//     },
-//     plugins: {
-//       legend: { display: false },
-//       title: { display: false },
-//       datalabels: {
-//         color: "#fff",
-//         anchor: "top",
-//         align: "top",
-//         formatter: (value, context) => {
-//           const idx = context?.dataIndex;
-//           const labels = context?.chart?.data?.labels || [];
-//           const label = labels[idx] ?? "";
-//           const customLabels =
-//             context?.chart?.data?.datasets[0]?.customLabel || [];
-//           const customLabel = customLabels[idx] || "";
-//           return customLabel ? `${customLabel}` : String(value);
-//         },
-//       },
-//     },
-//     scales: {
-//       x: {
-//         grid: { display: false },
-//         border: { display: false },
-//         ticks: { color: "#ffffff77" },
-//       },
-//       y: {
-//         beginAtZero: true,
-//         grid: { display: true },
-//         border: { display: false },
-//         ticks: { display: false, color: "transparent" },
-//       },
-//     },
-//   };
 
 //   // Email accounts summary (for text & %)
 //   const accountsLimit =
@@ -1288,10 +1404,12 @@
 //           }}
 //         >
 //           <Container fluid="xxl" className="dash-container">
-//             <h5 className="container-title">Welcome back, {userName}!</h5>
+//             <h5 className="container-title">
+//               Welcome back, {userName}!
+//             </h5>
 //             <p className="container-subtitle">
-//               Here&apos;s your website overview and next steps to complete your
-//               setup.
+//               Here&apos;s your website overview and next steps to complete
+//               your setup.
 //             </p>
 
 //             <Row className="g-4">
@@ -1304,7 +1422,9 @@
 //                       <Card.Body className="position-relative px-4 pt-5 pb-4">
 //                         <div>
 //                           <div className="d-flex justify-content-between align-items-start mb-3">
-//                             <h5 className="card-title">Current Subscription</h5>
+//                             <h5 className="card-title">
+//                               Current Subscription
+//                             </h5>
 //                             <div className="card-icon">
 //                               <img src="/icons/crown.svg" alt="Pro Plan" />
 //                             </div>
@@ -1364,7 +1484,7 @@
 //                     </Card>
 //                   </Col>
 
-//                   {/* My Products (dummy numbers for now) */}
+//                   {/* My Products (still static summary for now) */}
 //                   <Col xs={12} md={5} lg={5} xl={5}>
 //                     <div className="anim-card-wrapper primary-bg cap-med">
 //                       <div className="anim-card">
@@ -1429,7 +1549,7 @@
 //                     </div>
 //                   </Col>
 
-//                   {/* Site Visitors */}
+//                   {/* Site Visitors – REAL DATA */}
 //                   <Col xs={12} md={5} lg={5} xl={5}>
 //                     <div className="anim-card-wrapper dark-bg cap-xl">
 //                       <div className="anim-card">
@@ -1460,26 +1580,52 @@
 //                           <div>
 //                             <div className="d-flex justify-content-end">
 //                               <span className="px-2 py-1 rounded-pill fw-bold badge-soft-white">
-//                                 {`${((8.2 / 50) * 100).toFixed(2)}%`}
+//                                 {visitorStats.loading
+//                                   ? "…"
+//                                   : `${formatSmart(
+//                                       visitorStats.changePercent,
+//                                       2
+//                                     )}%`}
 //                               </span>
 //                             </div>
-//                             <h6 className="card-title mb-1">Site Visitors</h6>
+//                             <h6 className="card-title mb-1">
+//                               Site Visitors
+//                             </h6>
 //                             <p
 //                               className="mb-0"
 //                               style={{ fontSize: "0.9rem" }}
 //                             >
 //                               See how many visits your website is getting.
 //                             </p>
+//                             {visitorStats.error && (
+//                               <p
+//                                 className="mb-0 text-warning"
+//                                 style={{ fontSize: "0.8rem" }}
+//                               >
+//                                 {visitorStats.error}
+//                               </p>
+//                             )}
 //                           </div>
 //                           <div className="card_anim_body">
 //                             <div className="lineChart-Container">
-//                               <Line data={lineData} options={lineOptions} />
+//                               <Line
+//                                 data={siteVisitorsChart}
+//                                 options={siteVisitorsOptions}
+//                               />
 //                             </div>
+                           
 //                           </div>
 //                         </Card.Body>
 //                       </div>
 //                       <figcaption>
-//                         <span>{`${((13 / 14) * 100).toFixed(2)}%`}</span>
+//                         <span>
+//                           {visitorStats.loading
+//                             ? "…"
+//                             : `${formatSmart(
+//                                 visitorStats.changePercent,
+//                                 2
+//                               )}%`}
+//                         </span>
 //                       </figcaption>
 //                     </div>
 //                   </Col>
@@ -1518,7 +1664,9 @@
 //                                 {`${((8.2 / 50) * 100).toFixed(2)}%`}
 //                               </span>
 //                             </div>
-//                             <h6 className="card-title mb-1">Edit My Website</h6>
+//                             <h6 className="card-title mb-1">
+//                               Edit My Website
+//                             </h6>
 //                             <p
 //                               className="mb-0"
 //                               style={{ fontSize: "0.9rem" }}
@@ -1552,7 +1700,9 @@
 //                                 type="button"
 //                                 className="primary-btn"
 //                                 onClick={() =>
-//                                   router.push(`/editorpages/page/${homePageId}`)
+//                                   router.push(
+//                                     `/editorpages/page/${homePageId}`
+//                                   )
 //                                 }
 //                               >
 //                                 Open Editor
@@ -1686,7 +1836,7 @@
 //                     </div>
 //                   </Col>
 
-//                   {/* Storage Used (S3/EC2 + Stripe allowance) */}
+//                   {/* Storage Used */}
 //                   <Col xs={12} md={4} lg={4} xl={4}>
 //                     <div className="anim-card-wrapper dark-bg cap-xl">
 //                       <div className="anim-card">
@@ -1723,7 +1873,9 @@
 //                               </span>
 //                             </div>
 
-//                             <h6 className="card-title mb-1">Storage Used</h6>
+//                             <h6 className="card-title mb-1">
+//                               Storage Used
+//                             </h6>
 //                             <p
 //                               className="mb-0"
 //                               style={{ fontSize: "0.9rem" }}
@@ -1782,7 +1934,9 @@
 //                                             context.dataset.label || "";
 //                                           if (label) label += " ";
 //                                           if (context.parsed !== null) {
-//                                             label += context.parsed.toFixed(2);
+//                                             label += context.parsed.toFixed(
+//                                               2
+//                                             );
 //                                           }
 //                                           label += "GB";
 //                                           return label;
@@ -1818,14 +1972,18 @@
 //                             <div className="progress progress-thin thin">
 //                               <div
 //                                 className="progress-bar bg-mavsketch"
-//                                 style={{ width: `${storageRemainingPercent}%` }}
+//                                 style={{
+//                                   width: `${storageRemainingPercent}%`,
+//                                 }}
 //                               />
 //                             </div>
 //                           </div>
 //                         </Card.Body>
 //                       </div>
 //                       <figcaption>
-//                         <span>{`${formatSmart(storageUsedPercent)}%`}</span>
+//                         <span>{`${formatSmart(
+//                           storageUsedPercent
+//                         )}%`}</span>
 //                       </figcaption>
 //                     </div>
 //                   </Col>
@@ -1960,7 +2118,10 @@
 //                                   ? bgBorder[index]
 //                                   : bgBorder || "#ccc";
 //                                 return (
-//                                   <div key={index} className="label-item">
+//                                   <div
+//                                     key={index}
+//                                     className="label-item"
+//                                   >
 //                                     <span
 //                                       className="label-color"
 //                                       style={{
@@ -1974,7 +2135,9 @@
 //                                           "0 0 0 2px rgba(0,0,0,0.03) inset",
 //                                       }}
 //                                     />
-//                                     <span className="label-text">{label}</span>
+//                                     <span className="label-text">
+//                                       {label}
+//                                     </span>
 //                                   </div>
 //                                 );
 //                               })}
@@ -1999,6 +2162,7 @@
 //                         userId={userId}
 //                         onHomeReady={setHomePageId}
 //                         onPreviewUrlChange={setPreviewUrl}
+//                         onTemplateChange={setSelectedTemplateId} // ✅ NEW
 //                       />
 //                     ) : (
 //                       <div />
@@ -2812,6 +2976,11 @@ export default function DashboardHome() {
     daysRemaining: null,
   });
 
+  // 🔹 NEW: amount + plan from invoices (for both dashboard card + My Subscription)
+  const [subscriptionAmount, setSubscriptionAmount] = useState(null); // Stripe amount in cents
+  const [subscriptionCurrency, setSubscriptionCurrency] = useState("AED");
+  const [subscriptionPlan, setSubscriptionPlan] = useState("");
+
   // Email Manager state (from backend)
   const [emailState, setEmailState] = useState({
     loading: true,
@@ -2955,6 +3124,54 @@ export default function DashboardHome() {
       cancelled = true;
     };
   }, [router]);
+
+  // 🔹 NEW: fetch Stripe invoices to derive amount + plan for dashboard card
+  useEffect(() => {
+    (async () => {
+      try {
+        const billing = await api.billingInvoices();
+        const items = Array.isArray(billing?.items) ? billing.items : [];
+        const upcoming = billing?.upcoming || null;
+
+        let rows = [...items.map((inv) => ({ ...inv, isUpcoming: false }))];
+
+        if (
+          upcoming &&
+          (!upcoming.id || !rows.find((r) => r.id === upcoming.id))
+        ) {
+          rows.unshift({
+            ...upcoming,
+            isUpcoming: true,
+            status: "upcoming",
+          });
+        }
+
+        rows.sort((a, b) => (b.created || 0) - (a.created || 0));
+
+        const upcomingRow = rows.find(
+          (r) => r.isUpcoming && typeof r.amount === "number"
+        );
+        const latestPaidRow = rows.find(
+          (r) => !r.isUpcoming && typeof r.amount === "number"
+        );
+        const ref = upcomingRow || latestPaidRow || rows[0];
+
+        if (ref && typeof ref.amount === "number") {
+          setSubscriptionAmount(ref.amount);
+          setSubscriptionCurrency(ref.currency || "AED");
+          const plan = ref.amount >= 19900 ? "Pro Plan" : "Basic Plan";
+          setSubscriptionPlan(plan);
+        } else {
+          setSubscriptionAmount(null);
+          setSubscriptionCurrency("AED");
+          setSubscriptionPlan("");
+        }
+      } catch (err) {
+        console.error("[Dashboard] billingInvoices error", err);
+        // fall back to default display
+      }
+    })();
+  }, []);
 
   // Fetch email summary from backend
   useEffect(() => {
@@ -3477,7 +3694,7 @@ export default function DashboardHome() {
                           </div>
                           <div className="d-flex flex-wrap gap-2 mb-3">
                             <span className="px-2 py-1 rounded-pill fw-bold badge-soft-black">
-                              Pro Plan
+                              {subscriptionPlan || "Pro Plan"}
                             </span>
                             <span className="px-3 py-1 rounded-pill fw-bold badge-soft-gray">
                               Monthly
@@ -3500,7 +3717,11 @@ export default function DashboardHome() {
                                 d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"
                               />
                             </svg>
-                            199.00 <small>/month</small>
+                            {" "}
+                            {subscriptionAmount == null
+                              ? "199.00"
+                              : (subscriptionAmount / 100).toFixed(2)}
+                            <small>/month</small>
                           </h4>
                           <div className="col-info-wrapper">
                             <div className="col-info">
@@ -3659,7 +3880,6 @@ export default function DashboardHome() {
                                 options={siteVisitorsOptions}
                               />
                             </div>
-                           
                           </div>
                         </Card.Body>
                       </div>
@@ -3845,8 +4065,8 @@ export default function DashboardHome() {
                           </div>
                           <div className="card_anim_body">
                             <div className="domain-wrapper">
-                              <span className="https">https://</span>
-                              <span>{domainDisplayHost}</span>
+                              {/* <span className="https">https://</span> */}
+                              <span>mavsketch.com</span>
                             </div>
                             <div className="col-info mt-2">
                               <span className="bold">Main domain</span>

@@ -346,6 +346,7 @@ safeMount("/api/plans", () => require("./routes/plans.routes"));
 safeMount("/api/email-manager", () => require("./routes/emailManager.routes"));
 
 safeMount("/api/domain", () => require("./routes/domain.routes"));
+// safeMount("/api/resellerclub", () => require("./routes/resellerclub.routes"));
 
 /* Billing (runtime APIs) */
 safeMount("/api/billing", () => require("./routes/billing.elements.routes"));

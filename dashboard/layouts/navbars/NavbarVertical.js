@@ -549,7 +549,7 @@ const SidebarDashly = (props) => {
 
             {/* Settings */}
             <div className="px-3 pt-4">
-              <p className="nav-title px-2 mb-2">Settings</p>
+              {/* <p className="nav-title px-2 mb-2">Settings</p> */}
 
               {/* Account details + change email/password page */}
               <SidebarItem icon="settings" label="Account Settings" href="/settings" />

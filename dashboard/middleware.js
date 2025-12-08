@@ -1,4 +1,8 @@
-// // og in production
+
+
+
+// // og code
+
 // // dashboard/middleware.js
 // import { NextResponse } from "next/server";
 
@@ -31,6 +35,9 @@
 //     return NextResponse.next();
 //   }
 
+//   // Figure out host (for prod vs local)
+//   const host = req.headers.get("host") || req.nextUrl.host;
+
 //   // -----------------------------
 //   // Read token from cookies
 //   // -----------------------------
@@ -49,21 +56,24 @@
 //     pathname === "/authentication/signin" ||
 //     pathname.startsWith("/authentication");
 
-//   // ✅ If logged in and going to signin/signup → send to dashboard
+//   // ✅ If logged in and going to signin/signup:
+//   //    - In PRODUCTION: redirect to /dashboard
+//   //    - In LOCALHOST/DEV: allow access (no redirect)
 //   if (token && isAuthPage) {
-//     const url = req.nextUrl.clone();
-//     url.pathname = "/dashboard";
-//     url.search = "";
-//     return NextResponse.redirect(url); // relative → same origin (local or prod)
+//     if (host === "ion7dashboard.mavsketch.com") {
+//       const url = req.nextUrl.clone();
+//       url.pathname = "/dashboard";
+//       url.search = "";
+//       return NextResponse.redirect(url);
+//     }
+//     // dev/local → just continue so you can see /authentication/signin
+//     return NextResponse.next();
 //   }
 
 //   // ✅ Public routes: always allowed
 //   if (isPublic(pathname)) {
 //     return NextResponse.next();
 //   }
-
-//   // Figure out host (for prod vs local)
-//   const host = req.headers.get("host") || req.nextUrl.host;
 
 //   // -----------------------------
 //   // ❌ NO TOKEN → redirect to signin
@@ -89,7 +99,7 @@
 //       url.search = "";
 //     }
 
-//     return NextResponse.redirect(url); // relative → same origin
+//     return NextResponse.redirect(url);
 //   }
 
 //   // ✅ Authenticated → continue
@@ -112,34 +122,18 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // dashboard/middleware.js
 import { NextResponse } from "next/server";
 
-// Public pages (no auth required)
 const PUBLIC_PATHS = [
-  "/",                                  // Landing / marketing
-  "/welcome",                           // Post-payment setup screen
+  "/",
+  "/welcome",
   "/authentication/signin",
   "/authentication/signup",
   "/authentication/forgot-password",
   "/authentication/reset-password",
 ];
 
-// Helper: is this path public?
 function isPublic(pathname) {
   return PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
@@ -149,7 +143,6 @@ function isPublic(pathname) {
 export function middleware(req) {
   const { pathname, search } = req.nextUrl;
 
-  // Skip Next.js assets & API routes (handled separately)
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -158,12 +151,8 @@ export function middleware(req) {
     return NextResponse.next();
   }
 
-  // Figure out host (for prod vs local)
   const host = req.headers.get("host") || req.nextUrl.host;
 
-  // -----------------------------
-  // Read token from cookies
-  // -----------------------------
   const cookieName =
     process.env.NEXT_PUBLIC_COOKIE_NAME ||
     process.env.COOKIE_NAME ||
@@ -179,39 +168,30 @@ export function middleware(req) {
     pathname === "/authentication/signin" ||
     pathname.startsWith("/authentication");
 
-  // ✅ If logged in and going to signin/signup:
-  //    - In PRODUCTION: redirect to /dashboard
-  //    - In LOCALHOST/DEV: allow access (no redirect)
-  if (token && isAuthPage) {
-    if (host === "ion7dashboard.mavsketch.com") {
-      const url = req.nextUrl.clone();
-      url.pathname = "/dashboard";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
-    // dev/local → just continue so you can see /authentication/signin
-    return NextResponse.next();
-  }
+  // ❌ REMOVE this block – it was causing the problem
+  // if (token && isAuthPage) {
+  //   if (host === "ion7dashboard.mavsketch.com") {
+  //     const url = req.nextUrl.clone();
+  //     url.pathname = "/dashboard";
+  //     url.search = "";
+  //     return NextResponse.redirect(url);
+  //   }
+  //   return NextResponse.next();
+  // }
 
-  // ✅ Public routes: always allowed
+  // Public routes: always allowed
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
-  // -----------------------------
-  // ❌ NO TOKEN → redirect to signin
-  // -----------------------------
+  // No token → redirect to signin
   if (!token) {
-    // ⛳ SPECIAL RULE FOR PRODUCTION:
-    // Always go to fixed URL:
-    // https://ion7dashboard.mavsketch.com/authentication/signin?next=/dashboard
     if (host === "ion7dashboard.mavsketch.com") {
       return NextResponse.redirect(
         "https://ion7dashboard.mavsketch.com/authentication/signin?next=%2Fdashboard"
       );
     }
 
-    // 🖥️ Local / other hosts: keep old dynamic behavior
     const url = req.nextUrl.clone();
     url.pathname = "/authentication/signin";
 
@@ -225,11 +205,10 @@ export function middleware(req) {
     return NextResponse.redirect(url);
   }
 
-  // ✅ Authenticated → continue
+  // Authenticated → continue
   return NextResponse.next();
 }
 
-// Run middleware for all non-static, non-API routes
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };

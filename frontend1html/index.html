@@ -1447,5 +1447,104 @@ try {
 })();
 </script>
 
+
+<script>
+  /* ============ ION7: SMART VISITOR TRACKING (GYM TEMPLATE) ============ */
+  (function () {
+    try {
+      // ----- 1. Read uid & tpl from URL -----
+      var qs = new URLSearchParams(window.location.search || "");
+      var userId = qs.get("uid") || "demo-user";
+      // ⬇️ default changed to gym-template-1
+      var templateId = qs.get("tpl") || "gym-template-1";
+
+      // If these are missing, don't do anything
+      if (!userId || !templateId) {
+        console.warn("ION7 visitor: missing uid/tpl, skipping");
+        return;
+      }
+
+      // ----- 2. Generate / reuse a persistent visitorId -----
+      var VISITOR_KEY = "ion7_visitor_id";
+      var visitorId = null;
+
+      try {
+        visitorId = window.localStorage.getItem(VISITOR_KEY);
+      } catch (e) {
+        // localStorage might be blocked; ignore
+      }
+
+      if (!visitorId) {
+        // super simple random id; good enough for tracking
+        visitorId =
+          "v_" +
+          Math.random().toString(36).slice(2) +
+          Date.now().toString(36);
+        try {
+          window.localStorage.setItem(VISITOR_KEY, visitorId);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // ----- 3. Session guard: only once per tab session -----
+      // include templateId so each template gets its own session flag
+      var SESSION_KEY = "ion7_visit_logged_" + templateId;
+      try {
+        if (window.sessionStorage.getItem(SESSION_KEY)) {
+          // already sent in this tab; don't spam
+          return;
+        }
+        window.sessionStorage.setItem(SESSION_KEY, "1");
+      } catch (e) {
+        // if sessionStorage not available, we still send once now
+      }
+
+      // ----- 4. Build backend URL via PHP proxy -----
+      var API_PROXY = "https://ion7devtemplate.mavsketch.com/api-proxy.php";
+
+      var path =
+        "/api/analytics/visit/" +
+        encodeURIComponent(userId) +
+        "/" +
+        encodeURIComponent(templateId);
+
+      var url =
+        API_PROXY +
+        "?path=" +
+        encodeURIComponent(path) +
+        "&t=" +
+        Date.now();
+
+      // ----- 5. Payload -----
+      var payload = {
+        visitorId: visitorId,
+        userId: userId,
+        templateId: templateId,
+        page: window.location.pathname + window.location.search,
+        referrer: document.referrer || "",
+        userAgent: navigator.userAgent || ""
+      };
+
+      // ----- 6. Fire-and-forget -----
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify(payload)
+        // no need for credentials; public route
+      }).catch(function (e) {
+        console.warn("ION7 visitor tracking failed", e);
+      });
+    } catch (e) {
+      console.warn("ION7 visitor script error", e);
+    }
+  })();
+</script>
+
+
+
 </body>
 </html>
