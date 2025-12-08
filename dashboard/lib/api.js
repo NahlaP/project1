@@ -1,6 +1,5 @@
-// local fine
+// // local fine
 
-// // works fine original local
 // // dashboard/lib/api.js
 // // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
 
@@ -17,16 +16,11 @@
 // // ✅ Export the resolved backend base (useful for debugging)
 // export const BACKEND = BASE;
 
-// // const TOKEN_COOKIE =
-// //   process.env.NEXT_PUBLIC_COOKIE_NAME ||
-// //   process.env.COOKIE_NAME ||
-// //   "auth_token";
-
-
+// // ✅ Use env cookie name but keep safe fallback
 // const TOKEN_COOKIE =
-//   process.env.NEXT_PUBLIC_COOKIE_NAME; 
-
-
+//   process.env.NEXT_PUBLIC_COOKIE_NAME ||
+//   process.env.COOKIE_NAME ||
+//   "auth_token";
 
 // /* ---------------- token helpers (cookie + localStorage fallback) ---------------- */
 // function getCookie(name) {
@@ -236,7 +230,15 @@
 //     return request("/api/auth/me");
 //   },
 
-//   // 🔹 NEW: Settings page helpers
+//   // ✅ Logout used by NavbarTop
+//   logout() {
+//     return request("/api/auth/logout", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//     });
+//   },
+
+//   // 🔹 Settings page helpers
 //   updateProfile(data) {
 //     // { fullName, company, country }
 //     return request("/api/auth/profile", {
@@ -660,6 +662,29 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // dashboard/lib/api.js
 // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
 
@@ -872,13 +897,38 @@ export const api = {
   },
 
   /* ===== Auth ===== */
-  login(email, password) {
-    return request("/api/auth/login", {
+  // 🔐 custom login so we can handle 401 (wrong password) without auto-redirect
+  async login(email, password) {
+    const res = await fetch(`${BASE}/api/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
+
+    let body = {};
+    try {
+      body = await res.json();
+    } catch {
+      body = {};
+    }
+
+    if (!res.ok || body.error || !body.token) {
+      const msg =
+        body.error ||
+        body.message ||
+        (res.status === 401
+          ? "Incorrect email or password"
+          : `Login failed (HTTP ${res.status})`);
+      throw new Error(msg);
+    }
+
+    return body; // { success, token, next, meta }
   },
+
   signup(fullName, company, country, email, password) {
     return request("/api/auth/signup", {
       method: "POST",
