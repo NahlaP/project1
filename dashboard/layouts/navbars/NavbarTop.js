@@ -1,5 +1,8 @@
 
-// works with production 
+
+
+
+
 
 
 // // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarTop.js
@@ -42,6 +45,7 @@
 //   const compact = isMobile || localCompact;
 
 //   // -------- Logout (FIXED) ----------
+//     // -------- Logout (FIXED) ----------
 //   const handleLogout = async () => {
 //     try {
 //       // 1) tell backend to clear httpOnly cookie + any server state
@@ -51,11 +55,26 @@
 //       console.warn("logout api failed", e);
 //     }
 
-//     // 2) HARD redirect so old dashboard React tree is destroyed
+//     // 2) Clear ALL possible auth cookies on the client
+//     if (typeof document !== "undefined") {
+//       const cookieNames = [
+//         "auth_token",
+//         "ion7dev_auth",
+//         process.env.NEXT_PUBLIC_COOKIE_NAME,
+//         process.env.COOKIE_NAME,
+//       ].filter(Boolean);
+
+//       cookieNames.forEach((name) => {
+//         // clear for root path
+//         document.cookie = `${name}=; Max-Age=0; path=/`;
+//         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+//       });
+//     }
+
+//     // 3) HARD redirect so old dashboard React tree is destroyed
 //     if (typeof window !== "undefined") {
 //       window.location.href = "/authentication/signin";
 //     } else {
-//       // SSR fallback (should almost never hit)
 //       router.replace("/authentication/signin");
 //     }
 //   };
@@ -241,12 +260,6 @@
 
 
 
-
-
-
-
-
-
 // C:\Users\97158\Desktop\project1\dashboard\layouts\navbars\NavbarTop.js
 import React, { useEffect, useState } from "react";
 import { Nav, Navbar, Dropdown } from "react-bootstrap";
@@ -259,7 +272,7 @@ import {
   faPowerOff,
 } from "@fortawesome/free-solid-svg-icons";
 
-// ✅ only import api – api.logout will clear token + cookie
+// ✅ only import api – api.logout will clear token + cookie on backend
 import { api } from "../../lib/api";
 
 const TINY_BP = 438;
@@ -286,8 +299,7 @@ const NavbarTop = ({ isMobile }) => {
 
   const compact = isMobile || localCompact;
 
-  // -------- Logout (FIXED) ----------
-    // -------- Logout (FIXED) ----------
+  // -------- Logout (FIXED with history replace) ----------
   const handleLogout = async () => {
     try {
       // 1) tell backend to clear httpOnly cookie + any server state
@@ -297,27 +309,27 @@ const NavbarTop = ({ isMobile }) => {
       console.warn("logout api failed", e);
     }
 
-    // 2) Clear ALL possible auth cookies on the client
-    if (typeof document !== "undefined") {
-      const cookieNames = [
-        "auth_token",
-        "ion7dev_auth",
-        process.env.NEXT_PUBLIC_COOKIE_NAME,
-        process.env.COOKIE_NAME,
-      ].filter(Boolean);
-
-      cookieNames.forEach((name) => {
-        // clear for root path
-        document.cookie = `${name}=; Max-Age=0; path=/`;
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-      });
-    }
-
-    // 3) HARD redirect so old dashboard React tree is destroyed
+    // 2) Clear any client-side state
     if (typeof window !== "undefined") {
-      window.location.href = "/authentication/signin";
+      try {
+        localStorage.clear();
+      } catch {}
+      try {
+        sessionStorage.clear();
+      } catch {}
+
+      // 3) HARD redirect with replace (so back button won't return to /dashboard)
+      const isProdHost =
+        window.location.hostname === "ion7dashboard.mavsketch.com";
+
+      const signinUrl = isProdHost
+        ? "https://ion7dashboard.mavsketch.com/authentication/signin?next=%2Fdashboard"
+        : "/authentication/signin?next=%2Fdashboard";
+
+      window.location.replace(signinUrl);
     } else {
-      router.replace("/authentication/signin");
+      // SSR fallback
+      router.replace("/authentication/signin?next=%2Fdashboard");
     }
   };
 
