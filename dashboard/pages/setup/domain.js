@@ -885,26 +885,25 @@
 
 
 
-
-
-
-
-
-
-
-
-
-// // og
+// // og local
 // // dashboard/pages/setup/domain.js
 // import Head from "next/head";
 // import { useRouter } from "next/router";
 // import { useState } from "react";
+// import NavbarTop from "../../layouts/navbars/NavbarTop";
 // import { api } from "../../lib/api";
 
-// // ----- TLD LIST (ONLY WORKING ONES) -----
-// // These are the only ones we show in the UI
+// // Only working TLDs
 // const POPULAR_TLDS = ["com", "info", "org"];
 // const UAE_TLDS = ["ae"];
+
+// // Format prices nicely (59.4500000 -> "59.45 AED")
+// function formatMoney(value, currency = "AED") {
+//   if (typeof value !== "number" || Number.isNaN(value)) return "";
+//   const rounded = Math.round((value + Number.EPSILON) * 100) / 100;
+//   const str = rounded.toFixed(2).replace(/\.00$/, "");
+//   return `${str} ${currency}`;
+// }
 
 // export default function DomainSetupPage() {
 //   const router = useRouter();
@@ -968,7 +967,7 @@
 //     try {
 //       setLoading(true);
 
-//       // ✅ 1) availability for selected TLD
+//       // 1) availability
 //       const checkRes = await api.get(
 //         `/api/resellerclub/domain/check?name=${encodeURIComponent(
 //           trimmed
@@ -979,7 +978,6 @@
 //         throw new Error(checkRes.error || "Domain check failed");
 //       }
 
-//       // backend returns: { ok: true, data: [...] }
 //       const list = checkRes.data;
 //       const first = Array.isArray(list) ? list[0] : null;
 
@@ -994,7 +992,7 @@
 //         return;
 //       }
 
-//       // ✅ 2) quote (availability + live price from backend)
+//       // 2) quote
 //       const quoteRes = await api.get(
 //         `/api/resellerclub/domain/quote?name=${encodeURIComponent(
 //           trimmed
@@ -1005,7 +1003,6 @@
 //         throw new Error(quoteRes.error || "Domain quote failed");
 //       }
 
-//       // backend: { ok: true, data: quote }
 //       setQuote(quoteRes.data);
 //     } catch (err) {
 //       console.error("Domain setup error:", err);
@@ -1037,8 +1034,6 @@
 //     try {
 //       setTransferLoading(true);
 //       // TODO: real backend call later
-//       // const res = await api.post("/api/resellerclub/domain/transfer", { domain: d, authCode: code });
-//       // if (!res.ok) throw new Error(res.error || "Transfer failed");
 
 //       setTransferSuccess(
 //         "Transfer request submitted. We’ll process it and update you."
@@ -1070,8 +1065,6 @@
 //     try {
 //       setDnsLoading(true);
 //       // TODO: real backend call later
-//       // const res = await api.post("/api/domain/attach-existing", { domain: d, type: "dns" });
-//       // if (!res.ok) throw new Error(res.error || "Saving domain failed");
 
 //       setDnsSuccess(
 //         "Domain saved. Please update your DNS records to point to ION7."
@@ -1092,7 +1085,7 @@
 
 //     if (checkResult.status === "available") {
 //       return (
-//         <div className="alert success">
+//         <div className="alert alert-success mt-3 py-2 px-3">
 //           <strong>{checkResult.domain}</strong> is available 🎉
 //         </div>
 //       );
@@ -1100,7 +1093,7 @@
 
 //     if (checkResult.status === "taken") {
 //       return (
-//         <div className="alert danger">
+//         <div className="alert alert-danger mt-3 py-2 px-3">
 //           <strong>{checkResult.domain}</strong> is already taken. Please try
 //           another name.
 //         </div>
@@ -1108,7 +1101,7 @@
 //     }
 
 //     return (
-//       <div className="alert warn">
+//       <div className="alert alert-warning mt-3 py-2 px-3">
 //         Status: {checkResult.status} ({checkResult.rawStatus})
 //       </div>
 //     );
@@ -1118,125 +1111,151 @@
 //     if (!quote || checkResult?.status !== "available") return null;
 
 //     const { priceAed, includedAed, extraAed, isFreeWithPlan, currency } = quote;
-//     const hasPrice = typeof priceAed === "number" && !Number.isNaN(priceAed);
 //     const displayCurrency = currency || "AED";
+//     const hasPrice = typeof priceAed === "number" && !Number.isNaN(priceAed);
+
+//     const registrarLabel = hasPrice
+//       ? formatMoney(priceAed, displayCurrency)
+//       : "";
+//     const includedLabel =
+//       typeof includedAed === "number"
+//         ? formatMoney(includedAed, displayCurrency)
+//         : "";
+//     const extraLabel =
+//       typeof extraAed === "number"
+//         ? formatMoney(extraAed, displayCurrency)
+//         : "";
 
 //     return (
-//       <div className="quoteCard">
-//         <h4>Pricing summary</h4>
-//         <p>
-//           Domain: <strong>{fullDomain}</strong>
-//         </p>
+//       <div className="mt-3">
+//         <div className="border rounded-3 p-3 bg-white">
+//           <div className="fw-semibold mb-2">Pricing summary</div>
+//           <div className="d-flex justify-content-between mb-1">
+//             <span>Domain</span>
+//             <span className="fw-semibold">{fullDomain}</span>
+//           </div>
 
-//         {hasPrice ? (
-//           <>
-//             <p>
-//               Registrar price:{" "}
-//               <strong>
-//                 {priceAed} {displayCurrency} / year
-//               </strong>
+//           {hasPrice ? (
+//             <>
+//               <div className="d-flex justify-content-between mb-1">
+//                 <span>Registrar price</span>
+//                 <span className="fw-semibold">
+//                   {registrarLabel}
+//                   <span className="ms-1">/ year</span>
+//                 </span>
+//               </div>
+//               {includedLabel && (
+//                 <div className="d-flex justify-content-between mb-1">
+//                   <span>Included in plan</span>
+//                   <span className="fw-semibold">{includedLabel}</span>
+//                 </div>
+//               )}
+//             </>
+//           ) : (
+//             <p className="mb-2">
+//               We’ll confirm the exact registrar price in checkout.
 //             </p>
-//             <p>
-//               Included in plan:{" "}
-//               <strong>
-//                 {includedAed} {displayCurrency}
-//               </strong>
-//             </p>
-//           </>
-//         ) : (
-//           <p>
-//             Registrar price:{" "}
-//             <strong>Currently unavailable (we’ll confirm in checkout).</strong>
+//           )}
+
+//           {hasPrice && (
+//             <>
+//               {isFreeWithPlan ? (
+//                 <div className="alert alert-success mt-2 py-2 px-3 mb-2">
+//                   This domain is <strong>free</strong> with your current plan
+//                   (within {includedLabel}).
+//                 </div>
+//               ) : (
+//                 <div className="alert alert-warning mt-2 py-2 px-3 mb-2">
+//                   This domain is above the included amount. Extra to pay:{" "}
+//                   <strong>{extraLabel}</strong>
+//                 </div>
+//               )}
+//             </>
+//           )}
+
+//           <p className="mb-3">
+//             Prices are fetched in real time from our registrar (ResellerClub) in{" "}
+//             {displayCurrency}. Renewal pricing after the first year may change.
 //           </p>
-//         )}
 
-//         {hasPrice && (
-//           <>
-//             {isFreeWithPlan ? (
-//               <div className="alert success">
-//                 ✅ This domain is <strong>FREE</strong> with your current plan
-//                 (within {includedAed} {displayCurrency}).
-//               </div>
-//             ) : (
-//               <div className="alert warn">
-//                 ℹ️ This domain is above the included amount. Extra to pay:{" "}
-//                 <strong>
-//                   {extraAed} {displayCurrency}
-//                 </strong>
-//               </div>
-//             )}
-//           </>
-//         )}
-
-//         <p className="footnote">
-//           Prices are fetched in real time from our registrar (ResellerClub) in{" "}
-//           {displayCurrency}. Renewal pricing after the first year may change.
-//         </p>
-
-//         <button
-//           type="button"
-//           className="btn primary fullBtn"
-//           onClick={goToCheckout}
-//         >
-//           Use this domain &amp; continue
-//         </button>
+//           <button
+//             type="button"
+//             className="btn btn-primary w-100 rounded-pill"
+//             onClick={goToCheckout}
+//           >
+//             Use this domain &amp; continue
+//           </button>
+//         </div>
 //       </div>
 //     );
 //   };
 
 //   const renderNewDomain = () => (
-//     <div className="flowGrid">
-//       <div className="card glass">
-//         <h3 className="cardTitle">Register a new domain</h3>
-//         <p className="lead">
-//           Search for a new domain. We’ll check availability and apply your{" "}
-//           <strong>up to 50 AED free</strong> credit.
-//         </p>
+//     <div className="row g-4">
+//       <div className="col-lg-7">
+//         <div className="mb-3">
+//           <h5 className="mb-1">Register a new domain</h5>
+//           <p className="mb-0">
+//             Search for a new domain. We’ll check availability and apply your{" "}
+//             <strong>up to 50 AED</strong> credit.
+//           </p>
+//         </div>
 
 //         <form onSubmit={handleCheck}>
-//           <label className="lbl">New domain</label>
-//           <div className="domainRow">
-//             <input
-//               className="inp"
-//               type="text"
-//               placeholder="mybusinessname"
-//               value={name}
-//               onChange={(e) => setName(e.target.value)}
-//               disabled={loading}
-//             />
-//             <span className="dot">.</span>
-//             <select
-//               className="inp tld"
-//               value={tld}
-//               onChange={(e) => setTld(e.target.value)}
-//               disabled={loading}
-//             >
-//               <optgroup label="Most popular">
-//                 {POPULAR_TLDS.map((code) => (
-//                   <option key={code} value={code}>
-//                     .{code}
-//                   </option>
-//                 ))}
-//               </optgroup>
-//               <optgroup label="UAE & region">
-//                 {UAE_TLDS.map((code) => (
-//                   <option key={code} value={code}>
-//                     .{code}
-//                   </option>
-//                 ))}
-//               </optgroup>
-//             </select>
+//           <div className="mb-2">
+//             <label className="form-label">New domain</label>
+//             <div className="d-flex align-items-center gap-2">
+//               <input
+//                 className="form-control bg-white text-dark"
+//                 type="text"
+//                 placeholder="mybusinessname"
+//                 value={name}
+//                 onChange={(e) => setName(e.target.value)}
+//                 disabled={loading}
+//               />
+//               <span className="fs-5">.</span>
+//               <select
+//                 className="form-select bg-white text-dark"
+//                 value={tld}
+//                 onChange={(e) => setTld(e.target.value)}
+//                 disabled={loading}
+//                 style={{ maxWidth: 150 }}
+//               >
+//                 <optgroup label="Most popular">
+//                   {POPULAR_TLDS.map((code) => (
+//                     <option key={code} value={code}>
+//                       .{code}
+//                     </option>
+//                   ))}
+//                 </optgroup>
+//                 <optgroup label="UAE & region">
+//                   {UAE_TLDS.map((code) => (
+//                     <option key={code} value={code}>
+//                       .{code}
+//                     </option>
+//                   ))}
+//                 </optgroup>
+//               </select>
+//             </div>
 //           </div>
 
 //           {fullDomain && (
-//             <p className="hint">
-//               Full domain: <strong>{fullDomain}</strong>
+//             <p className="mb-2">
+//               Full domain: <span className="fw-semibold">{fullDomain}</span>
 //             </p>
 //           )}
 
-//           {error && <div className="alert danger">{error}</div>}
+//           {error && (
+//             <div className="alert alert-danger py-2 px-3 mb-2">
+//               {error}
+//             </div>
+//           )}
 
-//           <button type="submit" className="btn primary" disabled={loading}>
+//           <button
+//             type="submit"
+//             className="btn btn-primary rounded-pill mt-1"
+//             disabled={loading}
+//           >
 //             {loading ? "Checking…" : "Check availability"}
 //           </button>
 //         </form>
@@ -1244,57 +1263,71 @@
 //         {renderStatusAlert()}
 //       </div>
 
-//       <div className="sidePanel glass">
-//         <h4>What’s included</h4>
-//         <ul className="sideList">
-//           <li>Free domain credit up to 50 AED</li>
-//           <li>1 year registration with ResellerClub</li>
-//           <li>Automatic connection to your ION7 site</li>
-//         </ul>
+//       <div className="col-lg-5">
+//         <div className="border rounded-3 p-3 h-100 bg-white">
+//           <div className="fw-semibold mb-2">What’s included</div>
+//           <ul className="mb-0 ps-3">
+//             <li>Free domain credit up to 50 AED</li>
+//             <li>1 year registration with ResellerClub</li>
+//             <li>Automatic connection to your ION7 site</li>
+//           </ul>
 
-//         {renderQuoteCard()}
+//           {renderQuoteCard()}
+//         </div>
 //       </div>
 //     </div>
 //   );
 
 //   const renderTransfer = () => (
-//     <div className="flowGrid">
-//       <div className="card glass">
-//         <h3 className="cardTitle">Transfer your existing domain</h3>
-//         <p className="lead">
-//           Move your domain into our ResellerClub account so we can manage
-//           everything for you.
-//         </p>
+//     <div className="row g-4">
+//       <div className="col-lg-7">
+//         <div className="mb-3">
+//           <h5 className="mb-1">Transfer your existing domain</h5>
+//           <p className="mb-0">
+//             Move your domain into our ResellerClub account so we can manage
+//             everything for you.
+//           </p>
+//         </div>
 
 //         <form onSubmit={handleTransferSubmit}>
-//           <label className="lbl">Existing domain</label>
-//           <input
-//             className="inp"
-//             type="text"
-//             placeholder="mybusiness.com"
-//             value={transferDomain}
-//             onChange={(e) => setTransferDomain(e.target.value)}
-//             disabled={transferLoading}
-//           />
+//           <div className="mb-3">
+//             <label className="form-label">Existing domain</label>
+//             <input
+//               className="form-control bg-white text-dark"
+//               type="text"
+//               placeholder="mybusiness.com"
+//               value={transferDomain}
+//               onChange={(e) => setTransferDomain(e.target.value)}
+//               disabled={transferLoading}
+//             />
+//           </div>
 
-//           <label className="lbl">EPP / Auth code</label>
-//           <input
-//             className="inp"
-//             type="text"
-//             placeholder="Auth code from current registrar"
-//             value={authCode}
-//             onChange={(e) => setAuthCode(e.target.value)}
-//             disabled={transferLoading}
-//           />
+//           <div className="mb-3">
+//             <label className="form-label">EPP / Auth code</label>
+//             <input
+//               className="form-control bg-white text-dark"
+//               type="text"
+//               placeholder="Auth code from current registrar"
+//               value={authCode}
+//               onChange={(e) => setAuthCode(e.target.value)}
+//               disabled={transferLoading}
+//             />
+//           </div>
 
-//           {transferError && <div className="alert danger">{transferError}</div>}
+//           {transferError && (
+//             <div className="alert alert-danger py-2 px-3 mb-2">
+//               {transferError}
+//             </div>
+//           )}
 //           {transferSuccess && (
-//             <div className="alert success">{transferSuccess}</div>
+//             <div className="alert alert-success py-2 px-3 mb-2">
+//               {transferSuccess}
+//             </div>
 //           )}
 
 //           <button
 //             type="submit"
-//             className="btn primary"
+//             className="btn btn-primary rounded-pill"
 //             disabled={transferLoading}
 //           >
 //             {transferLoading ? "Submitting…" : "Submit transfer request"}
@@ -1302,43 +1335,57 @@
 //         </form>
 //       </div>
 
-//       <div className="sidePanel glass">
-//         <h4>Transfer tips</h4>
-//         <ul className="sideList">
-//           <li>Unlock your domain at your current registrar.</li>
-//           <li>Request the EPP/Auth code from them.</li>
-//           <li>Make sure WHOIS email is correct to approve transfer.</li>
-//         </ul>
+//       <div className="col-lg-5">
+//         <div className="border rounded-3 p-3 h-100 bg-white">
+//           <div className="fw-semibold mb-2">Transfer tips</div>
+//           <ul className="mb-0 ps-3">
+//             <li>Unlock your domain at your current registrar.</li>
+//             <li>Request the EPP/Auth code from them.</li>
+//             <li>Make sure WHOIS email is correct to approve transfer.</li>
+//           </ul>
+//         </div>
 //       </div>
 //     </div>
 //   );
 
 //   const renderDns = () => (
-//     <div className="flowGrid">
-//       <div className="card glass">
-//         <h3 className="cardTitle">Use existing domain (DNS only)</h3>
-//         <p className="lead">
-//           Keep your domain with your current provider and just point DNS to
-//           ION7.
-//         </p>
+//     <div className="row g-4">
+//       <div className="col-lg-7">
+//         <div className="mb-3">
+//           <h5 className="mb-1">Use existing domain (DNS only)</h5>
+//           <p className="mb-0">
+//             Keep your domain with your current provider and just point DNS to
+//             ION7.
+//           </p>
+//         </div>
 
 //         <form onSubmit={handleDnsSubmit}>
-//           <label className="lbl">Existing domain</label>
-//           <input
-//             className="inp"
-//             type="text"
-//             placeholder="mybusiness.com"
-//             value={dnsDomain}
-//             onChange={(e) => setDnsDomain(e.target.value)}
-//             disabled={dnsLoading}
-//           />
+//           <div className="mb-3">
+//             <label className="form-label">Existing domain</label>
+//             <input
+//               className="form-control bg-white text-dark"
+//               type="text"
+//               placeholder="mybusiness.com"
+//               value={dnsDomain}
+//               onChange={(e) => setDnsDomain(e.target.value)}
+//               disabled={dnsLoading}
+//             />
+//           </div>
 
-//           {dnsError && <div className="alert danger">{dnsError}</div>}
-//           {dnsSuccess && <div className="alert success">{dnsSuccess}</div>}
+//           {dnsError && (
+//             <div className="alert alert-danger py-2 px-3 mb-2">
+//               {dnsError}
+//             </div>
+//           )}
+//           {dnsSuccess && (
+//             <div className="alert alert-success py-2 px-3 mb-2">
+//               {dnsSuccess}
+//             </div>
+//           )}
 
 //           <button
 //             type="submit"
-//             className="btn primary"
+//             className="btn btn-primary rounded-pill"
 //             disabled={dnsLoading}
 //           >
 //             {dnsLoading ? "Saving…" : "Save domain & continue"}
@@ -1346,13 +1393,15 @@
 //         </form>
 //       </div>
 
-//       <div className="sidePanel glass">
-//         <h4>What you’ll need to do</h4>
-//         <ul className="sideList">
-//           <li>Update A records / nameservers at your registrar.</li>
-//           <li>DNS changes can take up to 24 hours to propagate.</li>
-//           <li>We’ll show you the exact values after this step.</li>
-//         </ul>
+//       <div className="col-lg-5">
+//         <div className="border rounded-3 p-3 h-100 bg-white">
+//           <div className="fw-semibold mb-2">What you’ll need to do</div>
+//           <ul className="mb-0 ps-3">
+//             <li>Update A records / nameservers at your registrar.</li>
+//             <li>DNS changes can take up to 24 hours to propagate.</li>
+//             <li>We’ll show you the exact values after this step.</li>
+//           </ul>
+//         </div>
 //       </div>
 //     </div>
 //   );
@@ -1362,319 +1411,181 @@
 //   return (
 //     <>
 //       <Head>
-//         <title>Domain setup — ION7</title>
+//         <title>Domain Setup - ION7</title>
 //       </Head>
 
-//       <div className="shell">
-//         {/* Header */}
-//         <div className="head card glass">
-//           <div className="brand">
-//             <div className="logo">ION</div>
-//             <div>
-//               <h1>Domain setup</h1>
-//               <p>Choose how you want to use a domain with your ION7 website.</p>
+//       <div
+//         className="d-flex flex-column"
+//         style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}
+//       >
+//         <NavbarTop isMobile={false} />
+
+//         <main className="flex-grow-1 px-4 py-4">
+//           <div className="domain-setup">
+//             {/* HEADER WITH ICON (old style) */}
+//             <div className="domain-head card shadow-sm border-0 rounded-4 mb-3 px-4 py-3">
+//               <div className="d-flex align-items-center justify-content-between gap-3">
+//                 <div className="d-flex align-items-center gap-3">
+//                   <div className="domain-logo">ION</div>
+//                   <div>
+//                     <h2 className="domain-title mb-1">Domain setup</h2>
+//                     <p className="domain-subtitle mb-0">
+//                       Connect a domain to your ION7 site. You can register a new
+//                       domain, transfer an existing one, or keep your domain
+//                       elsewhere and point DNS to ION7.
+//                     </p>
+//                   </div>
+//                 </div>
+//                 <div className="domain-step">Step 2 of 3</div>
+//               </div>
+//             </div>
+
+//             {/* MAIN CARD */}
+//             <div className="card border-0 shadow-sm rounded-4">
+//               <div className="card-header border-0 bg-white px-4 pt-3 pb-0">
+//                 <ul className="nav nav-pills nav-justified">
+//                   <li className="nav-item">
+//                     <button
+//                       type="button"
+//                       className={`nav-link rounded-pill ${
+//                         mode === "new" ? "active" : ""
+//                       }`}
+//                       onClick={() => setMode("new")}
+//                     >
+//                       New domain
+//                     </button>
+//                   </li>
+//                   <li className="nav-item">
+//                     <button
+//                       type="button"
+//                       className={`nav-link rounded-pill ${
+//                         mode === "transfer" ? "active" : ""
+//                       }`}
+//                       onClick={() => setMode("transfer")}
+//                     >
+//                       Transfer domain
+//                     </button>
+//                   </li>
+//                   <li className="nav-item">
+//                     <button
+//                       type="button"
+//                       className={`nav-link rounded-pill ${
+//                         mode === "dns" ? "active" : ""
+//                       }`}
+//                       onClick={() => setMode("dns")}
+//                     >
+//                       Use existing (DNS)
+//                     </button>
+//                   </li>
+//                 </ul>
+//               </div>
+
+//               <div className="card-body px-4 pb-4 pt-3 bg-white">
+//                 {mode === "new" && renderNewDomain()}
+//                 {mode === "transfer" && renderTransfer()}
+//                 {mode === "dns" && renderDns()}
+//               </div>
 //             </div>
 //           </div>
-
-//           <div className="modeToggle">
-//             <button
-//               type="button"
-//               className={`pill ${mode === "new" ? "active" : ""}`}
-//               onClick={() => setMode("new")}
-//             >
-//               New domain
-//             </button>
-//             <button
-//               type="button"
-//               className={`pill ${mode === "transfer" ? "active" : ""}`}
-//               onClick={() => setMode("transfer")}
-//             >
-//               Transfer domain
-//             </button>
-//             <button
-//               type="button"
-//               className={`pill ${mode === "dns" ? "active" : ""}`}
-//               onClick={() => setMode("dns")}
-//             >
-//               Use existing (DNS)
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* Flows */}
-//         {mode === "new" && renderNewDomain()}
-//         {mode === "transfer" && renderTransfer()}
-//         {mode === "dns" && renderDns()}
+//         </main>
 //       </div>
 
 //       <style jsx>{`
-//         :root {
-//           --bg: #f3f4f6;
-//           --accent: #7c3aed;
-//           --accent-soft: #ede9fe;
-//           --text: #0f172a;
-//           --muted: #6b7280;
-//           --card: #ffffffcc;
-//           --border: #e5e7eb;
-//           --danger-bg: #fee2e2;
-//           --danger-border: #fecaca;
-//           --success-bg: #dcfce7;
-//           --success-border: #bbf7d0;
-//           --warn-bg: #fef9c3;
-//           --warn-border: #facc15;
+//         /* Page font a bit bigger */
+//         .domain-setup {
+//           font-size: 15px;
 //         }
-//         html,
-//         body,
-//         #__next {
-//           height: 100%;
+
+//         .domain-head {
+//           background: #ffffff;
 //         }
-//         body {
-//           margin: 0;
-//           background: radial-gradient(
-//             circle at top,
-//             #e5e7eb 0,
-//             #f3f4f6 40%,
-//             #e5e7eb 100%
-//           );
-//           color: var(--text);
-//           font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial,
-//             sans-serif;
-//         }
-//         .shell {
-//           max-width: 1100px;
-//           margin: 0 auto;
-//           padding: 88px 16px 64px;
-//         }
-//         .card {
+
+//         .domain-logo {
+//           width: 52px;
+//           height: 52px;
 //           border-radius: 18px;
-//           padding: 20px;
-//         }
-//         .glass {
-//           background: var(--card);
-//           border: 1px solid rgba(148, 163, 184, 0.4);
-//           box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
-//           backdrop-filter: blur(10px);
-//         }
-//         .head {
 //           display: flex;
 //           align-items: center;
-//           justify-content: space-between;
-//           gap: 16px;
-//           padding: 22px 24px;
-//           margin-bottom: 20px;
-//         }
-//         .brand {
-//           display: flex;
-//           gap: 12px;
-//           alignments: center;
-//         }
-//         .logo {
-//           width: 44px;
-//           height: 44px;
-//           border-radius: 14px;
-//           display: grid;
-//           place-items: center;
-//           background: linear-gradient(135deg, #a7f3d0, #22c55e);
-//           color: #022c22;
+//           justify-content: center;
 //           font-weight: 800;
-//           font-size: 18px;
-//           box-shadow: 0 10px 30px rgba(22, 163, 74, 0.45);
-//         }
-//         .brand h1 {
-//           margin: 0;
 //           font-size: 20px;
+//           color: #022c22;
+//           background: linear-gradient(135deg, #a7f3d0, #22c55e);
+//           box-shadow: 0 10px 30px rgba(22, 163, 74, 0.35);
 //         }
-//         .brand p {
-//           margin: 4px 0 0;
-//           color: var(--muted);
-//           font-size: 12px;
+
+//         .domain-title {
+//           font-size: 24px;
+//           font-weight: 600;
+//           color: #111827;
 //         }
-//         .modeToggle {
-//           display: inline-flex;
-//           padding: 4px;
-//           border-radius: 999px;
-//           background: rgba(15, 23, 42, 0.03);
-//           border: 1px solid rgba(148, 163, 184, 0.5);
-//           gap: 4px;
+
+//         .domain-subtitle {
+//           font-size: 14px;
+//           color: #4b5563;
+//           max-width: 640px;
 //         }
-//         .pill {
+
+//         .domain-step {
 //           padding: 7px 14px;
 //           border-radius: 999px;
-//           font-size: 12px;
-//           font-weight: 600;
-//           background: transparent;
-//           border: 0;
-//           color: #4b5563;
-//           cursor: pointer;
-//         }
-//         .pill.active {
-//           background: #111827;
-//           color: #f9fafb;
-//         }
-//         .flowGrid {
-//           display: grid;
-//           grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.2fr);
-//           gap: 18px;
-//           align-items: flex-start;
-//         }
-//         .cardTitle {
-//           margin: 0 0 8px;
-//           font-size: 16px;
-//           font-weight: 700;
-//         }
-//         .lead {
-//           margin: 0 0 14px;
+//           background: #eef2ff;
+//           color: #4f46e5;
 //           font-size: 13px;
-//           color: var(--muted);
-//         }
-//         .lbl {
-//           display: block;
-//           font-size: 12px;
-//           color: #4b5563;
-//           margin: 12px 0 6px;
 //           font-weight: 600;
+//           white-space: nowrap;
 //         }
-//         .domainRow {
-//           display: grid;
-//           grid-template-columns: minmax(0, 1fr) auto auto;
-//           gap: 6px;
-//           align-items: center;
-//         }
-//         .dot {
-//           font-size: 18px;
-//           text-align: center;
-//           color: #4b5563;
-//         }
-//         .inp {
-//           border-radius: 12px;
-//           border: 1px solid var(--border);
-//           padding: 10px 12px;
+
+//         .nav-pills .nav-link {
+//           border-radius: 999px;
+//           color: #111827;
+//           font-weight: 500;
 //           font-size: 14px;
-//           outline: none;
-//           background: #ffffff;
-//           box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
 //         }
-//         .inp.tld {
-//           width: 130px;
-//         }
-//         .inp:focus {
-//           border-color: #4f46e5;
-//           box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
-//         }
-//         .hint {
-//           margin: 8px 0 0;
-//           font-size: 12px;
-//           color: var(--muted);
-//         }
-//         .btn {
-//           border-radius: 12px;
-//           border: 0;
-//           padding: 10px 18px;
-//           font-weight: 700;
-//           font-size: 14px;
-//           cursor: pointer;
-//           margin-top: 16px;
-//         }
-//         .btn.primary {
-//           background: #ff3b30;
+
+//         .nav-pills .nav-link.active {
+//           background-color: #7c3aed;
 //           color: #ffffff;
-//           box-shadow: 0 14px 35px rgba(248, 113, 113, 0.35);
 //         }
-//         .btn.primary:disabled {
-//           opacity: 0.7;
-//           cursor: not-allowed;
-//           box-shadow: none;
+
+//         .btn-primary {
+//           background-color: #7c3aed;
+//           border-color: #7c3aed;
+//           font-weight: 600;
 //         }
-//         .fullBtn {
-//           width: 100%;
+
+//         .btn-primary:hover,
+//         .btn-primary:focus {
+//           background-color: #6d28d9;
+//           border-color: #6d28d9;
 //         }
-//         .alert {
-//           margin-top: 12px;
-//           border-radius: 12px;
-//           padding: 10px 12px;
-//           font-size: 13px;
-//         }
-//         .alert.danger {
-//           background: var(--danger-bg);
-//           border: 1px solid var(--danger-border);
-//           color: #b91c1c;
-//         }
-//         .alert.success {
-//           background: var(--success-bg);
-//           border: 1px solid var(--success-border);
-//           color: #166534;
-//         }
-//         .alert.warn {
-//           background: var(--warn-bg);
-//           border: 1px solid var(--warn-border);
-//           color: #854d0e;
-//         }
-//         .sidePanel {
-//           padding: 18px 18px 16px;
-//         }
-//         .sidePanel h4 {
-//           margin: 0 0 10px;
+
+//         .form-label {
+//           font-weight: 500;
 //           font-size: 14px;
 //         }
-//         .sideList {
-//           list-style: none;
-//           padding: 0;
-//           margin: 0 0 10px;
-//           font-size: 12px;
-//           color: var(--muted);
-//         }
-//         .sideList li {
-//           padding-left: 14px;
-//           position: relative;
-//           margin-bottom: 6px;
-//         }
-//         .sideList li::before {
-//           content: "•";
-//           position: absolute;
-//           left: 0;
-//           color: #22c55e;
-//         }
-//         .quoteCard {
-//           margin-top: 10px;
-//           padding-top: 10px;
-//           border-top: 1px dashed rgba(148, 163, 184, 0.6);
-//           font-size: 13px;
-//         }
-//         .quoteCard h4 {
-//           margin: 0 0 8px;
-//           font-size: 13px;
-//         }
-//         .footnote {
-//           margin-top: 10px;
-//           font-size: 11px;
-//           color: #6b7280;
-//         }
-//         optgroup {
-//           font-weight: 600;
-//           color: #4b5563;
-//         }
-//         @media (max-width: 900px) {
-//           .flowGrid {
-//             grid-template-columns: minmax(0, 1fr);
-//           }
-//           .sidePanel {
-//             margin-top: 4px;
-//           }
-//         }
-//         @media (max-width: 640px) {
-//           .head {
-//             flex-direction: column;
-//             align-items: flex-start;
-//           }
-//           .modeToggle {
-//             width: 100%;
-//             justify-content: space-between;
-//           }
+
+//         .form-control,
+//         .form-select {
+//           font-size: 14px;
+//           padding: 9px 12px;
 //         }
 //       `}</style>
 //     </>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1768,16 +1679,43 @@ export default function DomainSetupPage() {
 
   const fullDomain = name ? `${name.trim().toLowerCase()}.${tld}` : "";
 
-  const goToCheckout = () => {
+  // ⬇️ UPDATED: can optionally include domain + prices in query string
+  const goToCheckout = (opts = {}) => {
+    const { includeDomain = false } = opts;
+
     if (!priceId) {
       router.push("/checkout");
       return;
     }
-    router.push(
-      `/checkout?priceId=${encodeURIComponent(
-        priceId
-      )}&billing=${encodeURIComponent(billing)}`
-    );
+
+    const params = new URLSearchParams({
+      priceId,
+      billing,
+    });
+
+    // Only send domain info when we have a quote and it’s available
+    if (
+      includeDomain &&
+      quote &&
+      checkResult?.status === "available" &&
+      fullDomain
+    ) {
+      const { priceAed, includedAed, extraAed } = quote;
+
+      params.set("domain", fullDomain);
+
+      if (typeof priceAed === "number") {
+        params.set("domainPriceAed", String(priceAed));
+      }
+      if (typeof includedAed === "number") {
+        params.set("domainIncludedAed", String(includedAed));
+      }
+      if (typeof extraAed === "number") {
+        params.set("domainExtraAed", String(extraAed));
+      }
+    }
+
+    router.push(`/checkout?${params.toString()}`);
   };
 
   /* ---------------- NEW DOMAIN: CHECK + QUOTE ---------------- */
@@ -1868,7 +1806,7 @@ export default function DomainSetupPage() {
       setTransferSuccess(
         "Transfer request submitted. We’ll process it and update you."
       );
-      setTimeout(goToCheckout, 800);
+      setTimeout(() => goToCheckout(), 800);
     } catch (err) {
       console.error("Transfer error:", err);
       setTransferError(
@@ -1899,7 +1837,7 @@ export default function DomainSetupPage() {
       setDnsSuccess(
         "Domain saved. Please update your DNS records to point to ION7."
       );
-      setTimeout(goToCheckout, 800);
+      setTimeout(() => goToCheckout(), 800);
     } catch (err) {
       console.error("DNS attach error:", err);
       setDnsError(err.message || "Something went wrong while saving domain.");
@@ -2011,7 +1949,7 @@ export default function DomainSetupPage() {
           <button
             type="button"
             className="btn btn-primary w-100 rounded-pill"
-            onClick={goToCheckout}
+            onClick={() => goToCheckout({ includeDomain: true })}
           >
             Use this domain &amp; continue
           </button>
@@ -2076,9 +2014,7 @@ export default function DomainSetupPage() {
           )}
 
           {error && (
-            <div className="alert alert-danger py-2 px-3 mb-2">
-              {error}
-            </div>
+            <div className="alert alert-danger py-2 px-3 mb-2">{error}</div>
           )}
 
           <button
