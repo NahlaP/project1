@@ -1,4 +1,6 @@
-// // local fine
+
+
+// // og local
 
 // // dashboard/lib/api.js
 // // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
@@ -212,13 +214,38 @@
 //   },
 
 //   /* ===== Auth ===== */
-//   login(email, password) {
-//     return request("/api/auth/login", {
+//   // 🔐 custom login so we can handle 401 (wrong password) without auto-redirect
+//   async login(email, password) {
+//     const res = await fetch(`${BASE}/api/auth/login`, {
 //       method: "POST",
-//       headers: { "Content-Type": "application/json" },
+//       headers: {
+//         "Content-Type": "application/json",
+//         Accept: "application/json",
+//       },
+//       credentials: "include",
 //       body: JSON.stringify({ email, password }),
 //     });
+
+//     let body = {};
+//     try {
+//       body = await res.json();
+//     } catch {
+//       body = {};
+//     }
+
+//     if (!res.ok || body.error || !body.token) {
+//       const msg =
+//         body.error ||
+//         body.message ||
+//         (res.status === 401
+//           ? "Incorrect email or password"
+//           : `Login failed (HTTP ${res.status})`);
+//       throw new Error(msg);
+//     }
+
+//     return body; // { success, token, next, meta }
 //   },
+
 //   signup(fullName, company, country, email, password) {
 //     return request("/api/auth/signup", {
 //       method: "POST",
@@ -655,36 +682,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // dashboard/lib/api.js
 // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
 
@@ -929,13 +926,22 @@ export const api = {
     return body; // { success, token, next, meta }
   },
 
-  signup(fullName, company, country, email, password) {
+  // 🔄 UPDATED: now sends mobile as well
+  signup(fullName, company, country, mobile, email, password) {
     return request("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, company, country, email, password }),
+      body: JSON.stringify({
+        fullName,
+        company,
+        country,
+        mobile,   // ✅ NEW FIELD
+        email,
+        password,
+      }),
     });
   },
+
   me() {
     return request("/api/auth/me");
   },
