@@ -24,6 +24,7 @@ import {
   faBasketShopping,
   faGlobe,
   faSwatchbook,
+  faEllipsisVertical
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -182,6 +183,7 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [optionsOpenFor, setOptionsOpenFor] = useState(null); // templateId or null
 
   // reset modal (manual reset still available)
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -463,6 +465,78 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                         }}
                       >
                         <div className="template-info">
+                          <div
+                            className="option-wrapper"
+                            style={{ position: "absolute", top: 8, right: 8, zIndex: 30 }}
+                            onMouseEnter={() => setOptionsOpenFor(t.templateId)}
+                            onMouseLeave={() => {
+                              if (optionsOpenFor === t.templateId) setOptionsOpenFor(null);
+                            }}
+                          >
+                            <FontAwesomeIcon
+                              className="option-button"
+                              tabIndex={0}
+                              onFocus={() => setOptionsOpenFor(t.templateId)}
+                              onBlur={() => {
+                                if (optionsOpenFor === t.templateId) setOptionsOpenFor(null);
+                              }}
+                              aria-expanded={optionsOpenFor === t.templateId}
+                              icon={faEllipsisVertical}
+                            />
+
+                            {optionsOpenFor === t.templateId && (
+                              <div
+                                className="option-popup"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                {/* <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-light me-2"
+                                  onClick={async () => {
+                                    try {
+                                      await choose(t.templateId);
+                                      await openEditorForSelected();
+                                    } catch (err) {
+                                      console.error(err);
+                                    } finally {
+                                      setOptionsOpenFor(null);
+                                    }
+                                  }}
+                                >
+                                  Edit
+                                </button> */}
+                                <a onClick={async () => {
+                                    try {
+                                      await choose(t.templateId);
+                                      await openEditorForSelected();
+                                    } catch (err) {
+                                      console.error(err);
+                                    } finally {
+                                      setOptionsOpenFor(null);
+                                    }
+                                  }} class="option">Edit</a>
+                                <a onClick={() => {
+                                    const verTag = defaultVersionFor(t);
+                                    const url = buildTemplateUrl(userId, t.templateId, verTag);
+                                    if (url) window.open(url, "_blank", "noopener,noreferrer");
+                                    setOptionsOpenFor(null);
+                                  }} class="option">Preview</a>
+                                {/* <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-light"
+                                  onClick={() => {
+                                    const verTag = defaultVersionFor(t);
+                                    const url = buildTemplateUrl(userId, t.templateId, verTag);
+                                    if (url) window.open(url, "_blank", "noopener,noreferrer");
+                                    setOptionsOpenFor(null);
+                                  }}
+                                >
+                                  Preview
+                                </button> */}
+                              </div>
+                            )}
+                          </div>
                           <div className="mt-2 d-flex align-items-center justify-content-between">
                             <div>
                               <div className="template-title">
@@ -474,12 +548,12 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                               >
                                 ID: {t.templateId}
                               </div>
-                              <div
+                              {/* <div
                                 className="template-sub-title"
                                 style={{ fontSize: 12 }}
                               >
                                 Version: {verLabel}
-                              </div>
+                              </div> */}
                             </div>
                           </div>
 
@@ -498,7 +572,7 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                             </button>
 
                             {/* Preview + Edit row */}
-                            <div className="d-flex gap-2">
+                            {/* <div className="d-flex gap-2">
                               <button
                                 type="button"
                                 className="btn btn-xs btn-outline-light flex-grow-1"
@@ -529,10 +603,10 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                               >
                                 Edit
                               </button>
-                            </div>
+                            </div> */}
 
                             {/* Reset button */}
-                            <button
+                            {/* <button
                               type="button"
                               className="btn btn-xs btn-outline-danger w-100"
                               style={{ fontSize: 11, borderRadius: 6 }}
@@ -540,12 +614,12 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                               disabled={!isActive}
                               title={
                                 isActive
-                                  ? "Reset all sections to S3 version defaults (content + order)"
+                                  ? "Reset both design and contents to the default version"
                                   : "Select this template to enable reset"
                               }
                             >
                               {isActive ? "Reset to default" : "Reset (select first)"}
-                            </button>
+                            </button> */}
                           </div>
                         </div>
                       </div>

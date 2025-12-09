@@ -9,7 +9,7 @@ import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import NavbarTop from '../../layouts/navbars/NavbarTop';
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRectangleList, faUsers, faFilter, faMagnifyingGlass, faUserPlus} from "@fortawesome/free-solid-svg-icons";
+import { faRectangleList, faUsers, faFilter, faMagnifyingGlass, faUserPlus, faEllipsisVertical} from "@fortawesome/free-solid-svg-icons";
 
 const CPANEL_USER = "mavsketc";
 const CPANEL_WEBMAIL = process.env.NEXT_PUBLIC_CPANEL_WEBMAIL || "https://mavsketch.com:2096";
@@ -247,6 +247,57 @@ export default function EmailManager() {
     if (headAllRef.current) headAllRef.current.indeterminate = someVisibleSelected;
   }, [someVisibleSelected]);
 
+  // Mini options visibility (for touch devices)
+  const [openMiniFor, setOpenMiniFor] = useState(null);
+  const [isTouch, setIsTouch] = useState(false);
+  const [hoverMiniFor, setHoverMiniFor] = useState(null);
+
+    useEffect(() => {
+      if (typeof window === "undefined") return;
+      const detect = () => {
+        try {
+          const hasTouch = "ontouchstart" in window || (navigator.maxTouchPoints || 0) > 0 || (navigator.msMaxTouchPoints || 0) > 0;
+          const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+          setIsTouch(Boolean(hasTouch || coarse));
+        } catch (e) {
+          setIsTouch(false);
+        }
+    };
+    detect();
+    let mq = null;
+    const listener = () => detect();
+    if (window.matchMedia) {
+      mq = window.matchMedia("(pointer: coarse)");
+      if (mq.addEventListener) mq.addEventListener("change", listener);
+      else if (mq.addListener) mq.addListener(listener);
+    }
+    return () => {
+      if (mq) {
+        if (mq.removeEventListener) mq.removeEventListener("change", listener);
+        else if (mq.removeListener) mq.removeListener(listener);
+      }
+    };
+  }, []);
+
+  // Close mini options when clicking outside; allow toggling reliably
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    function onDocDown(e) {
+      try {
+        const row = e.target && e.target.closest && e.target.closest('.table-row');
+        const clickedEmail = row ? row.getAttribute('data-email') : null;
+        // If there is an open mini and the click wasn't inside that same row, close it
+        if (openMiniFor && clickedEmail !== openMiniFor) {
+          setOpenMiniFor(null);
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    document.addEventListener('mousedown', onDocDown);
+    return () => document.removeEventListener('mousedown', onDocDown);
+  }, [openMiniFor]);
+
   const toggleOne = (email) => setSelected((prev) => ({ ...prev, [email]: !prev[email] }));
   const toggleAllVisible = () => {
     const map = { ...selected };
@@ -455,7 +506,7 @@ export default function EmailManager() {
                 <Row className="g-4 mt-2" style={{height: "100%"}}>
 
                   {/* --Email Capacity-- */}
-                  <Col xs={6} md={7} lg={7} xl={7}>
+                  <Col xs={12} md={7} lg={7} xl={7}>
                     <Card className="border-0 ion-card h-100 box-card">
                       <Card.Body className="position-relative px-4 pt-5 pb-4">
                         <div>
@@ -492,7 +543,7 @@ export default function EmailManager() {
                   </Col>
 
                   {/* --Email Quota-- */}
-                  <Col xs={6} md={5} lg={5} xl={5}>
+                  <Col xs={12} md={5} lg={5} xl={5}>
                     <div className="anim-card-wrapper primary-bg cap-med">
                       <div className="anim-card">
                         <div className="border-shadow-top"></div>
@@ -607,12 +658,22 @@ export default function EmailManager() {
                               </Col>
                               <Col xs={6} md={6} lg={6} xl={6}>
                                 <div className="box-create-wrapper">
-                                  <div className="widget-box-create">
+                                  {/* <div className="widget-box-create">
                                     <FontAwesomeIcon icon={faUserPlus} />
                                     <div className="widget">
                                       <h4>Create Email</h4>
                                     </div>
-                                  </div>
+                                  </div> */}
+                                  <button
+                                    className="widget-box-create"
+                                    onClick={openCreate}
+                                    disabled={currentCount >= MAX_EMAIL_ACCOUNTS}
+                                    title={currentCount >= MAX_EMAIL_ACCOUNTS ? "Creation limit reached" : "+ Create"}
+                                    style={{opacity: currentCount >= MAX_EMAIL_ACCOUNTS ? 0.6 : 1 }}
+                                  >
+                                    <FontAwesomeIcon icon={faUserPlus} />
+                                    <h4>Create Email</h4>
+                                  </button>
                                 </div>
                               </Col>
                             </Row>
@@ -643,9 +704,16 @@ export default function EmailManager() {
                               {filtered.map((r) => {
                                 const pct = r.unlimited ? null : (r.percent ?? 0);
                                 const checked = !!selected[r.email];
+                                const isEllipsisActive = openMiniFor === r.email;
                                 return (
                                   <>
-                                    <div key={r.email} className="table-row">
+                                    <div
+                                      key={r.email}
+                                      className="table-row"
+                                      data-email={r.email}
+                                      onMouseEnter={() => setHoverMiniFor(r.email)}
+                                      onMouseLeave={() => setHoverMiniFor(null)}
+                                    >
                                       {/* First col: checkbox */}
                                       <div className="table-col">
                                         <input
@@ -658,7 +726,10 @@ export default function EmailManager() {
                                       </div>
                                       {/* Second col: Email */}
                                       <div className="table-col">
-                                        {r.email} {r.system && <span style={badgeSystem}>System</span>}
+                                        <div className="inline-div">
+                                          {r.email} {r.system && <span style={badgeSystem}>System</span>}
+                                        </div>
+                                        
                                       </div>
                                       {/* Third col: Status */}
                                       <div className="table-col">
@@ -667,7 +738,7 @@ export default function EmailManager() {
                                         }
                                       </div>
                                       {/* Fourth col: Storage/capacity */}
-                                      <div className="table-col">
+                                      <div className="table-col storage-col">
                                         <div style={{ fontSize: 12 }}>
                                           {r.usedHuman} / {r.allocatedHuman} {r.unlimited ? "" : ` / ${pct.toFixed(2)}%`}
                                         </div>
@@ -683,51 +754,42 @@ export default function EmailManager() {
                                       </div>
                                       {/* Fifth col: Actions */}
                                       <div className="table-col">
-                                        <div className="button-wrapper">
-                                          <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" className="link">Check Email</a>
-                                          <a href={`/email-manager/${encodeURIComponent(r.email)}`} className="link">Manage</a>
-                                          <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" className="link">Connect Devices</a>
+                                        <div className="inline-div">
+                                          <div className="button-wrapper">
+                                            <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" className="link">Check Email</a>
+                                            <a href={`/email-manager/${encodeURIComponent(r.email)}`} className="link">Manage</a>
+                                            <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" className="link">Connect Devices</a>
+                                          </div>
+                                          {
+                                            isTouch && (
+                                              <FontAwesomeIcon
+                                                className="table-ellipsis-icon"
+                                                icon={faEllipsisVertical}
+                                                onClick={isEllipsisActive ? undefined : (e) => {
+                                                  e.stopPropagation();
+                                                  setOpenMiniFor((prev) => (prev === r.email ? null : r.email));
+                                                }}
+                                                style={{ position: "relative", zIndex: 9999, pointerEvents: isEllipsisActive ? "none" : "auto" }}
+                                                aria-label={`more-${r.email}`}
+                                                aria-disabled={isEllipsisActive}
+                                                tabIndex={isEllipsisActive ? -1 : 0}
+                                              />
+                                            )
+                                          }
+                                          
                                         </div>
                                       </div>
+                                      {(openMiniFor === r.email || (!isTouch && hoverMiniFor === r.email)) && (
+                                        <div className="table-col table-mini-option">
+                                          <div className="button-wrapper">
+                                            <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" className="link">Check Email</a>
+                                            <a href={`/email-manager/${encodeURIComponent(r.email)}`} className="link">Manage</a>
+                                            <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" className="link">Connect Devices</a>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   
-
-                                    {/* <tr key={r.email}>
-                                      <td style={{ textAlign: "center" }}>
-                                        <input
-                                          type="checkbox"
-                                          checked={checked}
-                                          onChange={() => toggleOne(r.email)}
-                                          disabled={r.system}
-                                          title={r.system ? "System account cannot be deleted" : ""}
-                                        />
-                                      </td>
-                                      <td>
-                                        {r.email} {r.system && <span style={badgeSystem}>System</span>}
-                                      </td>
-                                      <td>{r.restrictions === "Restricted" ? <div class="badge-soft-warning"> <div className="dot"></div>Restricted</div> : <div class="badge-soft-primary"><div className="dot"></div>Unrestricted</div>}</td>
-                                      <td>
-                                        <div style={{ fontSize: 12 }}>
-                                          {r.usedHuman} / {r.allocatedHuman} {r.unlimited ? "" : ` / ${pct.toFixed(2)}%`}
-                                        </div>
-                                        <div className="progress">
-                                          <div
-                                            className={`progress-bar ${r.unlimited ? "unli" : ""}`}
-                                            style={{
-                                              width: r.unlimited ? "100%" : `${Math.min(100, pct).toFixed(2)}%`,
-                                              // background: r.exceeded ? "#e74c3c" : "#9fb6d9",
-                                            }}
-                                          />
-                                        </div>
-                                      </td>
-                                      <td style={{whiteSpace: "nowrap" }}>
-                                        <div className="button-wrapper">
-                                          <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" className="link">Check Email</a>
-                                          <a href={`/email-manager/${encodeURIComponent(r.email)}`} className="link">Manage</a>
-                                          <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" className="link">Connect Devices</a>
-                                        </div>
-                                      </td>
-                                    </tr> */}
                                   </>
                                 );
                               })}
@@ -756,183 +818,6 @@ export default function EmailManager() {
                               
             </Row>  
 
-            {/* CLASSIC TABLE: Email List */}
-            {/* <Row className="g-4 mb-5">
-
-              <Col xs={12} md={12} lg={12} xl={12}>
-                <div className="anim-card-wrapper dark-bg cap-med">
-                  <div className="anim-card">
-                    <div className="border-shadow-top"></div>
-                    <div className="border-shadow-right"></div>
-                    <div className="border-shadow-bottom"></div>
-                    <div className="border-shadow-left"></div>
-                    <svg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'>
-                        <filter id='noiseFilter'>
-                          <feTurbulence 
-                            type='fractalNoise' 
-                            baseFrequency='20.43' 
-                            numOctaves='400' 
-                            stitchTiles='stitch'/>
-                        </filter>
-                        
-                        <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
-                    </svg>
-                    <Card.Body className="p-3" style={{padding: "24px 20px 20px !important;"}}>
-                      <div>
-                        <h6 className="card-title mb-1">
-                          Email List
-                        </h6>
-                        <p className="mb-0" style={{ fontSize: "0.9rem" }}>
-                          Overview of your email list
-                        </p>
-                      </div>
-
-                      <div className="card_anim_body">
-                        <div className="table-wrapper">
-
-                          <div className="table-header">
-                            <div
-                              className="filter-wrapper"
-                              onClick={() => setOpenFilter(true)}
-                              onMouseEnter={handleFilterMouseEnter}
-                              onMouseLeave={handleFilterMouseLeave}
-                              style={{ width: `${openFilter ? "100%" : "30px"}` }}
-                            >
-                              <div className="filter-inner">
-                                <div className="filter-button">
-                                  {["all", "restricted", "system", "exceeded"].map((f) => (
-                                    <button
-                                      key={f}
-                                      onClick={(e) => {
-                                        e.stopPropagation();            // prevent parent click
-                                        setFilter(f);
-                                        setOpenFilter(f !== "all");    // keep open unless "all"
-                                      }}
-                                    >
-                                      {f[0].toUpperCase() + f.slice(1)}
-                                    </button>
-                                  ))}
-                                </div>
-                                <FontAwesomeIcon icon={faFilter} />
-                              </div>
-                            </div>
-
-                            <div
-                              className="search-wrapper"
-                              onClick={() => setOpenSearch(true)}
-                              onMouseEnter={handleSearchMouseEnter}
-                              onMouseLeave={handleSearchMouseLeave}
-                              style={{ width: `${openSearch ? "100%" : "30px"}` }}
-                            >
-                              <div className="search-inner">
-                                <input
-                                  ref={searchInputRef}
-                                  value={q}
-                                  onChange={(e) => { setQ(e.target.value); }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onFocus={() => setOpenSearch(true)}
-                                  onBlur={() => {
-                                    const hasValue = Boolean((q || "").trim());
-                                    setOpenSearch(hasValue);
-                                  }}
-                                  placeholder="Search"
-                                  style={{ flex: 1, height: 38, padding: "0 12px", borderRadius: 6, border: "1px solid #d6dbe1" }}
-                                />
-                                <FontAwesomeIcon icon={faMagnifyingGlass} />
-                              </div>
-                            </div>
-                          </div>
-
-                          
-                          <div style={{ borderRadius: 4, overflow: "hidden" }}>
-                            <div className="table-container">
-                              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                <thead>
-                                  <tr>
-                                    <th>
-                                      <input ref={headAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="select all" />
-                                    </th>
-                                    <th>Account @ Domain</th>
-                                    <th>Restrictions</th>
-                                    <th>Storage: Used / Allocated / %</th>
-                                    <th></th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {filtered.map((r) => {
-                                    const pct = r.unlimited ? null : (r.percent ?? 0);
-                                    const checked = !!selected[r.email];
-                                    return (
-                                      <tr key={r.email}>
-                                        <td style={{ textAlign: "center" }}>
-                                          <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => toggleOne(r.email)}
-                                            disabled={r.system}
-                                            title={r.system ? "System account cannot be deleted" : ""}
-                                          />
-                                        </td>
-                                        <td>
-                                          {r.email} {r.system && <span style={badgeSystem}>System</span>}
-                                        </td>
-                                        <td>{r.restrictions === "Restricted" ? <div class="badge-soft-warning"> <div className="dot"></div>Restricted</div> : <div class="badge-soft-primary"><div className="dot"></div>Unrestricted</div>}</td>
-                                        <td>
-                                          <div style={{ fontSize: 12 }}>
-                                            {r.usedHuman} / {r.allocatedHuman} {r.unlimited ? "" : ` / ${pct.toFixed(2)}%`}
-                                          </div>
-                                          <div className="progress">
-                                            <div
-                                              className={`progress-bar ${r.unlimited ? "unli" : ""}`}
-                                              style={{
-                                                width: r.unlimited ? "100%" : `${Math.min(100, pct).toFixed(2)}%`,
-                                                
-                                              }}
-                                            />
-                                          </div>
-                                        </td>
-                                        <td style={{whiteSpace: "nowrap" }}>
-                                          <div className="button-wrapper">
-                                            <a href={CPANEL_WEBMAIL} target="_blank" rel="noreferrer" className="link">Check Email</a>
-                                            <a href={`/email-manager/${encodeURIComponent(r.email)}`} className="link">Manage</a>
-                                            <a href={`${CPANEL_UI}/email_accounts/index.html`} target="_blank" rel="noreferrer" className="link">Connect Devices</a>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                  {filtered.length === 0 && !loading && (
-                                    <tr>
-                                      <td colSpan="5" style={{ ...td, textAlign: "center", color: "#667" }}>No results</td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div style={{ padding: "10px 12px", color: "#667", fontSize: 13 }}>
-                              {loading ? "Loading…" : `1 – ${filtered.length} of ${rows.length}`}
-                            </div>
-                          </div>
-
-
-
-
-                           
-
-                        </div>
-                      </div>
-
-                    </Card.Body>
-                  </div>
-                  <figcaption>
-                    <span><FontAwesomeIcon icon={faRectangleList} /></span>
-                  </figcaption>
-                </div>
-              </Col>
-                              
-            </Row>  */}
-
 
 
      
@@ -955,7 +840,7 @@ export default function EmailManager() {
             </div> */}
 
             {/* search + filters */}
-            {/* <div style={{ display: "flex", gap: 8, marginBottom: 10, maxWidth: 680 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, maxWidth: 680 }}>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -989,7 +874,7 @@ export default function EmailManager() {
               <div style={{ color: "#667", marginLeft: "auto", fontSize: 13 }}>
                 {loading ? "Loading..." : `Selected: ${selectedEmails.length}`}
               </div>
-            </div> */}
+            </div>
 
             {/* page banner (load/delete) */}
             {error && (
@@ -1054,13 +939,10 @@ export default function EmailManager() {
             {/* CREATE MODAL */}
             {showCreate && (
               <div
+                className="modal-overlay"
                 onClick={() => !creating && closeCreate()}
-                style={{
-                  position: "fixed", inset: 0, background: "rgba(0,0,0,.35)",
-                  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
-                }}
               >
-                <div onClick={(e) => e.stopPropagation()} style={{ width: 560, background: "#fff", borderRadius: 8, padding: 16 }}>
+                <div className="modal-box" onClick={(e) => e.stopPropagation()}>
                   <h3 style={{ marginTop: 0, marginBottom: 12 }}>Create an Email Account</h3>
 
                   <div style={{ display: "grid", gap: 10 }}>

@@ -246,6 +246,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 const TINY_BP = 438;
+const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const NavbarTop = ({ isMobile }) => {
   const [localCompact, setLocalCompact] = useState(false);
@@ -406,7 +407,7 @@ const NavbarTop = ({ isMobile }) => {
                   style={{ background: "#fafafa", border: "1px solid #eee" }}
                 >
                   <img
-                    src="https://i.pravatar.cc/40"
+                    src="./images/avatar/avatar-1.jpg"
                     alt="Profile"
                     className="rounded-circle"
                     width="30"
@@ -429,7 +430,7 @@ const NavbarTop = ({ isMobile }) => {
             // -------------- DESKTOP: Marco pill + ONE logout icon --------------
             <div className="navbar-profile">
               <img
-                src="images/avatar/avatar-1.jpg"
+                src={`${base}/images/avatar/avatar-1.jpg`}
                 alt="Profile"
                 className="rounded-circle"
               />
