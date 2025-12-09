@@ -531,7 +531,8 @@ async function getOrCreateCustomer({
 
   const existing = await stripe.customers.list({ email: e, limit: 1 });
   const cust =
-    existing.data[0] ?? (await stripe.customers.create({ email: e, name: name || undefined }));
+    existing.data[0] ??
+    (await stripe.customers.create({ email: e, name: name || undefined }));
 
   if (userId) {
     try {
@@ -661,7 +662,7 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
 
     const userId = req.user?.userId;
 
-    // 🔢 Normalize domain extra cents up-front so we can use it everywhere
+    // 🔢 Normalize domain extra cents
     const domainExtraCentsNum =
       typeof domainExtraCents === "number"
         ? domainExtraCents
@@ -691,9 +692,7 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
         : {}),
     });
 
-    // ⚠️ IMPORTANT:
-    // If we have a domain extra charge, we want a *fresh* subscription
-    // so that the first invoice includes that line item.
+    // ⚠️ If we have a domain extra charge, force a fresh subscription
     const shouldForceNewSub = !!domain && domainExtraCentsNum > 0;
 
     // 2) If no domain extra → we may reuse existing subscription
@@ -799,32 +798,47 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
     };
 
     // 4) If there is a domain extra amount → add it as an invoice item
-    if (domain && domainExtraCentsNum > 0) {
+    if (domain && Number.isFinite(domainExtraCentsNum) && domainExtraCentsNum > 0) {
+      const unitAmount = Math.floor(domainExtraCentsNum);
+
+      // Get the product id from the plan price so TS type stays happy
+      const price = await stripe.prices.retrieve(priceId as string, {
+        expand: ["product"],
+      });
+      const productId =
+        typeof price.product === "string" ? price.product : price.product.id;
+
       console.log(
         "[billing/elements/start] Adding domain invoice item:",
         domain,
         "extra (cents):",
-        domainExtraCentsNum
+        unitAmount,
+        "product:",
+        productId
       );
+
       createParams.add_invoice_items = [
         {
           price_data: {
             currency: "aed",
-            unit_amount: domainExtraCentsNum,
-            product_data: {
-              name: `Domain registration – ${domain}`,
-            },
+            unit_amount: unitAmount,
+            product: productId,
           },
           quantity: 1,
         },
       ];
+    } else {
+      console.log(
+        "[billing/elements/start] NO domain invoice item",
+        { domain, domainExtraCentsNum }
+      );
     }
 
     const idempotencyKey = makeIdempoKey(
       `elements-start:${customerId}:${priceId}`,
       {
         ...createParams,
-        // strip expand to avoid noisy keys
+        // strip expand to avoid noisy keys in the hash
         expand: undefined,
       }
     );
@@ -865,7 +879,10 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       "status:",
       sub.status,
       "hasDomainItem:",
-      !!(createParams.add_invoice_items && createParams.add_invoice_items.length)
+      !!(
+        createParams.add_invoice_items &&
+        createParams.add_invoice_items.length
+      )
     );
 
     return res.json({
