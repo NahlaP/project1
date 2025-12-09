@@ -1,8 +1,6 @@
 
 
-
-
-
+// // ogog
 // // backend/routes/billing.elements.routes.ts
 // import { Router, Request } from "express";
 // import Stripe from "stripe";
@@ -85,7 +83,15 @@
 //   });
 //   const ordered = subs.data.sort((a, b) => {
 //     const rank = (s: string) =>
-//       s === "incomplete" ? 0 : s === "past_due" ? 1 : s === "trialing" ? 2 : s === "active" ? 3 : 4;
+//       s === "incomplete"
+//         ? 0
+//         : s === "past_due"
+//         ? 1
+//         : s === "trialing"
+//         ? 2
+//         : s === "active"
+//         ? 3
+//         : 4;
 //     return rank(a.status) - rank(b.status);
 //   });
 //   return (
@@ -106,10 +112,12 @@
 //     if (piAny) {
 //       if (typeof piAny === "string") {
 //         const pi = await stripe.paymentIntents.retrieve(piAny);
-//         if (pi.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
+//         if (pi.client_secret)
+//           return { mode: "payment" as const, clientSecret: pi.client_secret };
 //       } else if (isStripeObj(piAny, "payment_intent")) {
 //         const pi = piAny as Stripe.PaymentIntent;
-//         if (pi.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
+//         if (pi.client_secret)
+//           return { mode: "payment" as const, clientSecret: pi.client_secret };
 //       }
 //     }
 //   } else if (typeof latest === "string") {
@@ -117,7 +125,8 @@
 //       expand: ["payment_intent"],
 //     })) as any;
 //     const pi = inv.payment_intent;
-//     if (pi?.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
+//     if (pi?.client_secret)
+//       return { mode: "payment" as const, clientSecret: pi.client_secret };
 //   }
 
 //   // Fallback: pending SetupIntent
@@ -340,10 +349,103 @@
 //   }
 // });
 
+// // KEEP all the code above as-is ... only replace the /invoices route
 
+// // ---------- Invoices for My Subscription page ----------
+// // GET /api/billing/invoices
+// r.get("/invoices", async (req: ReqWithUser, res) => {
+//   try {
+//     // ✅ Try auth middleware first, then fall back to ?userId=...
+//     const userId =
+//       (req.user?.userId as string | undefined) ||
+//       (req.query.userId as string | undefined) ||
+//       null;
 
+//     if (!userId) {
+//       return res.status(401).json({ error: "Unauthorized" });
+//     }
+
+//     const user = await User.findById(userId).lean();
+//     if (!user?.stripeCustomerId) {
+//       return res.json({ items: [], upcoming: null });
+//     }
+
+//     // Last 10 invoices from Stripe
+//     const invoices = await stripe.invoices.list({
+//       customer: user.stripeCustomerId,
+//       limit: 10,
+//     });
+
+//     // Upcoming (next) invoice preview – may throw if none
+//     let upcoming: Stripe.Invoice | null = null;
+//     try {
+//       const up = (await (stripe.invoices as any).retrieveUpcoming({
+//         customer: user.stripeCustomerId,
+//       })) as Stripe.Invoice;
+//       upcoming = up;
+//     } catch {
+//       upcoming = null;
+//     }
+
+//     return res.json({
+//       items: invoices.data.map((inv) => ({
+//         id: inv.id,
+//         number: inv.number,
+//         status: inv.status,
+//         amount: inv.amount_paid ?? inv.amount_due ?? null,
+//         currency: inv.currency?.toUpperCase() || "AED",
+//         created: inv.created, // unix seconds
+//         hosted_invoice_url: inv.hosted_invoice_url,
+//         invoice_pdf: inv.invoice_pdf,
+//       })),
+//       upcoming: upcoming
+//         ? {
+//             id: upcoming.id ?? null,
+//             number: upcoming.number ?? null,
+//             status: "upcoming",
+//             amount: upcoming.amount_due ?? null,
+//             currency: upcoming.currency?.toUpperCase() ?? "AED",
+//             // ✅ use next_payment_attempt as the real billing date
+//             created:
+//               upcoming.next_payment_attempt ??
+//               upcoming.created ??
+//               null,
+//             hosted_invoice_url: upcoming.hosted_invoice_url ?? null,
+//             invoice_pdf: upcoming.invoice_pdf ?? null,
+//           }
+//         : null,
+//     });
+//   } catch (e) {
+//     console.error("[/api/billing/invoices] error", e);
+//     return res.status(500).json({ error: "Failed to load invoices" });
+//   }
+// });
 
 // export default r;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -429,8 +531,7 @@ async function getOrCreateCustomer({
 
   const existing = await stripe.customers.list({ email: e, limit: 1 });
   const cust =
-    existing.data[0] ??
-    (await stripe.customers.create({ email: e, name: name || undefined }));
+    existing.data[0] ?? (await stripe.customers.create({ email: e, name: name || undefined }));
 
   if (userId) {
     try {
@@ -518,7 +619,14 @@ async function extractClientSecretFromSub(sub: Stripe.Subscription) {
 /* ---------- Start Elements flow: return PI *or* SI client secret (or null) ---------- */
 /**
  * POST /api/billing/elements/start
- * body: { priceId: string, email?: string, name?: string, country?, address1?, city?, postalCode? }
+ * body: {
+ *   priceId: string,
+ *   email?: string,
+ *   name?: string,
+ *   country?, address1?, city?, postalCode?,
+ *   domain?: string,
+ *   domainExtraCents?: number
+ * }
  * returns: { ok: true, mode?: "payment"|"setup", subscriptionId, customerId, status, clientSecret|null }
  */
 r.post("/elements/start", async (req: ReqWithUser, res) => {
@@ -531,6 +639,8 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       address1,
       city,
       postalCode,
+      domain,
+      domainExtraCents,
     } = (req.body || {}) as {
       priceId?: string;
       email?: string;
@@ -539,6 +649,8 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       address1?: string;
       city?: string;
       postalCode?: string;
+      domain?: string;
+      domainExtraCents?: number | string;
     };
 
     if (!priceId) return res.status(400).json({ error: "Missing priceId" });
@@ -548,6 +660,17 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const userId = req.user?.userId;
+
+    // 🔢 Normalize domain extra cents up-front so we can use it everywhere
+    const domainExtraCentsNum =
+      typeof domainExtraCents === "number"
+        ? domainExtraCents
+        : parseInt(String(domainExtraCents || 0), 10) || 0;
+
+    console.log(
+      "[billing/elements/start] domain payload:",
+      JSON.stringify({ domain, domainExtraCents, domainExtraCentsNum })
+    );
 
     // 1) Ensure & persist Customer
     const customerId = await getOrCreateCustomer({ userId, email, name });
@@ -568,8 +691,17 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
         : {}),
     });
 
-    // 2) Reuse existing subscription (incomplete/past_due → return PI/SI; active/trialing → no secret)
-    const existingMaybe = await findExistingSub(customerId);
+    // ⚠️ IMPORTANT:
+    // If we have a domain extra charge, we want a *fresh* subscription
+    // so that the first invoice includes that line item.
+    const shouldForceNewSub = !!domain && domainExtraCentsNum > 0;
+
+    // 2) If no domain extra → we may reuse existing subscription
+    let existingMaybe: Stripe.Subscription | null = null;
+    if (!shouldForceNewSub) {
+      existingMaybe = await findExistingSub(customerId);
+    }
+
     if (existingMaybe) {
       const existing = await stripe.subscriptions.retrieve(existingMaybe.id, {
         expand: [
@@ -595,12 +727,16 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
             );
           } catch {}
         }
+        console.log(
+          "[billing/elements/start] Reusing ACTIVE subscription:",
+          existing.id
+        );
         return res.json({
           ok: true,
           subscriptionId: existing.id,
           customerId,
           status: existing.status,
-          clientSecret: null, // ✅ nothing to confirm now
+          clientSecret: null,
         });
       }
 
@@ -620,6 +756,12 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
             );
           } catch {}
         }
+        console.log(
+          "[billing/elements/start] Reusing INCOMPLETE subscription:",
+          existing.id,
+          "mode:",
+          sec.mode
+        );
         return res.json({
           ok: true,
           mode: sec.mode,
@@ -632,7 +774,7 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       // else: fall through and create a fresh sub
     }
 
-    // 3) Create new subscription (default_incomplete) with idempotency
+    // 3) Build Subscription create params
     const createParams: Stripe.SubscriptionCreateParams = {
       customer: customerId,
       items: [{ price: priceId, quantity: 1 }],
@@ -643,7 +785,11 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
         payment_method_types: ["card"],
       },
       automatic_tax: { enabled: !!country },
-      metadata: { userId: userId || "", priceId },
+      metadata: {
+        userId: userId || "",
+        priceId,
+        ...(domain ? { ion7_domain: domain } : {}),
+      },
       expand: [
         "latest_invoice",
         "latest_invoice.payment_intent",
@@ -652,10 +798,37 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       ],
     };
 
+    // 4) If there is a domain extra amount → add it as an invoice item
+    if (domain && domainExtraCentsNum > 0) {
+      console.log(
+        "[billing/elements/start] Adding domain invoice item:",
+        domain,
+        "extra (cents):",
+        domainExtraCentsNum
+      );
+      createParams.add_invoice_items = [
+        {
+          price_data: {
+            currency: "aed",
+            unit_amount: domainExtraCentsNum,
+            product_data: {
+              name: `Domain registration – ${domain}`,
+            },
+          },
+          quantity: 1,
+        },
+      ];
+    }
+
     const idempotencyKey = makeIdempoKey(
       `elements-start:${customerId}:${priceId}`,
-      createParams
+      {
+        ...createParams,
+        // strip expand to avoid noisy keys
+        expand: undefined,
+      }
     );
+
     const created = await stripe.subscriptions.create(createParams, {
       idempotencyKey,
     });
@@ -686,7 +859,15 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
 
     const sec = await extractClientSecretFromSub(sub);
 
-    // ✅ Do NOT throw when null (free trial / AED 0 today)
+    console.log(
+      "[billing/elements/start] Created NEW subscription:",
+      sub.id,
+      "status:",
+      sub.status,
+      "hasDomainItem:",
+      !!(createParams.add_invoice_items && createParams.add_invoice_items.length)
+    );
+
     return res.json({
       ok: true,
       ...(sec ? { mode: sec.mode } : {}),
@@ -718,13 +899,10 @@ r.get("/elements/subscriptions/:id", async (req, res) => {
   }
 });
 
-// KEEP all the code above as-is ... only replace the /invoices route
-
 // ---------- Invoices for My Subscription page ----------
 // GET /api/billing/invoices
 r.get("/invoices", async (req: ReqWithUser, res) => {
   try {
-    // ✅ Try auth middleware first, then fall back to ?userId=...
     const userId =
       (req.user?.userId as string | undefined) ||
       (req.query.userId as string | undefined) ||
@@ -739,13 +917,11 @@ r.get("/invoices", async (req: ReqWithUser, res) => {
       return res.json({ items: [], upcoming: null });
     }
 
-    // Last 10 invoices from Stripe
     const invoices = await stripe.invoices.list({
       customer: user.stripeCustomerId,
       limit: 10,
     });
 
-    // Upcoming (next) invoice preview – may throw if none
     let upcoming: Stripe.Invoice | null = null;
     try {
       const up = (await (stripe.invoices as any).retrieveUpcoming({
@@ -763,7 +939,7 @@ r.get("/invoices", async (req: ReqWithUser, res) => {
         status: inv.status,
         amount: inv.amount_paid ?? inv.amount_due ?? null,
         currency: inv.currency?.toUpperCase() || "AED",
-        created: inv.created, // unix seconds
+        created: inv.created,
         hosted_invoice_url: inv.hosted_invoice_url,
         invoice_pdf: inv.invoice_pdf,
       })),
@@ -774,11 +950,8 @@ r.get("/invoices", async (req: ReqWithUser, res) => {
             status: "upcoming",
             amount: upcoming.amount_due ?? null,
             currency: upcoming.currency?.toUpperCase() ?? "AED",
-            // ✅ use next_payment_attempt as the real billing date
             created:
-              upcoming.next_payment_attempt ??
-              upcoming.created ??
-              null,
+              upcoming.next_payment_attempt ?? upcoming.created ?? null,
             hosted_invoice_url: upcoming.hosted_invoice_url ?? null,
             invoice_pdf: upcoming.invoice_pdf ?? null,
           }

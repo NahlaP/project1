@@ -523,7 +523,140 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // // og domain
+
 // // dashboard/pages/checkout.js
 // import Head from "next/head";
 // import Link from "next/link";
@@ -695,20 +828,28 @@
 //     setDomainInfo({ name, priceAed, includedAed, extraAed });
 //   }, [router.query]);
 
-//   // load /me for email/name
+//   // ✅ load /me for email/name from me.user (signup info)
 //   useEffect(() => {
 //     let ignore = false;
 //     (async () => {
 //       try {
 //         const me = await api.me();
 //         if (ignore) return;
-//         if (me?.email) {
-//           setUserEmail(me.email);
-//           setHaveApiEmail(true);
+
+//         const user = me?.user; // <— your backend returns { user, subscription, ... }
+
+//         if (user?.email) {
+//           setUserEmail(user.email); // prefill email
+//           setHaveApiEmail(true); // used for auto-start
 //         }
-//         const name = me?.fullName || me?.name || "";
-//         if (name) setBilling((b) => ({ ...b, fullName: name }));
-//       } catch {}
+
+//         const name = user?.fullName || user?.name || "";
+//         if (name) {
+//           setBilling((b) => ({ ...b, fullName: name }));
+//         }
+//       } catch {
+//         // ignore errors – user can still type manually
+//       }
 //     })();
 //     return () => {
 //       ignore = true;
@@ -746,7 +887,9 @@
 //         }
 //         setSetupFeeCents(setup);
 //         setDiscountCents(disc);
-//       } catch {}
+//       } catch {
+//         // ignore
+//       }
 //     })();
 //     return () => {
 //       ignore = true;
@@ -772,7 +915,7 @@
 //         city: billing.city || undefined,
 //         postalCode: billing.postal || undefined,
 
-//         // NOTE: if later you want to send domain data to backend/Stripe, add here
+//         // NOTE: later we can send domain data to backend/Stripe:
 //         // domainName: domainInfo.name || undefined,
 //         // domainExtraAed: domainInfo.extraAed || undefined,
 //       };
@@ -788,8 +931,9 @@
 //     } finally {
 //       setStarting(false);
 //     }
-//   }, [priceId, userEmail, billing /*, domainInfo*/ , router]);
+//   }, [priceId, userEmail, billing, router]);
 
+//   // auto-start checkout when we already know email from API
 //   useEffect(() => {
 //     if (
 //       priceId &&
@@ -1023,21 +1167,18 @@
 //           <div className="card billing" aria-label="Billing Information">
 //             <h3 className="cardTitle">Billing Information</h3>
 
-//             {!haveApiEmail && (
-//               <>
-//                 <label className="lbl">
-//                   Email<span style={{ color: "#b91c1c" }}> *</span>
-//                 </label>
-//                 <input
-//                   className="inp"
-//                   type="email"
-//                   value={userEmail}
-//                   onChange={(e) => setUserEmail(e.target.value)}
-//                   placeholder="you@example.com"
-//                   autoComplete="email"
-//                 />
-//               </>
-//             )}
+//             {/* Always show email, but prefilled from signup / me.user */}
+//             <label className="lbl">
+//               Email<span style={{ color: "#b91c1c" }}> *</span>
+//             </label>
+//             <input
+//               className="inp"
+//               type="email"
+//               value={userEmail}
+//               onChange={(e) => setUserEmail(e.target.value)}
+//               placeholder="you@example.com"
+//               autoComplete="email"
+//             />
 
 //             <label className="lbl">Full Name</label>
 //             <input
@@ -1404,120 +1545,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // dashboard/pages/checkout.js
 import Head from "next/head";
 import Link from "next/link";
@@ -1677,9 +1704,9 @@ export default function CheckoutPage() {
 
   // read domain info from query (?domain=vc.com&domainPriceAed=59.45&domainIncludedAed=50&domainExtraAed=9.45)
   useEffect(() => {
-    const q = router.query;
-    if (!q) return;
+    if (!router.isReady) return;
 
+    const q = router.query;
     const name = (q.domain || "").toString();
     const priceAed = parseFloat(q.domainPriceAed?.toString() || "0") || 0;
     const includedAed =
@@ -1687,7 +1714,11 @@ export default function CheckoutPage() {
     const extraAed = parseFloat(q.domainExtraAed?.toString() || "0") || 0;
 
     setDomainInfo({ name, priceAed, includedAed, extraAed });
-  }, [router.query]);
+  }, [router.isReady, router.query]);
+
+  const hasDomainInUrl =
+    typeof router.query.domain === "string" &&
+    router.query.domain.toString().length > 0;
 
   // ✅ load /me for email/name from me.user (signup info)
   useEffect(() => {
@@ -1697,11 +1728,11 @@ export default function CheckoutPage() {
         const me = await api.me();
         if (ignore) return;
 
-        const user = me?.user; // <— your backend returns { user, subscription, ... }
+        const user = me?.user;
 
         if (user?.email) {
-          setUserEmail(user.email); // prefill email
-          setHaveApiEmail(true); // used for auto-start
+          setUserEmail(user.email);
+          setHaveApiEmail(true);
         }
 
         const name = user?.fullName || user?.name || "";
@@ -1709,7 +1740,7 @@ export default function CheckoutPage() {
           setBilling((b) => ({ ...b, fullName: name }));
         }
       } catch {
-        // ignore errors – user can still type manually
+        // ignore errors
       }
     })();
     return () => {
@@ -1725,6 +1756,7 @@ export default function CheckoutPage() {
       try {
         const j = await api.getPrice(priceId);
         if (ignore) return;
+
         const name =
           j.nickname || (j.product && j.product.name) || "Selected Plan";
         const curr = (j.currency || "AED").toUpperCase();
@@ -1757,64 +1789,7 @@ export default function CheckoutPage() {
     };
   }, [priceId, router.query.setup, router.query.discount, billingCycle]);
 
-  // start elements
-  const startCheckout = useCallback(async () => {
-    if (!priceId) return;
-    if (!userEmail.trim()) {
-      setApiErr("Email is required");
-      return;
-    }
-    setStarting(true);
-    setApiErr("");
-    try {
-      const payload = {
-        priceId,
-        email: userEmail.trim(),
-        name: (billing.fullName || "").trim(),
-        country: COUNTRY_NAME_TO_ISO[billing.country] || undefined,
-        address1: billing.address1 || undefined,
-        city: billing.city || undefined,
-        postalCode: billing.postal || undefined,
-
-        // NOTE: later we can send domain data to backend/Stripe:
-        // domainName: domainInfo.name || undefined,
-        // domainExtraAed: domainInfo.extraAed || undefined,
-      };
-      const j = await api.billingStartElements(priceId, payload);
-      setClientSecret(j.clientSecret); // can be null if already active
-      setSubscriptionId(j.subscriptionId);
-      setMode(j.mode || "payment");
-      if (!j.clientSecret && j.subscriptionId) {
-        router.replace(`/welcome?sid=${j.subscriptionId}`);
-      }
-    } catch (e) {
-      setApiErr(e?.message || "Something went wrong starting checkout.");
-    } finally {
-      setStarting(false);
-    }
-  }, [priceId, userEmail, billing, router]);
-
-  // auto-start checkout when we already know email from API
-  useEffect(() => {
-    if (
-      priceId &&
-      haveApiEmail &&
-      userEmail &&
-      !clientSecret &&
-      !starting
-    ) {
-      startCheckout();
-    }
-  }, [
-    priceId,
-    haveApiEmail,
-    userEmail,
-    clientSecret,
-    starting,
-    startCheckout,
-  ]);
-
-  // Stripe theme
+  // Stripe theme for PaymentElement
   const appearance = useMemo(
     () => ({
       theme: "stripe",
@@ -1851,6 +1826,80 @@ export default function CheckoutPage() {
     billingCycle === "monthly"
       ? `Then ${centsToMoney(recurringCents, currency)} monthly`
       : `Then ${centsToMoney(recurringCents, currency)} yearly`;
+
+  // start elements
+  const startCheckout = useCallback(async () => {
+    if (!priceId) return;
+    if (!userEmail.trim()) {
+      setApiErr("Email is required");
+      return;
+    }
+
+    setStarting(true);
+    setApiErr("");
+    try {
+      const payload = {
+        priceId,
+        email: userEmail.trim(),
+        name: (billing.fullName || "").trim(),
+        country: COUNTRY_NAME_TO_ISO[billing.country] || undefined,
+        address1: billing.address1 || undefined,
+        city: billing.city || undefined,
+        postalCode: billing.postal || undefined,
+
+        // 🔴 send domain info to backend / Stripe
+        domain: domainInfo.name || undefined,
+        domainExtraCents: domainExtraCents || 0,
+      };
+
+      console.log("[Checkout] start elements payload:", payload);
+
+      const j = await api.billingStartElements(priceId, payload);
+      setClientSecret(j.clientSecret); // can be null if already active
+      setSubscriptionId(j.subscriptionId);
+      setMode(j.mode || "payment");
+
+      // If Stripe says nothing to confirm (already active), jump to welcome
+      if (!j.clientSecret && j.subscriptionId) {
+        router.replace(`/welcome?sid=${j.subscriptionId}`);
+      }
+    } catch (e) {
+      setApiErr(e?.message || "Something went wrong starting checkout.");
+    } finally {
+      setStarting(false);
+    }
+  }, [
+    priceId,
+    userEmail,
+    billing,
+    domainInfo.name,
+    domainExtraCents,
+    router,
+  ]);
+
+  // auto-start checkout when we already know email from API
+  // 🔴 IMPORTANT: if URL has ?domain=..., wait until domainInfo.name is ready
+  useEffect(() => {
+    if (
+      priceId &&
+      haveApiEmail &&
+      userEmail &&
+      !clientSecret &&
+      !starting &&
+      (!hasDomainInUrl || domainInfo.name) // if domain in URL, wait for it
+    ) {
+      startCheckout();
+    }
+  }, [
+    priceId,
+    haveApiEmail,
+    userEmail,
+    clientSecret,
+    starting,
+    hasDomainInUrl,
+    domainInfo.name,
+    startCheckout,
+  ]);
 
   const handlePayClick = async () => {
     if (!payRef.current) return;
@@ -2028,7 +2077,6 @@ export default function CheckoutPage() {
           <div className="card billing" aria-label="Billing Information">
             <h3 className="cardTitle">Billing Information</h3>
 
-            {/* Always show email, but prefilled from signup / me.user */}
             <label className="lbl">
               Email<span style={{ color: "#b91c1c" }}> *</span>
             </label>
