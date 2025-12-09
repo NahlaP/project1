@@ -1476,6 +1476,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // dashboard/pages/checkout.js
 import Head from "next/head";
 import Link from "next/link";
@@ -1647,23 +1689,27 @@ export default function CheckoutPage() {
     setDomainInfo({ name, priceAed, includedAed, extraAed });
   }, [router.query]);
 
-  // load /me for email + name from signup/login
+  // ✅ load /me for email/name from me.user (signup info)
   useEffect(() => {
     let ignore = false;
     (async () => {
       try {
         const me = await api.me();
         if (ignore) return;
-        if (me?.email) {
-          setUserEmail(me.email);          // prefill email
-          setHaveApiEmail(true);           // used only for auto-start
+
+        const user = me?.user; // <— your backend returns { user, subscription, ... }
+
+        if (user?.email) {
+          setUserEmail(user.email); // prefill email
+          setHaveApiEmail(true); // used for auto-start
         }
-        const name = me?.fullName || me?.name || "";
+
+        const name = user?.fullName || user?.name || "";
         if (name) {
-          setBilling((b) => ({ ...b, fullName: name })); // prefill name
+          setBilling((b) => ({ ...b, fullName: name }));
         }
       } catch {
-        // ignore
+        // ignore errors – user can still type manually
       }
     })();
     return () => {
@@ -1729,7 +1775,8 @@ export default function CheckoutPage() {
         address1: billing.address1 || undefined,
         city: billing.city || undefined,
         postalCode: billing.postal || undefined,
-        // later: domain info can be sent as well
+
+        // NOTE: later we can send domain data to backend/Stripe:
         // domainName: domainInfo.name || undefined,
         // domainExtraAed: domainInfo.extraAed || undefined,
       };
@@ -1745,9 +1792,9 @@ export default function CheckoutPage() {
     } finally {
       setStarting(false);
     }
-  }, [priceId, userEmail, billing /*, domainInfo*/, router]);
+  }, [priceId, userEmail, billing, router]);
 
-  // auto-start checkout when user comes from dashboard and /me already has email
+  // auto-start checkout when we already know email from API
   useEffect(() => {
     if (
       priceId &&
@@ -1981,7 +2028,7 @@ export default function CheckoutPage() {
           <div className="card billing" aria-label="Billing Information">
             <h3 className="cardTitle">Billing Information</h3>
 
-            {/* 🔥 Email always visible, pre-filled from signup/me but editable */}
+            {/* Always show email, but prefilled from signup / me.user */}
             <label className="lbl">
               Email<span style={{ color: "#b91c1c" }}> *</span>
             </label>
