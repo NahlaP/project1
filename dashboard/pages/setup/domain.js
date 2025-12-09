@@ -1716,21 +1716,18 @@
 
 
 
-
-
-
-
 // dashboard/pages/setup/domain.js
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import NavbarTop from "../../layouts/navbars/NavbarTop";
 import { api } from "../../lib/api";
 
-// ----- TLD LIST (ONLY WORKING ONES) -----
+// Only working TLDs
 const POPULAR_TLDS = ["com", "info", "org"];
 const UAE_TLDS = ["ae"];
 
-// Format prices nicely (e.g. 9.4500000 -> "9.45 AED")
+// Format prices nicely (59.4500000 -> "59.45 AED")
 function formatMoney(value, currency = "AED") {
   if (typeof value !== "number" || Number.isNaN(value)) return "";
   const rounded = Math.round((value + Number.EPSILON) * 100) / 100;
@@ -1800,6 +1797,7 @@ export default function DomainSetupPage() {
     try {
       setLoading(true);
 
+      // 1) availability
       const checkRes = await api.get(
         `/api/resellerclub/domain/check?name=${encodeURIComponent(
           trimmed
@@ -1824,6 +1822,7 @@ export default function DomainSetupPage() {
         return;
       }
 
+      // 2) quote
       const quoteRes = await api.get(
         `/api/resellerclub/domain/quote?name=${encodeURIComponent(
           trimmed
@@ -1916,7 +1915,7 @@ export default function DomainSetupPage() {
 
     if (checkResult.status === "available") {
       return (
-        <div className="alert alert--success">
+        <div className="alert alert-success mt-3 py-2 px-3">
           <strong>{checkResult.domain}</strong> is available 🎉
         </div>
       );
@@ -1924,7 +1923,7 @@ export default function DomainSetupPage() {
 
     if (checkResult.status === "taken") {
       return (
-        <div className="alert alert--danger">
+        <div className="alert alert-danger mt-3 py-2 px-3">
           <strong>{checkResult.domain}</strong> is already taken. Please try
           another name.
         </div>
@@ -1932,7 +1931,7 @@ export default function DomainSetupPage() {
     }
 
     return (
-      <div className="alert alert--warn">
+      <div className="alert alert-warning mt-3 py-2 px-3">
         Status: {checkResult.status} ({checkResult.rawStatus})
       </div>
     );
@@ -1958,120 +1957,135 @@ export default function DomainSetupPage() {
         : "";
 
     return (
-      <div className="quote">
-        <div className="quote__header">Pricing summary</div>
-        <div className="quote__row">
-          <span className="quote__label">Domain</span>
-          <span className="quote__value">{fullDomain}</span>
-        </div>
+      <div className="mt-3">
+        <div className="border rounded-3 p-3 bg-white">
+          <div className="fw-semibold mb-2">Pricing summary</div>
+          <div className="d-flex justify-content-between mb-1">
+            <span>Domain</span>
+            <span className="fw-semibold">{fullDomain}</span>
+          </div>
 
-        {hasPrice ? (
-          <>
-            <div className="quote__row">
-              <span className="quote__label">Registrar price</span>
-              <span className="quote__value">
-                {registrarLabel}
-                <span className="quote__note"> / year</span>
-              </span>
-            </div>
-            {includedLabel && (
-              <div className="quote__row">
-                <span className="quote__label">Included in plan</span>
-                <span className="quote__value">{includedLabel}</span>
+          {hasPrice ? (
+            <>
+              <div className="d-flex justify-content-between mb-1">
+                <span>Registrar price</span>
+                <span className="fw-semibold">
+                  {registrarLabel}
+                  <span className="ms-1">/ year</span>
+                </span>
               </div>
-            )}
-          </>
-        ) : (
-          <p className="quote__fallback">
-            We’ll confirm the exact registrar price in checkout.
+              {includedLabel && (
+                <div className="d-flex justify-content-between mb-1">
+                  <span>Included in plan</span>
+                  <span className="fw-semibold">{includedLabel}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="mb-2">
+              We’ll confirm the exact registrar price in checkout.
+            </p>
+          )}
+
+          {hasPrice && (
+            <>
+              {isFreeWithPlan ? (
+                <div className="alert alert-success mt-2 py-2 px-3 mb-2">
+                  This domain is <strong>free</strong> with your current plan
+                  (within {includedLabel}).
+                </div>
+              ) : (
+                <div className="alert alert-warning mt-2 py-2 px-3 mb-2">
+                  This domain is above the included amount. Extra to pay:{" "}
+                  <strong>{extraLabel}</strong>
+                </div>
+              )}
+            </>
+          )}
+
+          <p className="mb-3">
+            Prices are fetched in real time from our registrar (ResellerClub) in{" "}
+            {displayCurrency}. Renewal pricing after the first year may change.
           </p>
-        )}
 
-        {hasPrice && (
-          <>
-            {isFreeWithPlan ? (
-              <div className="alert alert--success quote__alert">
-                This domain is <strong>free</strong> with your current plan
-                (within {includedLabel}).
-              </div>
-            ) : (
-              <div className="alert alert--warn quote__alert">
-                This domain is above the included amount. Extra to pay:{" "}
-                <strong>{extraLabel}</strong>
-              </div>
-            )}
-          </>
-        )}
-
-        <p className="quote__fineprint">
-          Prices are fetched in real time from our registrar (ResellerClub) in{" "}
-          {displayCurrency}. Renewal pricing after the first year may change.
-        </p>
-
-        <button
-          type="button"
-          className="btn btn--primary btn--full"
-          onClick={goToCheckout}
-        >
-          Use this domain &amp; continue
-        </button>
+          <button
+            type="button"
+            className="btn btn-primary w-100 rounded-pill"
+            onClick={goToCheckout}
+          >
+            Use this domain &amp; continue
+          </button>
+        </div>
       </div>
     );
   };
 
   const renderNewDomain = () => (
-    <div className="layout">
-      <div className="panel panel--main">
-        <h3 className="panel__title">Register a new domain</h3>
-        <p className="panel__subtitle">
-          Search for a new domain. We’ll check availability and apply your{" "}
-          <strong>up to 50 AED</strong> credit.
-        </p>
+    <div className="row g-4">
+      <div className="col-lg-7">
+        <div className="mb-3">
+          <h5 className="mb-1">Register a new domain</h5>
+          <p className="mb-0">
+            Search for a new domain. We’ll check availability and apply your{" "}
+            <strong>up to 50 AED</strong> credit.
+          </p>
+        </div>
 
         <form onSubmit={handleCheck}>
-          <label className="field__label">New domain</label>
-          <div className="field field--domain">
-            <input
-              className="field__input"
-              type="text"
-              placeholder="mybusinessname"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={loading}
-            />
-            <span className="field__dot">.</span>
-            <select
-              className="field__input field__input--tld"
-              value={tld}
-              onChange={(e) => setTld(e.target.value)}
-              disabled={loading}
-            >
-              <optgroup label="Most popular">
-                {POPULAR_TLDS.map((code) => (
-                  <option key={code} value={code}>
-                    .{code}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="UAE & region">
-                {UAE_TLDS.map((code) => (
-                  <option key={code} value={code}>
-                    .{code}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+          <div className="mb-2">
+            <label className="form-label">New domain</label>
+            <div className="d-flex align-items-center gap-2">
+              <input
+                className="form-control bg-white text-dark"
+                type="text"
+                placeholder="mybusinessname"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+              />
+              <span className="fs-5">.</span>
+              <select
+                className="form-select bg-white text-dark"
+                value={tld}
+                onChange={(e) => setTld(e.target.value)}
+                disabled={loading}
+                style={{ maxWidth: 150 }}
+              >
+                <optgroup label="Most popular">
+                  {POPULAR_TLDS.map((code) => (
+                    <option key={code} value={code}>
+                      .{code}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="UAE & region">
+                  {UAE_TLDS.map((code) => (
+                    <option key={code} value={code}>
+                      .{code}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
           </div>
 
           {fullDomain && (
-            <p className="field__hint">
-              Full domain: <strong>{fullDomain}</strong>
+            <p className="mb-2">
+              Full domain: <span className="fw-semibold">{fullDomain}</span>
             </p>
           )}
 
-          {error && <div className="alert alert--danger">{error}</div>}
+          {error && (
+            <div className="alert alert-danger py-2 px-3 mb-2">
+              {error}
+            </div>
+          )}
 
-          <button type="submit" className="btn btn--primary" disabled={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary rounded-pill mt-1"
+            disabled={loading}
+          >
             {loading ? "Checking…" : "Check availability"}
           </button>
         </form>
@@ -2079,59 +2093,71 @@ export default function DomainSetupPage() {
         {renderStatusAlert()}
       </div>
 
-      <aside className="panel panel--side">
-        <div className="panel__sideHeader">What’s included</div>
-        <ul className="panel__list">
-          <li>Free domain credit up to 50 AED</li>
-          <li>1 year registration with ResellerClub</li>
-          <li>Automatic connection to your ION7 site</li>
-        </ul>
+      <div className="col-lg-5">
+        <div className="border rounded-3 p-3 h-100 bg-white">
+          <div className="fw-semibold mb-2">What’s included</div>
+          <ul className="mb-0 ps-3">
+            <li>Free domain credit up to 50 AED</li>
+            <li>1 year registration with ResellerClub</li>
+            <li>Automatic connection to your ION7 site</li>
+          </ul>
 
-        {renderQuoteCard()}
-      </aside>
+          {renderQuoteCard()}
+        </div>
+      </div>
     </div>
   );
 
   const renderTransfer = () => (
-    <div className="layout">
-      <div className="panel panel--main">
-        <h3 className="panel__title">Transfer your existing domain</h3>
-        <p className="panel__subtitle">
-          Move your domain into our ResellerClub account so we can manage
-          everything for you.
-        </p>
+    <div className="row g-4">
+      <div className="col-lg-7">
+        <div className="mb-3">
+          <h5 className="mb-1">Transfer your existing domain</h5>
+          <p className="mb-0">
+            Move your domain into our ResellerClub account so we can manage
+            everything for you.
+          </p>
+        </div>
 
         <form onSubmit={handleTransferSubmit}>
-          <label className="field__label">Existing domain</label>
-          <input
-            className="field__input"
-            type="text"
-            placeholder="mybusiness.com"
-            value={transferDomain}
-            onChange={(e) => setTransferDomain(e.target.value)}
-            disabled={transferLoading}
-          />
+          <div className="mb-3">
+            <label className="form-label">Existing domain</label>
+            <input
+              className="form-control bg-white text-dark"
+              type="text"
+              placeholder="mybusiness.com"
+              value={transferDomain}
+              onChange={(e) => setTransferDomain(e.target.value)}
+              disabled={transferLoading}
+            />
+          </div>
 
-          <label className="field__label">EPP / Auth code</label>
-          <input
-            className="field__input"
-            type="text"
-            placeholder="Auth code from current registrar"
-            value={authCode}
-            onChange={(e) => setAuthCode(e.target.value)}
-            disabled={transferLoading}
-          />
+          <div className="mb-3">
+            <label className="form-label">EPP / Auth code</label>
+            <input
+              className="form-control bg-white text-dark"
+              type="text"
+              placeholder="Auth code from current registrar"
+              value={authCode}
+              onChange={(e) => setAuthCode(e.target.value)}
+              disabled={transferLoading}
+            />
+          </div>
 
           {transferError && (
-            <div className="alert alert--danger">{transferError}</div>
+            <div className="alert alert-danger py-2 px-3 mb-2">
+              {transferError}
+            </div>
           )}
           {transferSuccess && (
-            <div className="alert alert--success">{transferSuccess}</div>
+            <div className="alert alert-success py-2 px-3 mb-2">
+              {transferSuccess}
+            </div>
           )}
 
           <button
             type="submit"
-            className="btn btn--primary"
+            className="btn btn-primary rounded-pill"
             disabled={transferLoading}
           >
             {transferLoading ? "Submitting…" : "Submit transfer request"}
@@ -2139,45 +2165,57 @@ export default function DomainSetupPage() {
         </form>
       </div>
 
-      <aside className="panel panel--side">
-        <div className="panel__sideHeader">Transfer tips</div>
-        <ul className="panel__list">
-          <li>Unlock your domain at your current registrar.</li>
-          <li>Request the EPP/Auth code from them.</li>
-          <li>Make sure WHOIS email is correct to approve transfer.</li>
-        </ul>
-      </aside>
+      <div className="col-lg-5">
+        <div className="border rounded-3 p-3 h-100 bg-white">
+          <div className="fw-semibold mb-2">Transfer tips</div>
+          <ul className="mb-0 ps-3">
+            <li>Unlock your domain at your current registrar.</li>
+            <li>Request the EPP/Auth code from them.</li>
+            <li>Make sure WHOIS email is correct to approve transfer.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 
   const renderDns = () => (
-    <div className="layout">
-      <div className="panel panel--main">
-        <h3 className="panel__title">Use existing domain (DNS only)</h3>
-        <p className="panel__subtitle">
-          Keep your domain with your current provider and just point DNS to
-          ION7.
-        </p>
+    <div className="row g-4">
+      <div className="col-lg-7">
+        <div className="mb-3">
+          <h5 className="mb-1">Use existing domain (DNS only)</h5>
+          <p className="mb-0">
+            Keep your domain with your current provider and just point DNS to
+            ION7.
+          </p>
+        </div>
 
         <form onSubmit={handleDnsSubmit}>
-          <label className="field__label">Existing domain</label>
-          <input
-            className="field__input"
-            type="text"
-            placeholder="mybusiness.com"
-            value={dnsDomain}
-            onChange={(e) => setDnsDomain(e.target.value)}
-            disabled={dnsLoading}
-          />
+          <div className="mb-3">
+            <label className="form-label">Existing domain</label>
+            <input
+              className="form-control bg-white text-dark"
+              type="text"
+              placeholder="mybusiness.com"
+              value={dnsDomain}
+              onChange={(e) => setDnsDomain(e.target.value)}
+              disabled={dnsLoading}
+            />
+          </div>
 
-          {dnsError && <div className="alert alert--danger">{dnsError}</div>}
+          {dnsError && (
+            <div className="alert alert-danger py-2 px-3 mb-2">
+              {dnsError}
+            </div>
+          )}
           {dnsSuccess && (
-            <div className="alert alert--success">{dnsSuccess}</div>
+            <div className="alert alert-success py-2 px-3 mb-2">
+              {dnsSuccess}
+            </div>
           )}
 
           <button
             type="submit"
-            className="btn btn--primary"
+            className="btn btn-primary rounded-pill"
             disabled={dnsLoading}
           >
             {dnsLoading ? "Saving…" : "Save domain & continue"}
@@ -2185,14 +2223,16 @@ export default function DomainSetupPage() {
         </form>
       </div>
 
-      <aside className="panel panel--side">
-        <div className="panel__sideHeader">What you’ll need to do</div>
-        <ul className="panel__list">
-          <li>Update A records / nameservers at your registrar.</li>
-          <li>DNS changes can take up to 24 hours to propagate.</li>
-          <li>We’ll show you the exact values after this step.</li>
-        </ul>
-      </aside>
+      <div className="col-lg-5">
+        <div className="border rounded-3 p-3 h-100 bg-white">
+          <div className="fw-semibold mb-2">What you’ll need to do</div>
+          <ul className="mb-0 ps-3">
+            <li>Update A records / nameservers at your registrar.</li>
+            <li>DNS changes can take up to 24 hours to propagate.</li>
+            <li>We’ll show you the exact values after this step.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 
@@ -2201,373 +2241,164 @@ export default function DomainSetupPage() {
   return (
     <>
       <Head>
-        <title>Domain setup — ION7</title>
+        <title>Domain Setup - ION7</title>
       </Head>
 
-      <div className="domainPage">
-        <div className="domainPage__inner">
-          <header className="pageHeader">
-            <div>
-              <h1 className="pageHeader__title">Connect your domain</h1>
-              <p className="pageHeader__subtitle">
-                Choose how you want to use a domain with your ION7 website.
-              </p>
-            </div>
-            <div className="pageHeader__step">Step 2 of 3</div>
-          </header>
+      <div
+        className="d-flex flex-column"
+        style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}
+      >
+        <NavbarTop isMobile={false} />
 
-          <div className="card">
-            <div className="tabs">
-              <button
-                type="button"
-                className={`tabs__item ${mode === "new" ? "tabs__item--active" : ""}`}
-                onClick={() => setMode("new")}
-              >
-                New domain
-              </button>
-              <button
-                type="button"
-                className={`tabs__item ${
-                  mode === "transfer" ? "tabs__item--active" : ""
-                }`}
-                onClick={() => setMode("transfer")}
-              >
-                Transfer domain
-              </button>
-              <button
-                type="button"
-                className={`tabs__item ${mode === "dns" ? "tabs__item--active" : ""}`}
-                onClick={() => setMode("dns")}
-              >
-                Use existing (DNS)
-              </button>
+        <main className="flex-grow-1 px-4 py-4">
+          <div className="domain-setup">
+            {/* HEADER WITH ICON (old style) */}
+            <div className="domain-head card shadow-sm border-0 rounded-4 mb-3 px-4 py-3">
+              <div className="d-flex align-items-center justify-content-between gap-3">
+                <div className="d-flex align-items-center gap-3">
+                  <div className="domain-logo">ION</div>
+                  <div>
+                    <h2 className="domain-title mb-1">Domain setup</h2>
+                    <p className="domain-subtitle mb-0">
+                      Connect a domain to your ION7 site. You can register a new
+                      domain, transfer an existing one, or keep your domain
+                      elsewhere and point DNS to ION7.
+                    </p>
+                  </div>
+                </div>
+                <div className="domain-step">Step 2 of 3</div>
+              </div>
             </div>
 
-            <div className="card__body">
-              {mode === "new" && renderNewDomain()}
-              {mode === "transfer" && renderTransfer()}
-              {mode === "dns" && renderDns()}
+            {/* MAIN CARD */}
+            <div className="card border-0 shadow-sm rounded-4">
+              <div className="card-header border-0 bg-white px-4 pt-3 pb-0">
+                <ul className="nav nav-pills nav-justified">
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link rounded-pill ${
+                        mode === "new" ? "active" : ""
+                      }`}
+                      onClick={() => setMode("new")}
+                    >
+                      New domain
+                    </button>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link rounded-pill ${
+                        mode === "transfer" ? "active" : ""
+                      }`}
+                      onClick={() => setMode("transfer")}
+                    >
+                      Transfer domain
+                    </button>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link rounded-pill ${
+                        mode === "dns" ? "active" : ""
+                      }`}
+                      onClick={() => setMode("dns")}
+                    >
+                      Use existing (DNS)
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="card-body px-4 pb-4 pt-3 bg-white">
+                {mode === "new" && renderNewDomain()}
+                {mode === "transfer" && renderTransfer()}
+                {mode === "dns" && renderDns()}
+              </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
 
       <style jsx>{`
-        .domainPage {
-          min-height: 100vh;
-          background-color: #f5f7fb;
-          padding: 32px 16px;
+        /* Page font a bit bigger */
+        .domain-setup {
+          font-size: 15px;
         }
 
-        .domainPage__inner {
-          max-width: 1000px;
-          margin: 0 auto;
-        }
-
-        .pageHeader {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
-
-        .pageHeader__title {
-          margin: 0;
-          font-size: 22px;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .pageHeader__subtitle {
-          margin: 4px 0 0;
-          font-size: 13px;
-          color: #6b7280;
-        }
-
-        .pageHeader__step {
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: #e5e7eb;
-          font-size: 12px;
-          color: #374151;
-          font-weight: 500;
-        }
-
-        .card {
-          background: #ffffff;
-          border-radius: 12px;
-          border: 1px solid #e5e7eb;
-          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-          overflow: hidden;
-        }
-
-        .card__body {
-          padding: 20px 20px 22px;
-        }
-
-        .tabs {
-          display: flex;
-          border-bottom: 1px solid #e5e7eb;
-          background: #f9fafb;
-        }
-
-        .tabs__item {
-          flex: 1;
-          padding: 10px 12px;
-          font-size: 13px;
-          font-weight: 500;
-          text-align: center;
-          border: none;
-          background: transparent;
-          color: #6b7280;
-          cursor: pointer;
-          position: relative;
-        }
-
-        .tabs__item--active {
-          color: #111827;
+        .domain-head {
           background: #ffffff;
         }
 
-        .tabs__item--active::after {
-          content: "";
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: -1px;
-          height: 2px;
-          background: #2563eb;
-        }
-
-        .layout {
-          display: grid;
-          grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
-          gap: 20px;
-          align-items: flex-start;
-        }
-
-        .panel {
-          border-radius: 10px;
-        }
-
-        .panel--main {
-          padding: 2px 2px 2px 0;
-        }
-
-        .panel--side {
-          padding: 12px 14px;
-          background: #f9fafb;
-          border-radius: 10px;
-          border: 1px solid #e5e7eb;
-        }
-
-        .panel__title {
-          margin: 0 0 6px;
-          font-size: 16px;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .panel__subtitle {
-          margin: 0 0 14px;
-          font-size: 13px;
-          color: #6b7280;
-        }
-
-        .panel__sideHeader {
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 8px;
-          color: #111827;
-        }
-
-        .panel__list {
-          list-style: none;
-          margin: 0 0 12px;
-          padding: 0;
-          font-size: 13px;
-          color: #4b5563;
-        }
-
-        .panel__list li {
-          padding-left: 16px;
-          position: relative;
-          margin-bottom: 6px;
-        }
-
-        .panel__list li::before {
-          content: "•";
-          position: absolute;
-          left: 0;
-          color: #10b981;
-        }
-
-        .field {
+        .domain-logo {
+          width: 52px;
+          height: 52px;
+          border-radius: 18px;
           display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .field--domain {
-          grid-template-columns: minmax(0, 1fr) auto auto;
-        }
-
-        .field__label {
-          display: block;
-          font-size: 12px;
-          font-weight: 500;
-          color: #4b5563;
-          margin: 10px 0 6px;
-        }
-
-        .field__input {
-          width: 100%;
-          border-radius: 8px;
-          border: 1px solid #d1d5db;
-          padding: 9px 10px;
-          font-size: 14px;
-          outline: none;
-          background: #ffffff;
-        }
-
-        .field__input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 1px #2563eb1a;
-        }
-
-        .field__input--tld {
-          max-width: 130px;
-        }
-
-        .field__dot {
-          font-size: 18px;
-          color: #4b5563;
-        }
-
-        .field__hint {
-          margin: 6px 0 0;
-          font-size: 12px;
-          color: #6b7280;
-        }
-
-        .btn {
-          display: inline-flex;
           align-items: center;
           justify-content: center;
-          border-radius: 8px;
-          border: none;
-          padding: 9px 16px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          margin-top: 14px;
+          font-weight: 800;
+          font-size: 20px;
+          color: #022c22;
+          background: linear-gradient(135deg, #a7f3d0, #22c55e);
+          box-shadow: 0 10px 30px rgba(22, 163, 74, 0.35);
         }
 
-        .btn--primary {
-          background: #2563eb;
+        .domain-title {
+          font-size: 24px;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .domain-subtitle {
+          font-size: 14px;
+          color: #4b5563;
+          max-width: 640px;
+        }
+
+        .domain-step {
+          padding: 7px 14px;
+          border-radius: 999px;
+          background: #eef2ff;
+          color: #4f46e5;
+          font-size: 13px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .nav-pills .nav-link {
+          border-radius: 999px;
+          color: #111827;
+          font-weight: 500;
+          font-size: 14px;
+        }
+
+        .nav-pills .nav-link.active {
+          background-color: #7c3aed;
           color: #ffffff;
         }
 
-        .btn--primary:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .btn--full {
-          width: 100%;
-        }
-
-        .alert {
-          margin-top: 10px;
-          padding: 8px 10px;
-          border-radius: 8px;
-          font-size: 13px;
-        }
-
-        .alert--danger {
-          background: #fef2f2;
-          color: #b91c1c;
-          border: 1px solid #fecaca;
-        }
-
-        .alert--success {
-          background: #ecfdf3;
-          color: #166534;
-          border: 1px solid #bbf7d0;
-        }
-
-        .alert--warn {
-          background: #fefce8;
-          color: #854d0e;
-          border: 1px solid #facc15;
-        }
-
-        .quote {
-          margin-top: 10px;
-          padding-top: 10px;
-          border-top: 1px solid #e5e7eb;
-          font-size: 13px;
-        }
-
-        .quote__header {
+        .btn-primary {
+          background-color: #7c3aed;
+          border-color: #7c3aed;
           font-weight: 600;
-          margin-bottom: 8px;
-          color: #111827;
         }
 
-        .quote__row {
-          display: flex;
-          justify-content: space-between;
-          align-items: baseline;
-          margin-bottom: 4px;
+        .btn-primary:hover,
+        .btn-primary:focus {
+          background-color: #6d28d9;
+          border-color: #6d28d9;
         }
 
-        .quote__label {
-          color: #6b7280;
+        .form-label {
+          font-weight: 500;
+          font-size: 14px;
         }
 
-        .quote__value {
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .quote__note {
-          font-weight: 400;
-          font-size: 12px;
-          color: #6b7280;
-          margin-left: 4px;
-        }
-
-        .quote__fallback {
-          margin: 4px 0 8px;
-          color: #6b7280;
-        }
-
-        .quote__alert {
-          margin-top: 8px;
-        }
-
-        .quote__fineprint {
-          margin-top: 8px;
-          font-size: 11px;
-          color: #9ca3af;
-        }
-
-        @media (max-width: 900px) {
-          .layout {
-            grid-template-columns: minmax(0, 1fr);
-          }
-        }
-
-        @media (max-width: 640px) {
-          .pageHeader {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .pageHeader__step {
-            align-self: flex-start;
-          }
+        .form-control,
+        .form-select {
+          font-size: 14px;
+          padding: 9px 12px;
         }
       `}</style>
     </>
