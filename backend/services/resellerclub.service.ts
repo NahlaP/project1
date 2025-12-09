@@ -242,17 +242,6 @@
 // Use Node's built-in fetch (Node 18+)
 const fetchFn: typeof fetch = (globalThis as any).fetch;
 
-// Optional fallback AED price table – only used if live call fails
-const TLD_PRICE_TABLE_AED: Record<string, number> = {
-  com: 45,
-  net: 40,
-  org: 38,
-  ae: 70,
-  // you can add more fallback values here if you want:
-  // store: 200,
-  // online: 150,
-};
-
 export type RawAvailabilityMap = Record<
   string,
   { status: string; classkey?: string; actiontype?: string; entityid?: number }
@@ -266,17 +255,17 @@ export type DomainAvailability = {
 
 export type DomainQuote = DomainAvailability & {
   tld: string;
-  priceAed: number | null;     // real reseller price in your selling currency
-  includedAed: number;         // free credit from env
-  extraAed: number;            // price - includedAed (if any)
-  isFreeWithPlan: boolean;     // price <= includedAed
-  currency?: string;           // e.g. "AED" from ResellerClub
+  priceAed: number | null; // real reseller price in your selling currency
+  includedAed: number; // free credit from env
+  extraAed: number; // price - includedAed (if any)
+  isFreeWithPlan: boolean; // price <= includedAed
+  currency?: string; // e.g. "AED" from ResellerClub
 };
 
-/**
- * Get config fresh from process.env every time.
- * This avoids issues with early destructuring.
- */
+/* -------------------------------------------------------------------------- */
+/*  CONFIG + URL HELPER                                                       */
+/* -------------------------------------------------------------------------- */
+
 function getConfig() {
   const apiBaseRaw =
     process.env.RESELLERCLUB_API_BASE || "https://httpapi.com/api";
@@ -305,9 +294,6 @@ function getConfig() {
   };
 }
 
-/**
- * Build URL with auth params.
- */
 function buildUrl(path: string, params: URLSearchParams) {
   const { apiBase, userId, apiKey } = getConfig();
 
@@ -321,9 +307,6 @@ function buildUrl(path: string, params: URLSearchParams) {
 /*  AVAILABILITY                                                              */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Low-level: call ResellerClub /domains/available.json
- */
 export async function checkDomainAvailabilityRaw(
   domainName: string,
   tlds: string[] = ["com"]
@@ -375,9 +358,6 @@ export async function checkDomainAvailabilityRaw(
   return json as RawAvailabilityMap;
 }
 
-/**
- * Convenience: returns a simple list for UI.
- */
 export async function checkDomainAvailability(
   domainName: string,
   tlds: string[] = ["com"]
@@ -386,7 +366,7 @@ export async function checkDomainAvailability(
   const result: DomainAvailability[] = [];
 
   for (const [fullDomain, info] of Object.entries(raw)) {
-    const rawStatus = info?.status || "unknown";
+    const rawStatus = (info as any)?.status || "unknown";
     const status: DomainAvailability["status"] =
       rawStatus === "available" ? "available" : rawStatus ? "taken" : "unknown";
 
@@ -401,17 +381,12 @@ export async function checkDomainAvailability(
 }
 
 /* -------------------------------------------------------------------------- */
-/*  PRICE (LIVE FROM RESELLERCLUB)                                            */
+/*  PRICE (LIVE FROM /domains/premium-check.json)                             */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Shape of /domains/premium-check.json (we only care about price fields).
- * Using loose typing here to avoid TS errors like "privacy-protection".
- */
 type PremiumCheckResponse = {
-  premium?: boolean;
   costHash?: {
-    create?: string;
+    create?: string; // customer price (selling currency)
     renew?: string;
     transfer?: string;
     sellingCurrencySymbol?: string;
@@ -426,10 +401,6 @@ type PremiumCheckResponse = {
   [key: string]: any;
 };
 
-/**
- * Call /domains/premium-check.json and return the "create" price
- * in your selling currency (typically AED).
- */
 async function fetchResellerPriceForDomain(
   fullDomain: string
 ): Promise<{ price: number | null; currency?: string }> {
@@ -466,13 +437,9 @@ async function fetchResellerPriceForDomain(
     );
   }
 
-  // Prefer customer price in costHash.create
   const cost = json.costHash || {};
   const createPriceStr: string | undefined =
-    cost.create ||
-    // fallback to renew/transfer just in case
-    cost.renew ||
-    cost.transfer;
+    cost.create || cost.renew || cost.transfer;
 
   const rawCurrency: string | undefined = cost.sellingCurrencySymbol;
 
@@ -481,7 +448,7 @@ async function fetchResellerPriceForDomain(
   }
 
   const numeric = Number(createPriceStr);
-  if (Number.isNaN(numeric)) {
+  if (!Number.isFinite(numeric)) {
     return { price: null, currency: rawCurrency };
   }
 
@@ -489,13 +456,9 @@ async function fetchResellerPriceForDomain(
 }
 
 /* -------------------------------------------------------------------------- */
-/*  QUOTE = AVAILABILITY + PRICE + FREE CREDIT LOGIC                          */
+/*  QUOTE = AVAILABILITY + REAL PRICE + FREE CREDIT LOGIC                     */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Get availability + live ResellerClub price + “free up to DOMAIN_INCLUDED_AED”
- * logic for a single TLD.
- */
 export async function getDomainQuote(
   domainName: string,
   tld: string
@@ -506,7 +469,7 @@ export async function getDomainQuote(
   const cleanTld = tld.replace(/^\./, "").toLowerCase();
   const fullDomain = `${cleanName}.${cleanTld}`;
 
-  // 1) Availability (same as before)
+  // 1) Availability
   const availabilityList = await checkDomainAvailability(cleanName, [
     cleanTld,
   ]);
@@ -519,7 +482,7 @@ export async function getDomainQuote(
       rawStatus: "unknown",
     } as DomainAvailability);
 
-  // 2) Live price from ResellerClub
+  // 2) Live price from ResellerClub ONLY (no hard-coded fallback)
   let priceAed: number | null = null;
   let currency: string | undefined;
 
@@ -530,12 +493,8 @@ export async function getDomainQuote(
     priceAed = price;
     currency = cur;
   } catch (err) {
-    console.error(
-      "[ResellerClub] premium-check failed, falling back to static table:",
-      err
-    );
-    // Fallback ONLY if live API fails
-    priceAed = TLD_PRICE_TABLE_AED[cleanTld] ?? null;
+    console.error("[ResellerClub] premium-check failed:", err);
+    // keep priceAed = null so UI can show "Price unavailable"
   }
 
   // 3) Apply “included in plan” logic
