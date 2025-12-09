@@ -767,6 +767,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // // dashboard/pages/setup/domain.js
 // import Head from "next/head";
 // import { useRouter } from "next/router";
@@ -872,7 +915,7 @@
 //         return;
 //       }
 
-//       // ✅ 2) quote
+//       // ✅ 2) quote (availability + live price from backend)
 //       const quoteRes = await api.get(
 //         `/api/resellerclub/domain/quote?name=${encodeURIComponent(
 //           trimmed
@@ -995,7 +1038,9 @@
 //   const renderQuoteCard = () => {
 //     if (!quote || checkResult?.status !== "available") return null;
 
-//     const { priceAed, includedAed, extraAed, isFreeWithPlan } = quote;
+//     const { priceAed, includedAed, extraAed, isFreeWithPlan, currency } = quote;
+//     const hasPrice = typeof priceAed === "number" && !Number.isNaN(priceAed);
+//     const displayCurrency = currency || "AED";
 
 //     return (
 //       <div className="quoteCard">
@@ -1003,12 +1048,28 @@
 //         <p>
 //           Domain: <strong>{fullDomain}</strong>
 //         </p>
-//         <p>
-//           Registrar price: <strong>{priceAed} AED / year</strong>
-//         </p>
-//         <p>
-//           Included in plan: <strong>{includedAed} AED</strong>
-//         </p>
+
+//         {hasPrice ? (
+//           <>
+//             <p>
+//               Registrar price:{" "}
+//               <strong>
+//                 {priceAed} {displayCurrency} / year
+//               </strong>
+//             </p>
+//             <p>
+//               Included in plan:{" "}
+//               <strong>
+//                 {includedAed} {displayCurrency}
+//               </strong>
+//             </p>
+//           </>
+//         ) : (
+//           <p>
+//             Registrar price:{" "}
+//             <strong>Currently unavailable (we’ll confirm in checkout).</strong>
+//           </p>
+//         )}
 
 //         {isPremiumTld && (
 //           <p className="premiumNote">
@@ -1017,21 +1078,27 @@
 //           </p>
 //         )}
 
-//         {isFreeWithPlan ? (
-//           <div className="alert success">
-//             ✅ This domain is <strong>FREE</strong> with your current plan
-//             (within 50 AED).
-//           </div>
-//         ) : (
-//           <div className="alert warn">
-//             ℹ️ This domain is above the included amount. Extra to pay:{" "}
-//             <strong>{extraAed} AED</strong>
-//           </div>
+//         {hasPrice && (
+//           <>
+//             {isFreeWithPlan ? (
+//               <div className="alert success">
+//                 ✅ This domain is <strong>FREE</strong> with your current plan
+//                 (within {includedAed} {displayCurrency}).
+//               </div>
+//             ) : (
+//               <div className="alert warn">
+//                 ℹ️ This domain is above the included amount. Extra to pay:{" "}
+//                 <strong>
+//                   {extraAed} {displayCurrency}
+//                 </strong>
+//               </div>
+//             )}
+//           </>
 //         )}
 
 //         <p className="footnote">
-//           Prices are fetched in real time from our registrar (ResellerClub) in
-//           AED. Renewal pricing after the first year may change.
+//           Prices are fetched in real time from our registrar (ResellerClub) in{" "}
+//           {displayCurrency}. Renewal pricing after the first year may change.
 //         </p>
 
 //         <button
@@ -1621,20 +1688,23 @@
 
 
 
+
+
+
+
+
+
+
 // dashboard/pages/setup/domain.js
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { api } from "../../lib/api";
 
-// ----- TLD GROUPS (UI ONLY – values are without dot) -----
-const POPULAR_TLDS = ["com", "net", "org", "info"];
-const PREMIUM_TLDS = ["io", "ai", "tech", "online", "store", "app"];
+// ----- TLD LIST (ONLY WORKING ONES) -----
+// These are the only ones we show in the UI
+const POPULAR_TLDS = ["com", "info", "org"];
 const UAE_TLDS = ["ae"];
-const OTHER_TLDS = ["biz", "site"];
-
-// for quick checks
-const PREMIUM_SET = new Set(PREMIUM_TLDS);
 
 export default function DomainSetupPage() {
   const router = useRouter();
@@ -1668,8 +1738,6 @@ export default function DomainSetupPage() {
   const [dnsSuccess, setDnsSuccess] = useState("");
 
   const fullDomain = name ? `${name.trim().toLowerCase()}.${tld}` : "";
-
-  const isPremiumTld = useMemo(() => PREMIUM_SET.has(tld), [tld]);
 
   const goToCheckout = () => {
     if (!priceId) {
@@ -1882,13 +1950,6 @@ export default function DomainSetupPage() {
           </p>
         )}
 
-        {isPremiumTld && (
-          <p className="premiumNote">
-            Premium extension –{" "}
-            <span>first-year and renewal prices are usually higher.</span>
-          </p>
-        )}
-
         {hasPrice && (
           <>
             {isFreeWithPlan ? (
@@ -1957,22 +2018,8 @@ export default function DomainSetupPage() {
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="Premium">
-                {PREMIUM_TLDS.map((code) => (
-                  <option key={code} value={code}>
-                    .{code}
-                  </option>
-                ))}
-              </optgroup>
               <optgroup label="UAE & region">
                 {UAE_TLDS.map((code) => (
-                  <option key={code} value={code}>
-                    .{code}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Other">
-                {OTHER_TLDS.map((code) => (
                   <option key={code} value={code}>
                     .{code}
                   </option>
@@ -1984,12 +2031,6 @@ export default function DomainSetupPage() {
           {fullDomain && (
             <p className="hint">
               Full domain: <strong>{fullDomain}</strong>
-            </p>
-          )}
-
-          {isPremiumTld && (
-            <p className="hint premiumHint">
-              Premium TLD – pricing is usually higher than .com / .net.
             </p>
           )}
 
@@ -2325,9 +2366,6 @@ export default function DomainSetupPage() {
           font-size: 12px;
           color: var(--muted);
         }
-        .premiumHint {
-          color: #b45309;
-        }
         .btn {
           border-radius: 12px;
           border: 0;
@@ -2405,14 +2443,6 @@ export default function DomainSetupPage() {
         .quoteCard h4 {
           margin: 0 0 8px;
           font-size: 13px;
-        }
-        .premiumNote {
-          margin: 6px 0 0;
-          font-size: 12px;
-          color: #b45309;
-        }
-        .premiumNote span {
-          font-weight: 500;
         }
         .footnote {
           margin-top: 10px;
