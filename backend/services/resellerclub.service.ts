@@ -385,42 +385,75 @@ type CustomerPriceResponse = {
   [productKey: string]: any;
 };
 
-/**
- * Map TLD → product-key.
- * Values come from your .env (the ones you already set on EC2):
- *
- *  RESELLERCLUB_TLDKEY_COM=domcno
- *  RESELLERCLUB_TLDKEY_NET=domnet
- *  RESELLERCLUB_TLDKEY_ORG=domorg
- *  RESELLERCLUB_TLDKEY_INFO=dominfo
- *  RESELLERCLUB_TLDKEY_STORE=domstore
- *  RESELLERCLUB_TLDKEY_ONLINE=domonline
- *  RESELLERCLUB_TLDKEY_AE=domae
- */
+
+// function getProductKeyForTld(tld: string): string | null {
+//   const clean = tld.replace(/^\./, "").toLowerCase();
+
+//   const envMap: Record<string, string | undefined> = {
+//     com: process.env.RESELLERCLUB_TLDKEY_COM,
+//     net: process.env.RESELLERCLUB_TLDKEY_NET,
+//     org: process.env.RESELLERCLUB_TLDKEY_ORG,
+//     info: process.env.RESELLERCLUB_TLDKEY_INFO,
+//     store: process.env.RESELLERCLUB_TLDKEY_STORE,
+//     online: process.env.RESELLERCLUB_TLDKEY_ONLINE,
+//     ae: process.env.RESELLERCLUB_TLDKEY_AE,
+//   };
+
+//   const key = envMap[clean];
+//   if (!key) {
+//     console.error(
+//       "[ResellerClub] No product-key configured for TLD:",
+//       clean
+//     );
+//     return null;
+//   }
+
+//   return key;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function getProductKeyForTld(tld: string): string | null {
   const clean = tld.replace(/^\./, "").toLowerCase();
 
   const envMap: Record<string, string | undefined> = {
-    com: process.env.RESELLERCLUB_TLDKEY_COM,
-    net: process.env.RESELLERCLUB_TLDKEY_NET,
-    org: process.env.RESELLERCLUB_TLDKEY_ORG,
-    info: process.env.RESELLERCLUB_TLDKEY_INFO,
-    store: process.env.RESELLERCLUB_TLDKEY_STORE,
-    online: process.env.RESELLERCLUB_TLDKEY_ONLINE,
-    ae: process.env.RESELLERCLUB_TLDKEY_AE,
+    com: process.env.RESELLERCLUB_PRICEKEY_COM,
+    net: process.env.RESELLERCLUB_PRICEKEY_NET,
+    org: process.env.RESELLERCLUB_PRICEKEY_ORG,
+    info: process.env.RESELLERCLUB_PRICEKEY_INFO,
+    store: process.env.RESELLERCLUB_PRICEKEY_STORE,
+    online: process.env.RESELLERCLUB_PRICEKEY_ONLINE,
+    ae: process.env.RESELLERCLUB_PRICEKEY_AE,
+    biz: process.env.RESELLERCLUB_PRICEKEY_BIZ, // ✅ ADD THIS
   };
 
   const key = envMap[clean];
   if (!key) {
-    console.error(
-      "[ResellerClub] No product-key configured for TLD:",
-      clean
-    );
+    console.error("[ResellerClub] No PRICE product-key configured for TLD:", clean);
     return null;
   }
 
   return key;
 }
+
+
+
+
+
 
 /**
  * Call /products/customer-price.json for the TLD and read the 1-year
