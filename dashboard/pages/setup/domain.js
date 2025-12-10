@@ -794,7 +794,7 @@ export default function DomainSetupPage() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState("");
-  const [transferPrice, setTransferPrice] = useState(null); // 🔹 price from ResellerClub
+  const [transferPrice, setTransferPrice] = useState(null); // price from backend
 
   // DNS ONLY STATE
   const [dnsDomain, setDnsDomain] = useState("");
@@ -804,7 +804,7 @@ export default function DomainSetupPage() {
 
   const fullDomain = name ? `${name.trim().toLowerCase()}.${tld}` : "";
 
-  // ⬇️ can optionally include domain + prices in query string
+  // can optionally include domain + prices in query string
   const goToCheckout = (opts = {}) => {
     const { includeDomain = false } = opts;
 
@@ -925,19 +925,10 @@ export default function DomainSetupPage() {
       return;
     }
 
-    // Extract name + tld from "mydomain.com"
-    const parts = d.split(".");
-    if (parts.length < 2) {
-      setTransferError("Please enter a full domain like mybusiness.com");
-      return;
-    }
-    const transferTld = parts[parts.length - 1];
-    const transferName = parts.slice(0, -1).join(".");
-
     try {
       setTransferLoading(true);
 
-      // 1) Save transfer request in our backend (no price yet)
+      // backend expects { domain, eppCode }
       const res = await api.post("/api/domain/transfer", {
         domain: d,
         eppCode: code,
@@ -946,33 +937,18 @@ export default function DomainSetupPage() {
       const msg =
         (res && (res.message || res.msg)) ||
         "Transfer request submitted. We’ll process it and update you.";
+
       setTransferSuccess(msg);
 
-      // 2) Fetch price from ResellerClub using the same quote endpoint
-      try {
-        const quoteRes = await api.get(
-          `/api/resellerclub/domain/quote?name=${encodeURIComponent(
-            transferName
-          )}&tld=${encodeURIComponent(transferTld)}`
-        );
-
-        if (!quoteRes || quoteRes.error || quoteRes.ok === false) {
-          console.warn(
-            "Transfer quote failed:",
-            quoteRes && (quoteRes.error || quoteRes.message)
-          );
-        } else {
-          const q = quoteRes.data || quoteRes;
-          const price = q?.priceAed;
-          if (typeof price === "number" && !Number.isNaN(price)) {
-            setTransferPrice(price);
-          }
-        }
-      } catch (quoteErr) {
-        console.error("Error fetching transfer price:", quoteErr);
+      // read price from backend and show it on this page
+      const price = res?.data?.transferPrice;
+      if (typeof price === "number" && !Number.isNaN(price)) {
+        setTransferPrice(price);
+      } else {
+        setTransferPrice(null);
       }
 
-      // NOTE: do NOT auto-redirect; user stays here and sees the price
+      // no auto-redirect; user will click "Continue to checkout"
     } catch (err) {
       console.error("Transfer error:", err);
       setTransferError(
@@ -999,7 +975,6 @@ export default function DomainSetupPage() {
     try {
       setDnsLoading(true);
 
-      // 🔗 REAL backend call
       const res = await api.post("/api/domain/dns", { domain: d });
 
       const msg =
@@ -1232,7 +1207,7 @@ export default function DomainSetupPage() {
               placeholder="mybusiness.com"
               value={transferDomain}
               onChange={(e) => setTransferDomain(e.target.value)}
-              disabled={transferLoading}
+              disabled={transferLoading || !!transferSuccess}
             />
           </div>
 
@@ -1244,7 +1219,7 @@ export default function DomainSetupPage() {
               placeholder="Auth code from current registrar"
               value={authCode}
               onChange={(e) => setAuthCode(e.target.value)}
-              disabled={transferLoading}
+              disabled={transferLoading || !!transferSuccess}
             />
           </div>
 
@@ -1268,11 +1243,21 @@ export default function DomainSetupPage() {
 
           <button
             type="submit"
-            className="btn btn-primary rounded-pill"
-            disabled={transferLoading}
+            className="btn btn-primary rounded-pill me-2"
+            disabled={transferLoading || !!transferSuccess}
           >
             {transferLoading ? "Submitting…" : "Submit transfer request"}
           </button>
+
+          {transferSuccess && (
+            <button
+              type="button"
+              className="btn btn-outline-secondary rounded-pill"
+              onClick={() => goToCheckout()}
+            >
+              Continue to checkout
+            </button>
+          )}
         </form>
       </div>
 
