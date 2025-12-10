@@ -680,8 +680,16 @@
 
 
 
-// // og working fine
 
+
+
+
+
+
+
+
+
+// // current og code
 // // dashboard/lib/api.js
 // // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
 
@@ -935,7 +943,7 @@
 //         fullName,
 //         company,
 //         country,
-//         mobile,   // ✅ NEW FIELD
+//         mobile, // ✅ NEW FIELD
 //         email,
 //         password,
 //       }),
@@ -989,11 +997,30 @@
 //   /* ===== Billing (Elements) ===== */
 //   /**
 //    * Matches backend POST /api/billing/elements/start
-//    * pass email to guarantee Stripe customer has it
+//    * body: {
+//    *   priceId,
+//    *   email,
+//    *   name,
+//    *   country,
+//    *   address1,
+//    *   city,
+//    *   postalCode,
+//    *   domain?,            // ✅ NEW
+//    *   domainExtraCents?,  // ✅ NEW
+//    * }
 //    */
 //   billingStartElements(
 //     priceId,
-//     { email, name, country, address1, city, postalCode } = {}
+//     {
+//       email,
+//       name,
+//       country,
+//       address1,
+//       city,
+//       postalCode,
+//       domain,
+//       domainExtraCents,
+//     } = {}
 //   ) {
 //     return request(`/api/billing/elements/start`, {
 //       method: "POST",
@@ -1006,9 +1033,13 @@
 //         address1,
 //         city,
 //         postalCode,
+//         // 🔴 forward domain data to backend
+//         domain,
+//         domainExtraCents,
 //       }),
 //     });
 //   },
+
 //   billingVerify(payload = {}) {
 //     return request(`/api/billing/verify`, {
 //       method: "POST",
@@ -1324,6 +1355,33 @@
 //     window.api = api;
 //   } catch {}
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1733,6 +1791,15 @@ export const api = {
   /* ===== Domain info (for Domain widget) ===== */
   getDomainInfo() {
     return request("/api/domain/me");
+  },
+
+  /* ===== Domain transfer (save domain + EPP on user) ===== */
+  saveDomainTransfer(domain, eppCode) {
+    return request("/api/domain/transfer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain, eppCode }),
+    });
   },
 
   /* ===== Templates & selection ===== */
