@@ -1,4 +1,3 @@
-// backend/routes/domaintransfer.routes.ts
 import { Router } from "express";
 import {
   submitDomainTransfer,
