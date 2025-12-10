@@ -780,7 +780,7 @@ export default function DomainSetupPage() {
   // "new" | "transfer" | "dns"
   const [mode, setMode] = useState("new");
 
-  /* ---------------- NEW DOMAIN STATE ---------------- */
+  // NEW DOMAIN STATE
   const [name, setName] = useState("");
   const [tld, setTld] = useState("com");
   const [loading, setLoading] = useState(false);
@@ -788,17 +788,15 @@ export default function DomainSetupPage() {
   const [checkResult, setCheckResult] = useState(null);
   const [quote, setQuote] = useState(null);
 
-  /* ---------------- TRANSFER STATE ---------------- */
+  // TRANSFER STATE
   const [transferDomain, setTransferDomain] = useState("");
   const [authCode, setAuthCode] = useState("");
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState("");
-  const [transferPrice, setTransferPrice] = useState(null); // AED
-  const [transferPriceCurrency, setTransferPriceCurrency] = useState("AED");
-  const [transferQuoteLoading, setTransferQuoteLoading] = useState(false);
+  const [transferPrice, setTransferPrice] = useState(null); // price from quote API
 
-  /* ---------------- DNS ONLY STATE ---------------- */
+  // DNS ONLY STATE
   const [dnsDomain, setDnsDomain] = useState("");
   const [dnsLoading, setDnsLoading] = useState(false);
   const [dnsError, setDnsError] = useState("");
@@ -806,9 +804,7 @@ export default function DomainSetupPage() {
 
   const fullDomain = name ? `${name.trim().toLowerCase()}.${tld}` : "";
 
-  /* ---------------- NAVIGATION HELPERS ---------------- */
-
-  // For NEW domain flow – passes domain + quote to checkout
+  // ⬇️ can optionally include domain + prices in query string
   const goToCheckout = (opts = {}) => {
     const { includeDomain = false } = opts;
 
@@ -842,30 +838,6 @@ export default function DomainSetupPage() {
       if (typeof extraAed === "number") {
         params.set("domainExtraAed", String(extraAed));
       }
-    }
-
-    router.push(`/checkout?${params.toString()}`);
-  };
-
-  // For TRANSFER flow – passes transfer domain + extra price to checkout
-  const goToCheckoutFromTransfer = () => {
-    if (!priceId) {
-      router.push("/checkout");
-      return;
-    }
-
-    const params = new URLSearchParams({
-      priceId,
-      billing,
-    });
-
-    const d = transferDomain.trim().toLowerCase();
-    if (d) params.set("domain", d);
-
-    if (typeof transferPrice === "number" && !Number.isNaN(transferPrice)) {
-      const cents = Math.round(transferPrice * 100); // AED -> cents
-      params.set("domainExtraCents", String(cents));
-      params.set("domainTransferPriceAed", String(transferPrice));
     }
 
     router.push(`/checkout?${params.toString()}`);
@@ -933,52 +905,7 @@ export default function DomainSetupPage() {
     }
   };
 
-  /* ---------------- TRANSFER HELPERS ---------------- */
-
-  // Fetch registrar price for a *transfer* of the given domain
-  const fetchTransferQuote = async (domainStr) => {
-    const d = (domainStr || "").trim().toLowerCase();
-    if (!d.includes(".")) return;
-
-    const parts = d.split(".");
-    const tldPart = parts.pop();
-    const namePart = parts.join(".");
-    if (!namePart || !tldPart) return;
-
-    try {
-      setTransferQuoteLoading(true);
-      setTransferPrice(null);
-
-      const quoteRes = await api.get(
-        `/api/resellerclub/domain/quote?name=${encodeURIComponent(
-          namePart
-        )}&tld=${encodeURIComponent(tldPart)}`
-      );
-
-      if (!quoteRes || quoteRes.error || quoteRes.ok === false) {
-        throw new Error(quoteRes.error || "Transfer quote failed");
-      }
-
-      const data = quoteRes.data || quoteRes;
-      const priceAed = data.priceAed;
-      const currency = data.currency || "AED";
-
-      if (typeof priceAed === "number" && !Number.isNaN(priceAed)) {
-        setTransferPrice(priceAed);
-        setTransferPriceCurrency(currency);
-      } else {
-        setTransferPrice(null);
-      }
-    } catch (err) {
-      console.error("Transfer quote error:", err);
-      // Do not block the flow; just hide the price
-      setTransferPrice(null);
-    } finally {
-      setTransferQuoteLoading(false);
-    }
-  };
-
-  /* ---------------- TRANSFER SUBMIT ---------------- */
+  /* ---------------- TRANSFER ---------------- */
 
   const handleTransferSubmit = async (e) => {
     e.preventDefault();
@@ -1001,10 +928,10 @@ export default function DomainSetupPage() {
     try {
       setTransferLoading(true);
 
-      // Call backend to log the transfer request
+      // 1) submit transfer request to our backend
       const res = await api.post("/api/domain/transfer", {
         domain: d,
-        eppCode: code, // backend expects eppCode
+        eppCode: code,
       });
 
       const msg =
@@ -1013,8 +940,34 @@ export default function DomainSetupPage() {
 
       setTransferSuccess(msg);
 
-      // Fetch registrar price and show it below
-      await fetchTransferQuote(d);
+      // 2) fetch transfer price from ResellerClub using the same quote endpoint
+      const parts = d.split(".");
+      if (parts.length >= 2) {
+        const tldPart = parts[parts.length - 1]; // com, net, ae...
+        const namePart = parts[0]; // mydomain
+
+        try {
+          const quoteRes = await api.get(
+            `/api/resellerclub/domain/quote?name=${encodeURIComponent(
+              namePart
+            )}&tld=${encodeURIComponent(tldPart)}`
+          );
+
+          const quoteData = quoteRes?.data || quoteRes;
+          const priceAed = quoteData?.priceAed;
+
+          if (typeof priceAed === "number" && !Number.isNaN(priceAed)) {
+            setTransferPrice(priceAed);
+          } else {
+            setTransferPrice(null);
+          }
+        } catch (innerErr) {
+          console.error("Transfer quote error:", innerErr);
+          setTransferPrice(null);
+        }
+      }
+
+      // No auto-redirect; user will click "Continue to checkout"
     } catch (err) {
       console.error("Transfer error:", err);
       setTransferError(
@@ -1041,6 +994,7 @@ export default function DomainSetupPage() {
     try {
       setDnsLoading(true);
 
+      // REAL backend call
       const res = await api.post("/api/domain/dns", { domain: d });
 
       const msg =
@@ -1057,7 +1011,7 @@ export default function DomainSetupPage() {
     }
   };
 
-  /* ---------------- RENDER HELPERS: NEW DOMAIN ---------------- */
+  /* ---------------- RENDER HELPERS ---------------- */
 
   const renderStatusAlert = () => {
     if (!checkResult) return null;
@@ -1093,7 +1047,9 @@ export default function DomainSetupPage() {
     const displayCurrency = currency || "AED";
     const hasPrice = typeof priceAed === "number" && !Number.isNaN(priceAed);
 
-    const registrarLabel = hasPrice ? formatMoney(priceAed, displayCurrency) : "";
+    const registrarLabel = hasPrice
+      ? formatMoney(priceAed, displayCurrency)
+      : "";
     const includedLabel =
       typeof includedAed === "number"
         ? formatMoney(includedAed, displayCurrency)
@@ -1166,8 +1122,6 @@ export default function DomainSetupPage() {
       </div>
     );
   };
-
-  /* ---------------- RENDER: NEW DOMAIN ---------------- */
 
   const renderNewDomain = () => (
     <div className="row g-4">
@@ -1255,8 +1209,6 @@ export default function DomainSetupPage() {
     </div>
   );
 
-  /* ---------------- RENDER: TRANSFER ---------------- */
-
   const renderTransfer = () => (
     <div className="row g-4">
       <div className="col-lg-7">
@@ -1304,23 +1256,14 @@ export default function DomainSetupPage() {
             </div>
           )}
 
-          {transferQuoteLoading && (
-            <div className="alert alert-info py-2 px-3 mb-2">
-              Fetching registrar transfer price…
-            </div>
-          )}
-
-          {transferPrice != null && !transferQuoteLoading && (
+          {transferPrice != null && (
             <div className="alert alert-info py-2 px-3 mb-3">
               Estimated transfer price from registrar:{" "}
-              <strong>
-                {formatMoney(transferPrice, transferPriceCurrency)}
-              </strong>{" "}
-              / year
+              <strong>{formatMoney(transferPrice, "AED")}</strong> / year
             </div>
           )}
 
-          <div className="d-flex flex-wrap gap-2">
+          <div className="d-flex gap-3">
             <button
               type="submit"
               className="btn btn-primary rounded-pill"
@@ -1331,13 +1274,8 @@ export default function DomainSetupPage() {
 
             <button
               type="button"
-              className="btn btn-outline-primary rounded-pill"
-              onClick={goToCheckoutFromTransfer}
-              disabled={
-                transferLoading ||
-                typeof transferPrice !== "number" ||
-                Number.isNaN(transferPrice)
-              }
+              className="btn btn-outline-secondary rounded-pill"
+              onClick={() => goToCheckout()}
             >
               Continue to checkout
             </button>
@@ -1357,8 +1295,6 @@ export default function DomainSetupPage() {
       </div>
     </div>
   );
-
-  /* ---------------- RENDER: DNS ONLY ---------------- */
 
   const renderDns = () => (
     <div className="row g-4">
