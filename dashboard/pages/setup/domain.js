@@ -794,6 +794,7 @@ export default function DomainSetupPage() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState("");
+  const [transferPrice, setTransferPrice] = useState(null); // 🔹 price from backend
 
   // DNS ONLY STATE
   const [dnsDomain, setDnsDomain] = useState("");
@@ -898,9 +899,7 @@ export default function DomainSetupPage() {
       setQuote(quoteRes.data || quoteRes);
     } catch (err) {
       console.error("Domain setup error:", err);
-      setError(
-        err.message || "Something went wrong while checking domain."
-      );
+      setError(err.message || "Something went wrong while checking domain.");
     } finally {
       setLoading(false);
     }
@@ -912,6 +911,7 @@ export default function DomainSetupPage() {
     e.preventDefault();
     setTransferError("");
     setTransferSuccess("");
+    setTransferPrice(null);
 
     const d = transferDomain.trim().toLowerCase();
     const code = authCode.trim();
@@ -928,10 +928,10 @@ export default function DomainSetupPage() {
     try {
       setTransferLoading(true);
 
-      // 🔗 REAL backend call
+      // 🔗 REAL backend call – backend expects { domain, eppCode }
       const res = await api.post("/api/domain/transfer", {
         domain: d,
-        eppCode: code, // ✅ must match backend expected field
+        eppCode: code,
       });
 
       const msg =
@@ -940,8 +940,16 @@ export default function DomainSetupPage() {
 
       setTransferSuccess(msg);
 
-      // small delay then go to checkout
-      setTimeout(() => goToCheckout(), 800);
+      // 🔹 read price from backend and show it on this page
+      const price = res?.data?.transferPrice;
+      if (typeof price === "number" && !Number.isNaN(price)) {
+        setTransferPrice(price);
+      } else {
+        setTransferPrice(null);
+      }
+
+      // ❌ DO NOT redirect automatically; user will continue manually
+      // setTimeout(() => goToCheckout(), 800);
     } catch (err) {
       console.error("Transfer error:", err);
       setTransferError(
@@ -979,9 +987,7 @@ export default function DomainSetupPage() {
       setTimeout(() => goToCheckout(), 800);
     } catch (err) {
       console.error("DNS attach error:", err);
-      setDnsError(
-        err.message || "Something went wrong while saving domain."
-      );
+      setDnsError(err.message || "Something went wrong while saving domain.");
     } finally {
       setDnsLoading(false);
     }
@@ -1019,15 +1025,11 @@ export default function DomainSetupPage() {
   const renderQuoteCard = () => {
     if (!quote || checkResult?.status !== "available") return null;
 
-    const { priceAed, includedAed, extraAed, isFreeWithPlan, currency } =
-      quote;
+    const { priceAed, includedAed, extraAed, isFreeWithPlan, currency } = quote;
     const displayCurrency = currency || "AED";
-    const hasPrice =
-      typeof priceAed === "number" && !Number.isNaN(priceAed);
+    const hasPrice = typeof priceAed === "number" && !Number.isNaN(priceAed);
 
-    const registrarLabel = hasPrice
-      ? formatMoney(priceAed, displayCurrency)
-      : "";
+    const registrarLabel = hasPrice ? formatMoney(priceAed, displayCurrency) : "";
     const includedLabel =
       typeof includedAed === "number"
         ? formatMoney(includedAed, displayCurrency)
@@ -1072,8 +1074,8 @@ export default function DomainSetupPage() {
             <>
               {isFreeWithPlan ? (
                 <div className="alert alert-success mt-2 py-2 px-3 mb-2">
-                  This domain is <strong>free</strong> with your current
-                  plan (within {includedLabel}).
+                  This domain is <strong>free</strong> with your current plan
+                  (within {includedLabel}).
                 </div>
               ) : (
                 <div className="alert alert-warning mt-2 py-2 px-3 mb-2">
@@ -1086,8 +1088,7 @@ export default function DomainSetupPage() {
 
           <p className="mb-3">
             Prices are fetched in real time from our registrar (ResellerClub) in{" "}
-            {displayCurrency}. Renewal pricing after the first year may
-            change.
+            {displayCurrency}. Renewal pricing after the first year may change.
           </p>
 
           <button
@@ -1158,9 +1159,7 @@ export default function DomainSetupPage() {
           )}
 
           {error && (
-            <div className="alert alert-danger py-2 px-3 mb-2">
-              {error}
-            </div>
+            <div className="alert alert-danger py-2 px-3 mb-2">{error}</div>
           )}
 
           <button
@@ -1234,6 +1233,13 @@ export default function DomainSetupPage() {
           {transferSuccess && (
             <div className="alert alert-success py-2 px-3 mb-2">
               {transferSuccess}
+            </div>
+          )}
+
+          {transferPrice != null && (
+            <div className="alert alert-info py-2 px-3 mb-3">
+              Estimated transfer price from registrar:{" "}
+              <strong>{formatMoney(transferPrice, "AED")}</strong> / year
             </div>
           )}
 
