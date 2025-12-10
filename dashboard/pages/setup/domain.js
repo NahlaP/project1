@@ -794,7 +794,7 @@ export default function DomainSetupPage() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState("");
-  const [transferPrice, setTransferPrice] = useState(null); // 🔹 price from backend
+  const [transferPrice, setTransferPrice] = useState(null); // 🔹 price from ResellerClub
 
   // DNS ONLY STATE
   const [dnsDomain, setDnsDomain] = useState("");
@@ -925,10 +925,19 @@ export default function DomainSetupPage() {
       return;
     }
 
+    // Extract name + tld from "mydomain.com"
+    const parts = d.split(".");
+    if (parts.length < 2) {
+      setTransferError("Please enter a full domain like mybusiness.com");
+      return;
+    }
+    const transferTld = parts[parts.length - 1];
+    const transferName = parts.slice(0, -1).join(".");
+
     try {
       setTransferLoading(true);
 
-      // 🔗 REAL backend call – backend expects { domain, eppCode }
+      // 1) Save transfer request in our backend (no price yet)
       const res = await api.post("/api/domain/transfer", {
         domain: d,
         eppCode: code,
@@ -937,19 +946,33 @@ export default function DomainSetupPage() {
       const msg =
         (res && (res.message || res.msg)) ||
         "Transfer request submitted. We’ll process it and update you.";
-
       setTransferSuccess(msg);
 
-      // 🔹 read price from backend and show it on this page
-      const price = res?.data?.transferPrice;
-      if (typeof price === "number" && !Number.isNaN(price)) {
-        setTransferPrice(price);
-      } else {
-        setTransferPrice(null);
+      // 2) Fetch price from ResellerClub using the same quote endpoint
+      try {
+        const quoteRes = await api.get(
+          `/api/resellerclub/domain/quote?name=${encodeURIComponent(
+            transferName
+          )}&tld=${encodeURIComponent(transferTld)}`
+        );
+
+        if (!quoteRes || quoteRes.error || quoteRes.ok === false) {
+          console.warn(
+            "Transfer quote failed:",
+            quoteRes && (quoteRes.error || quoteRes.message)
+          );
+        } else {
+          const q = quoteRes.data || quoteRes;
+          const price = q?.priceAed;
+          if (typeof price === "number" && !Number.isNaN(price)) {
+            setTransferPrice(price);
+          }
+        }
+      } catch (quoteErr) {
+        console.error("Error fetching transfer price:", quoteErr);
       }
 
-      // ❌ DO NOT redirect automatically; user will continue manually
-      // setTimeout(() => goToCheckout(), 800);
+      // NOTE: do NOT auto-redirect; user stays here and sees the price
     } catch (err) {
       console.error("Transfer error:", err);
       setTransferError(
