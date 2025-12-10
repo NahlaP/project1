@@ -1,11 +1,17 @@
 // backend/routes/domaintransfer.routes.ts
 import { Router } from "express";
-import { saveTransferDomain } from "../controllers/domaintransfer.controller";
+import {
+  submitDomainTransfer,
+  saveDnsOnlyDomain,
+} from "../controllers/domaintransfer.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 
 const r = Router();
 
-// ✅ Protected route (same pattern as /me)
-r.post("/transfer", requireAuth, saveTransferDomain);
+// POST /api/domain/transfer
+r.post("/transfer", requireAuth, submitDomainTransfer);
+
+// POST /api/domain/dns
+r.post("/dns", requireAuth, saveDnsOnlyDomain);
 
 export default r;

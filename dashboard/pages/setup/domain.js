@@ -867,11 +867,11 @@ export default function DomainSetupPage() {
         )}&tlds=${encodeURIComponent(tld)}`
       );
 
-      if (!checkRes.ok) {
+      if (!checkRes || checkRes.error || checkRes.ok === false) {
         throw new Error(checkRes.error || "Domain check failed");
       }
 
-      const list = checkRes.data;
+      const list = checkRes.data || checkRes;
       const first = Array.isArray(list) ? list[0] : null;
 
       if (!first) {
@@ -892,14 +892,16 @@ export default function DomainSetupPage() {
         )}&tld=${encodeURIComponent(tld)}`
       );
 
-      if (!quoteRes.ok) {
+      if (!quoteRes || quoteRes.error || quoteRes.ok === false) {
         throw new Error(quoteRes.error || "Domain quote failed");
       }
 
-      setQuote(quoteRes.data);
+      setQuote(quoteRes.data || quoteRes);
     } catch (err) {
       console.error("Domain setup error:", err);
-      setError(err.message || "Something went wrong while checking domain.");
+      setError(
+        err.message || "Something went wrong while checking domain."
+      );
     } finally {
       setLoading(false);
     }
@@ -927,15 +929,19 @@ export default function DomainSetupPage() {
     try {
       setTransferLoading(true);
 
-      // 🔗 Call backend to save domain + EPP on the user
-      const res = await api.saveDomainTransfer(d, code);
+      // 🔗 REAL backend call
+      const res = await api.post("/api/domain/transfer", {
+        domain: d,
+        authCode: code,
+      });
 
-      setTransferSuccess(
-        res?.message ||
-          "Transfer request submitted. We’ll process it and update you."
-      );
+      const msg =
+        (res && (res.message || res.msg)) ||
+        "Transfer request submitted. We’ll process it and update you.";
 
-      // Small delay so user can see success state
+      setTransferSuccess(msg);
+
+      // small delay then go to checkout
       setTimeout(() => goToCheckout(), 800);
     } catch (err) {
       console.error("Transfer error:", err);
@@ -962,14 +968,21 @@ export default function DomainSetupPage() {
 
     try {
       setDnsLoading(true);
-      // For now just pretend we saved it; you can wire a real API later
-      setDnsSuccess(
-        "Domain saved. Please update your DNS records to point to ION7."
-      );
+
+      // 🔗 REAL backend call
+      const res = await api.post("/api/domain/dns", { domain: d });
+
+      const msg =
+        (res && (res.message || res.msg)) ||
+        "Domain saved. Please update your DNS records to point to ION7.";
+      setDnsSuccess(msg);
+
       setTimeout(() => goToCheckout(), 800);
     } catch (err) {
       console.error("DNS attach error:", err);
-      setDnsError(err.message || "Something went wrong while saving domain.");
+      setDnsError(
+        err.message || "Something went wrong while saving domain."
+      );
     } finally {
       setDnsLoading(false);
     }
@@ -1007,9 +1020,11 @@ export default function DomainSetupPage() {
   const renderQuoteCard = () => {
     if (!quote || checkResult?.status !== "available") return null;
 
-    const { priceAed, includedAed, extraAed, isFreeWithPlan, currency } = quote;
+    const { priceAed, includedAed, extraAed, isFreeWithPlan, currency } =
+      quote;
     const displayCurrency = currency || "AED";
-    const hasPrice = typeof priceAed === "number" && !Number.isNaN(priceAed);
+    const hasPrice =
+      typeof priceAed === "number" && !Number.isNaN(priceAed);
 
     const registrarLabel = hasPrice
       ? formatMoney(priceAed, displayCurrency)
@@ -1058,8 +1073,8 @@ export default function DomainSetupPage() {
             <>
               {isFreeWithPlan ? (
                 <div className="alert alert-success mt-2 py-2 px-3 mb-2">
-                  This domain is <strong>free</strong> with your current plan
-                  (within {includedLabel}).
+                  This domain is <strong>free</strong> with your current
+                  plan (within {includedLabel}).
                 </div>
               ) : (
                 <div className="alert alert-warning mt-2 py-2 px-3 mb-2">
@@ -1072,7 +1087,8 @@ export default function DomainSetupPage() {
 
           <p className="mb-3">
             Prices are fetched in real time from our registrar (ResellerClub) in{" "}
-            {displayCurrency}. Renewal pricing after the first year may change.
+            {displayCurrency}. Renewal pricing after the first year may
+            change.
           </p>
 
           <button
@@ -1143,7 +1159,9 @@ export default function DomainSetupPage() {
           )}
 
           {error && (
-            <div className="alert alert-danger py-2 px-3 mb-2">{error}</div>
+            <div className="alert alert-danger py-2 px-3 mb-2">
+              {error}
+            </div>
           )}
 
           <button
@@ -1317,7 +1335,7 @@ export default function DomainSetupPage() {
 
         <main className="flex-grow-1 px-4 py-4">
           <div className="domain-setup">
-            {/* HEADER WITH ICON (old style) */}
+            {/* HEADER WITH ICON */}
             <div className="domain-head card shadow-sm border-0 rounded-4 mb-3 px-4 py-3">
               <div className="d-flex align-items-center justify-content-between gap-3">
                 <div className="d-flex align-items-center gap-3">
@@ -1386,7 +1404,6 @@ export default function DomainSetupPage() {
       </div>
 
       <style jsx>{`
-        /* Page font a bit bigger */
         .domain-setup {
           font-size: 15px;
         }
