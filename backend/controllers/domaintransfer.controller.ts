@@ -99,7 +99,7 @@ import { Request, Response } from "express";
 
 export async function submitDomainTransfer(req: Request, res: Response) {
   try {
-    const { domain, eppCode } = req.body || {}; // ✅ MUST be eppCode
+    const { domain, eppCode } = req.body || {};
 
     if (!domain || typeof domain !== "string") {
       return res.status(400).json({ error: "domain is required" });
@@ -111,8 +111,13 @@ export async function submitDomainTransfer(req: Request, res: Response) {
         .json({ error: "EPP / auth code (eppCode) is required" });
     }
 
-    // ✅ THIS is how your auth works everywhere else:
-    const userId = (req as any).user?.id;
+    // ✅ FIX: Correct user extraction
+    const user = (req as any).user;
+    const userId = user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
 
     console.log("[DomainTransfer] New transfer request", {
       userId,
@@ -120,7 +125,7 @@ export async function submitDomainTransfer(req: Request, res: Response) {
       eppCode,
     });
 
-    // ✅ Later you can call ResellerClub here
+    // ✅ FUTURE: Call ResellerClub Transfer API here
 
     return res.json({
       ok: true,
@@ -144,7 +149,12 @@ export async function saveDnsOnlyDomain(req: Request, res: Response) {
       return res.status(400).json({ error: "domain is required" });
     }
 
-    const userId = (req as any).user?.id;
+    const user = (req as any).user;
+    const userId = user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
 
     console.log("[DomainTransfer] DNS-only domain attached", {
       userId,
