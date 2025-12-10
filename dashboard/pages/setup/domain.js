@@ -751,7 +751,6 @@
 
 
 
-
 // dashboard/pages/setup/domain.js
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -932,7 +931,7 @@ export default function DomainSetupPage() {
       // 🔗 REAL backend call
       const res = await api.post("/api/domain/transfer", {
         domain: d,
-        authCode: code,
+        eppCode: code, // ✅ must match backend expected field
       });
 
       const msg =
