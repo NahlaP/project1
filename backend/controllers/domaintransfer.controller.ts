@@ -85,45 +85,66 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 // backend/controllers/domaintransfer.controller.ts
 import { Request, Response } from "express";
 
-// Small helper to safely read userId from req
-function getUserId(req: Request): string | null {
-  const anyReq = req as any;
+/**
+ * Small helper to safely read userId from the request.
+ * `requireAuth` usually sets `req.user = { id, email, ... }`
+ */
+function extractUserId(req: Request): string | null {
+  const r: any = req;
 
-  return (
-    anyReq.user?.id || // same style as other controllers
-    (anyReq.user?._id?.toString
-      ? anyReq.user._id.toString()
-      : anyReq.user?._id) ||
-    anyReq.userId ||
-    null
-  );
+  if (r.user?.id) return String(r.user.id);
+  if (r.user?.userId) return String(r.user.userId);
+  if (r.user?._id) {
+    return r.user._id.toString ? r.user._id.toString() : String(r.user._id);
+  }
+  if (r.userId) return String(r.userId);
+
+  return null;
 }
 
+/**
+ * POST /api/domain/transfer
+ * Body: { domain: string, eppCode: string }
+ */
 export async function submitDomainTransfer(req: Request, res: Response) {
   try {
-    const { domain, authCode } = req.body || {};
+    const { domain, eppCode } = (req.body || {}) as {
+      domain?: string;
+      eppCode?: string;
+    };
 
     if (!domain || typeof domain !== "string") {
       return res.status(400).json({ error: "domain is required" });
     }
-    if (!authCode || typeof authCode !== "string") {
-      return res.status(400).json({ error: "authCode is required" });
+    if (!eppCode || typeof eppCode !== "string") {
+      return res
+        .status(400)
+        .json({ error: "EPP / auth code (eppCode) is required" });
     }
 
-    const userId = getUserId(req); // may be null if something odd, but we don't 401 here
-
+    const userId = extractUserId(req);
     const cleanDomain = domain.trim().toLowerCase();
 
     console.log("[DomainTransfer] New transfer request", {
       userId,
       domain: cleanDomain,
-      // do NOT log authCode
+      eppCode,
     });
 
-    // TODO: In future: call ResellerClub API to actually start transfer.
+    // TODO: later call ResellerClub API to really start the transfer.
 
     return res.json({
       ok: true,
@@ -139,15 +160,20 @@ export async function submitDomainTransfer(req: Request, res: Response) {
   }
 }
 
+/**
+ * POST /api/domain/dns
+ * Body: { domain: string }
+ * Used for "Use existing (DNS)" option.
+ */
 export async function saveDnsOnlyDomain(req: Request, res: Response) {
   try {
-    const { domain } = req.body || {};
+    const { domain } = (req.body || {}) as { domain?: string };
+
     if (!domain || typeof domain !== "string") {
       return res.status(400).json({ error: "domain is required" });
     }
 
-    const userId = getUserId(req);
-
+    const userId = extractUserId(req);
     const cleanDomain = domain.trim().toLowerCase();
 
     console.log("[DomainTransfer] DNS-only domain attached", {
@@ -155,7 +181,7 @@ export async function saveDnsOnlyDomain(req: Request, res: Response) {
       domain: cleanDomain,
     });
 
-    // TODO: later: save to Domain model so widget can show it.
+    // TODO: later save to a Domain model so the domain widget can show it.
 
     return res.json({
       ok: true,
