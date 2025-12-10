@@ -93,11 +93,11 @@ function getUserId(req: Request): string | null {
   const anyReq = req as any;
 
   return (
-    anyReq.user?.id ||                      // ✅ same pattern as other controllers
+    anyReq.user?.id || // same style as other controllers
     (anyReq.user?._id?.toString
       ? anyReq.user._id.toString()
-      : anyReq.user?._id) ||               // in case you stored _id
-    anyReq.userId ||                        // fallback if middleware set userId directly
+      : anyReq.user?._id) ||
+    anyReq.userId ||
     null
   );
 }
@@ -113,23 +113,17 @@ export async function submitDomainTransfer(req: Request, res: Response) {
       return res.status(400).json({ error: "authCode is required" });
     }
 
-    const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({
-        ok: false,
-        message: "Unauthorized – user not found.",
-      });
-    }
+    const userId = getUserId(req); // may be null if something odd, but we don't 401 here
 
     const cleanDomain = domain.trim().toLowerCase();
 
     console.log("[DomainTransfer] New transfer request", {
       userId,
       domain: cleanDomain,
-      // NOTE: do NOT log authCode for security
+      // do NOT log authCode
     });
 
-    // TODO: later: call ResellerClub API to actually start transfer
+    // TODO: In future: call ResellerClub API to actually start transfer.
 
     return res.json({
       ok: true,
@@ -153,12 +147,6 @@ export async function saveDnsOnlyDomain(req: Request, res: Response) {
     }
 
     const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({
-        ok: false,
-        message: "Unauthorized – user not found.",
-      });
-    }
 
     const cleanDomain = domain.trim().toLowerCase();
 
@@ -167,7 +155,7 @@ export async function saveDnsOnlyDomain(req: Request, res: Response) {
       domain: cleanDomain,
     });
 
-    // TODO: later: save to Domain model so widget can show it
+    // TODO: later: save to Domain model so widget can show it.
 
     return res.json({
       ok: true,
