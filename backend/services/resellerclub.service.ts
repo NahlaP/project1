@@ -1,5 +1,8 @@
 
 
+// // currrent one
+
+
 // // backend/services/resellerclub.service.ts
 
 // // Use Node's built-in fetch (Node 18+)
@@ -155,7 +158,6 @@
 //   [productKey: string]: any;
 // };
 
-
 // function getProductKeyForTld(tld: string): string | null {
 //   const clean = tld.replace(/^\./, "").toLowerCase();
 
@@ -171,17 +173,12 @@
 
 //   const key = envMap[clean];
 //   if (!key) {
-//     console.error(
-//       "[ResellerClub] No product-key configured for TLD:",
-//       clean
-//     );
+//     console.warn("[ResellerClub] No product-key configured for TLD:", clean);
 //     return null;
 //   }
 
 //   return key;
 // }
-
-
 
 // /**
 //  * Call /products/customer-price.json for the TLD and read the 1-year
@@ -200,7 +197,7 @@
 //   const productKey = getProductKeyForTld(tld);
 
 //   if (!productKey) {
-//     // No env set → cannot get price
+//     // No env set → cannot get price from this endpoint
 //     return { price: null, currency };
 //   }
 
@@ -259,6 +256,117 @@
 // }
 
 // /* -------------------------------------------------------------------------- */
+// /*  PREMIUM-CHECK FALLBACK (PER-DOMAIN PRICE)                                 */
+// /* -------------------------------------------------------------------------- */
+
+// type PremiumCheckResponse = {
+//   costHash?: {
+//     create?: string; // customer price (selling currency)
+//     renew?: string;
+//     transfer?: string;
+//     sellingCurrencySymbol?: string;
+//     [key: string]: any;
+//   };
+//   resellerCostPriceHash?: {
+//     create?: string;
+//     renew?: string;
+//     transfer?: string;
+//     [key: string]: any;
+//   };
+//   [key: string]: any;
+// };
+
+// async function fetchResellerPriceForDomain(
+//   fullDomain: string
+// ): Promise<{ price: number | null; currency?: string }> {
+//   if (!fetchFn) {
+//     throw new Error(
+//       "global fetch is not available. Make sure you are running on Node.js 18+."
+//     );
+//   }
+
+//   const params = new URLSearchParams();
+//   params.set("domain-name", fullDomain);
+
+//   const url = buildUrl("/domains/premium-check.json", params);
+
+//   console.log(
+//     "[ResellerClub] Premium check (price):",
+//     url.replace(process.env.RESELLERCLUB_API_KEY || "", "****")
+//   );
+
+//   const res = await fetchFn(url, { method: "GET" });
+//   let json: PremiumCheckResponse | any = {};
+//   try {
+//     json = (await res.json()) as PremiumCheckResponse;
+//   } catch (e) {
+//     console.error("[ResellerClub] premium-check JSON parse error:", e);
+//   }
+
+//   if (!res.ok) {
+//     console.error("[ResellerClub] premium-check HTTP error", res.status, json);
+//     throw new Error(
+//       `ResellerClub premium-check HTTP ${res.status} - ${
+//         (json && json.message) || JSON.stringify(json)
+//       }`
+//     );
+//   }
+
+//   const cost = json.costHash || {};
+//   const createPriceStr: string | undefined =
+//     cost.create || cost.renew || cost.transfer;
+
+//   const rawCurrency: string | undefined = cost.sellingCurrencySymbol;
+
+//   if (!createPriceStr) {
+//     return { price: null, currency: rawCurrency };
+//   }
+
+//   const numeric = Number(createPriceStr);
+//   if (!Number.isFinite(numeric)) {
+//       return { price: null, currency: rawCurrency };
+//   }
+
+//   return { price: numeric, currency: rawCurrency };
+// }
+
+// /**
+//  * Try TLD product price first; if not available, fall back to premium-check.
+//  */
+// async function fetchBestPriceForDomain(
+//   fullDomain: string,
+//   tld: string
+// ): Promise<{ price: number | null; currency?: string }> {
+//   const { currency: defaultCurrency } = getConfig();
+
+//   let price: number | null = null;
+//   let currency: string | undefined = defaultCurrency;
+
+//   // 1) Try TLD product price
+//   try {
+//     const res1 = await fetchTldPriceAed(tld);
+//     if (res1.price != null) {
+//       return res1; // best case
+//     }
+//   } catch (e) {
+//     console.error("[ResellerClub] TLD customer-price failed:", e);
+//   }
+
+//   // 2) Fallback to premium-check (per domain)
+//   try {
+//     const res2 = await fetchResellerPriceForDomain(fullDomain);
+//     if (res2.price != null) {
+//       price = res2.price;
+//       currency = res2.currency || currency;
+//     }
+//   } catch (e) {
+//     console.error("[ResellerClub] premium-check fallback failed:", e);
+//   }
+
+//   return { price, currency };
+// }
+
+// /* -------------------------------------------------------------------------- */
 // /*  QUOTE = AVAILABILITY + REAL PRICE + FREE CREDIT LOGIC                     */
 // /* -------------------------------------------------------------------------- */
 
@@ -285,16 +393,19 @@
 //       rawStatus: "unknown",
 //     } as DomainAvailability);
 
-//   // 2) Live price based on TLD product-key (no hard-coded price)
+//   // 2) Get best possible price
 //   let priceAed: number | null = null;
 //   let currency: string | undefined;
 
 //   try {
-//     const { price, currency: cur } = await fetchTldPriceAed(cleanTld);
+//     const { price, currency: cur } = await fetchBestPriceForDomain(
+//       fullDomain,
+//       cleanTld
+//     );
 //     priceAed = price;
 //     currency = cur;
 //   } catch (err) {
-//     console.error("[ResellerClub] customer-price failed:", err);
+//     console.error("[ResellerClub] price lookup failed:", err);
 //     // keep priceAed = null so UI can show "Price unavailable"
 //   }
 
@@ -322,6 +433,11 @@
 //     currency,
 //   };
 // }
+
+
+
+
+
 
 
 
@@ -529,8 +645,9 @@ function getProductKeyForTld(tld: string): string | null {
 }
 
 /**
- * Call /products/customer-price.json for the TLD and read the 1-year
- * "addnewdomain" price for the product-key (e.g. domcno for .com).
+ * Call /products/customer-price.json for the TLD and read the addnewdomain price.
+ * Prefer 1-year ("1"), but if missing (e.g. .ae is 2+ years), fall back to the
+ * lowest available tenure key.
  */
 async function fetchTldPriceAed(
   tld: string
@@ -561,6 +678,7 @@ async function fetchTldPriceAed(
   );
 
   const res = await fetchFn(url, { method: "GET" });
+
   let json: CustomerPriceResponse | any = {};
   try {
     json = (await res.json()) as CustomerPriceResponse;
@@ -572,30 +690,57 @@ async function fetchTldPriceAed(
     console.error("[ResellerClub] customer-price HTTP error", res.status, json);
     throw new Error(
       `ResellerClub customer-price HTTP ${res.status} - ${
-        (json && json.message) || JSON.stringify(json)
+        (json && (json as any).message) || JSON.stringify(json)
       }`
     );
   }
 
   const productNode = (json as any)[productKey] || {};
   const addNew = productNode.addnewdomain || {};
-  const oneYearStr: string | number | undefined = addNew["1"];
 
-  if (oneYearStr === undefined || oneYearStr === null) {
+  // 1) Prefer 1-year price
+  let priceStr: string | number | undefined = addNew["1"];
+
+  // 2) Fallback → choose the smallest available tenure key (e.g. "2" years)
+  if (priceStr === undefined || priceStr === null) {
+    const keys = Object.keys(addNew);
+    if (keys.length > 0) {
+      const sorted = keys
+        .map((k) => ({ k, n: Number(k) }))
+        .filter((x) => Number.isFinite(x.n))
+        .sort((a, b) => a.n - b.n);
+
+      if (sorted.length > 0) {
+        const bestKey = sorted[0].k;
+        priceStr = (addNew as any)[bestKey];
+        console.warn(
+          "[ResellerClub] No 1-year price; using lowest available tenure",
+          {
+            tld,
+            productKey,
+            chosenTenure: bestKey,
+            priceStr,
+          }
+        );
+      }
+    }
+  }
+
+  if (priceStr === undefined || priceStr === null) {
     console.warn(
-      "[ResellerClub] No 1-year addnewdomain price found for product-key",
+      "[ResellerClub] No addnewdomain price found for product-key",
       productKey
     );
     return { price: null, currency };
   }
 
-  const numeric = Number(oneYearStr);
+  const numeric = Number(priceStr);
   if (!Number.isFinite(numeric)) {
     console.warn(
       "[ResellerClub] Non-numeric price for product-key",
       productKey,
       "value:",
-      oneYearStr
+      priceStr
     );
     return { price: null, currency };
   }
@@ -672,7 +817,7 @@ async function fetchResellerPriceForDomain(
 
   const numeric = Number(createPriceStr);
   if (!Number.isFinite(numeric)) {
-      return { price: null, currency: rawCurrency };
+    return { price: null, currency: rawCurrency };
   }
 
   return { price: numeric, currency: rawCurrency };
