@@ -1,12 +1,10 @@
 // backend/services/resellerTransfer.service.ts
-
-const fetchFn: typeof fetch = (globalThis as any).fetch;
+import axios from "axios";
 
 const BASE = process.env.RESELLERCLUB_API_BASE!;
 const RC_USER = process.env.RESELLERCLUB_USERID!;
 const RC_KEY = process.env.RESELLERCLUB_API_KEY!;
 
-// PRICE KEYS (from your .env)
 const PRICE_KEYS: Record<string, string> = {
   com: process.env.RESELLERCLUB_PRICEKEY_COM!,
   net: process.env.RESELLERCLUB_PRICEKEY_NET!,
@@ -19,37 +17,46 @@ const PRICE_KEYS: Record<string, string> = {
 };
 
 function buildUrl(path: string) {
-  return `${BASE}${path}?auth-userid=${RC_USER}&api-key=${RC_KEY}`;
+  const params = new URLSearchParams({
+    "auth-userid": RC_USER,
+    "api-key": RC_KEY,
+  });
+  return `${BASE}${path}?${params.toString()}`;
 }
 
+/**
+ * Returns original transfer cost for a TLD from ResellerClub.
+ */
 export async function getTldTransferCost(tld: string): Promise<number | null> {
   const key = PRICE_KEYS[tld];
 
   if (!key) {
-    throw new Error(`No product key for TLD: ${tld}`);
+    throw new Error(`No product key configured for TLD: ${tld}`);
   }
 
   const url = buildUrl("/products/customer-price.json");
-  const res = await fetchFn(url);
 
-  if (!res.ok) {
-    throw new Error(`ResellerClub Error: ${res.status}`);
-  }
-
-  const data = await res.json();
+  const res = await axios.get(url);
+  const data = res.data || {};
   const product = data[key];
 
   if (!product) {
-    throw new Error(`Pricing not found for TLD: ${tld}`);
+    throw new Error(`No pricing data found for productKey ${key} (tld=${tld})`);
   }
 
-  // Transfer price is inside: addtransferdomain["1"]
-  const costStr =
+  const raw =
     product.addtransferdomain?.["1"] ??
     product.transferdomain?.["1"] ??
     null;
 
-  if (!costStr) return null;
+  if (!raw) {
+    return null; // transfer not set for this tld
+  }
 
-  return parseFloat(costStr); // AED amount
+  const num = parseFloat(raw);
+  if (Number.isNaN(num)) {
+    throw new Error(`Transfer cost is not a valid number for ${tld}: ${raw}`);
+  }
+
+  return num;
 }

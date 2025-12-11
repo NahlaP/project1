@@ -18,7 +18,11 @@ export async function getTransferCostController(req: Request, res: Response) {
       transferAed: cost,
     });
   } catch (err: any) {
-    console.error("Transfer Cost Error:", err);
-    return res.status(500).json({ error: "Failed to fetch transfer cost" });
+    console.error("Transfer Cost Error:", err?.message || err);
+
+    return res.status(500).json({
+      error: "Failed to fetch transfer cost",
+      detail: err?.message || String(err),     // 👈 IMPORTANT
+    });
   }
 }
