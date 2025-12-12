@@ -348,7 +348,7 @@ safeMount("/api/email-manager", () => require("./routes/emailManager.routes"));
 safeMount("/api/domain", () => require("./routes/domain.routes"));
 safeMount("/api/domain", () => require("./routes/domaintransfer.routes"));
 safeMount("/api/resellerclub", () => require("./routes/resellerclub.routes"));
-
+safeMount("/api/openprovider", () => require("./routes/openprovider.routes"));
 /* Billing (runtime APIs) */
 safeMount("/api/billing", () => require("./routes/billing.elements.routes"));
 safeMount("/api/billing", () => require("./routes/billing.verify.routes"));
