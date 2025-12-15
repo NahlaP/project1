@@ -6,6 +6,7 @@
 // import Stripe from "stripe";
 // import crypto from "crypto";
 // import User from "../models/User";
+// import axios from "axios";
 
 // const SECRET = process.env.STRIPE_SECRET_KEY!;
 // if (!SECRET) throw new Error("STRIPE_SECRET_KEY missing");
@@ -38,6 +39,97 @@
 //   return `${prefix}:${h}`;
 // }
 
+// /* -------------------------- Money helpers -------------------------- */
+// const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+// // Stripe invoice must be 1 currency. Your plan is AED, so convert provider USD -> AED.
+// const FX_USD_TO_AED = Number(process.env.FX_USD_TO_AED || "3.6725");
+// function usdToAedCents(usdAmount: number) {
+//   const aed = usdAmount * FX_USD_TO_AED;
+//   return Math.max(0, Math.round(aed * 100));
+// }
+// function aedToAedCents(aedAmount: number) {
+//   return Math.max(0, Math.round(aedAmount * 100));
+// }
+
+// /* -------------------------- DOMAIN PRODUCT (AUTO CREATE) -------------------------- */
+// /**
+//  * Creates a unique Stripe product for this user's domain line.
+//  * This avoids TS error (product_data not allowed here) and satisfies
+//  * "auto create product in stripe for each user".
+//  */
+// async function getOrCreateDomainProductId(args: {
+//   userId: string | undefined;
+//   domain: string;
+//   domainType: "new" | "transfer";
+//   providerCurrency: string;
+//   providerPrice: number;
+// }) {
+//   const { userId, domain, domainType, providerCurrency, providerPrice } = args;
+
+//   // You can decide your own naming/metadata strategy here
+//   const name = `Domain ${domainType}: ${domain}`;
+
+//   const p = await stripe.products.create({
+//     name,
+//     metadata: {
+//       ion7_domain: domain,
+//       ion7_domain_type: domainType,
+//       userId: userId || "",
+//       provider_currency: providerCurrency,
+//       provider_price: String(round(providerPrice)),
+//       fx_usd_to_aed: String(FX_USD_TO_AED),
+//     },
+//   });
+
+//   return p.id;
+// }
+
+// /* -------------------------- DOMAIN PRICE (LATEST) -------------------------- */
+// /**
+//  * Uses YOUR backend Openprovider quote endpoint so price is always "latest".
+//  * Required env:
+//  *  - BACKEND_PUBLIC_ORIGIN (recommended) OR will fallback to localhost.
+//  *
+//  * Endpoint expected:
+//  *   GET /api/openprovider/domains/quote?domain=...&type=new|transfer
+//  * returns { ok:true, price:number|null, currency:string|null }
+//  */
+// async function getDomainProviderQuote(domain: string, domainType: "new" | "transfer") {
+//   const base =
+//     (process.env.BACKEND_PUBLIC_ORIGIN || process.env.BACKEND_ORIGIN || "http://127.0.0.1:5000").replace(
+//       /\/$/,
+//       ""
+//     );
+
+//   const url = `${base}/api/openprovider/domains/quote?domain=${encodeURIComponent(
+//     domain
+//   )}&type=${encodeURIComponent(domainType)}`;
+
+//   const { data } = await axios.get(url, { timeout: 25_000 });
+
+//   const price = data?.price;
+//   const currency = data?.currency;
+
+//   return {
+//     price: typeof price === "number" ? price : null,
+//     currency: typeof currency === "string" ? currency.toUpperCase() : null,
+//   };
+// }
+
+// /**
+//  * Return provider price and currency (from Openprovider)
+//  */
+// async function getDomainPrice(domain: string, domainType: "new" | "transfer") {
+//   const q = await getDomainProviderQuote(domain, domainType);
+
+//   if (q.price == null || !q.currency) {
+//     throw new Error(`Domain quote missing price/currency for ${domain} (${domainType})`);
+//   }
+
+//   return { providerPrice: q.price, providerCurrency: q.currency };
+// }
+
 // /* -------------------------- Helpers -------------------------- */
 // async function getOrCreateCustomer({
 //   userId,
@@ -65,11 +157,7 @@
 
 //   if (userId) {
 //     try {
-//       await User.findByIdAndUpdate(
-//         userId,
-//         { stripeCustomerId: cust.id },
-//         { new: true }
-//       );
+//       await User.findByIdAndUpdate(userId, { stripeCustomerId: cust.id }, { new: true });
 //     } catch {}
 //   }
 //   return cust.id;
@@ -96,9 +184,7 @@
 //   });
 //   return (
 //     ordered.find((s) =>
-//       ["active", "trialing", "past_due", "incomplete", "unpaid"].includes(
-//         s.status
-//       )
+//       ["active", "trialing", "past_due", "incomplete", "unpaid"].includes(s.status)
 //     ) || null
 //   );
 // }
@@ -112,12 +198,10 @@
 //     if (piAny) {
 //       if (typeof piAny === "string") {
 //         const pi = await stripe.paymentIntents.retrieve(piAny);
-//         if (pi.client_secret)
-//           return { mode: "payment" as const, clientSecret: pi.client_secret };
+//         if (pi.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
 //       } else if (isStripeObj(piAny, "payment_intent")) {
 //         const pi = piAny as Stripe.PaymentIntent;
-//         if (pi.client_secret)
-//           return { mode: "payment" as const, clientSecret: pi.client_secret };
+//         if (pi.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
 //       }
 //     }
 //   } else if (typeof latest === "string") {
@@ -125,8 +209,7 @@
 //       expand: ["payment_intent"],
 //     })) as any;
 //     const pi = inv.payment_intent;
-//     if (pi?.client_secret)
-//       return { mode: "payment" as const, clientSecret: pi.client_secret };
+//     if (pi?.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
 //   }
 
 //   // Fallback: pending SetupIntent
@@ -134,19 +217,34 @@
 //   if (pending) {
 //     if (typeof pending === "string") {
 //       const si = await stripe.setupIntents.retrieve(pending);
-//       if (si.client_secret)
-//         return { mode: "setup" as const, clientSecret: si.client_secret };
+//       if (si.client_secret) return { mode: "setup" as const, clientSecret: si.client_secret };
 //     } else if (isStripeObj(pending, "setup_intent")) {
 //       const si = pending as Stripe.SetupIntent;
-//       if (si.client_secret)
-//         return { mode: "setup" as const, clientSecret: si.client_secret };
+//       if (si.client_secret) return { mode: "setup" as const, clientSecret: si.client_secret };
 //     }
 //   }
 
 //   return null;
 // }
 
-// /* ---------- Start Elements flow: return PI *or* SI client secret (or null) ---------- */
+// function pickInvoiceSummary(sub: Stripe.Subscription) {
+//   const latest = sub.latest_invoice;
+//   if (!latest || typeof latest === "string") return null;
+
+//   const inv = latest as Stripe.Invoice;
+//   const currency = (inv.currency || "aed").toUpperCase();
+
+//   return {
+//     id: inv.id,
+//     currency,
+//     amount_due: inv.amount_due ?? null,
+//     amount_paid: inv.amount_paid ?? null,
+//     hosted_invoice_url: inv.hosted_invoice_url ?? null,
+//     invoice_pdf: inv.invoice_pdf ?? null,
+//   };
+// }
+
+// /* ---------- Start Elements flow ---------- */
 // /**
 //  * POST /api/billing/elements/start
 //  * body: {
@@ -155,9 +253,8 @@
 //  *   name?: string,
 //  *   country?, address1?, city?, postalCode?,
 //  *   domain?: string,
-//  *   domainExtraCents?: number
+//  *   domainType?: "new"|"transfer"|"dns"
 //  * }
-//  * returns: { ok: true, mode?: "payment"|"setup", subscriptionId, customerId, status, clientSecret|null }
 //  */
 // r.post("/elements/start", async (req: ReqWithUser, res) => {
 //   try {
@@ -170,7 +267,7 @@
 //       city,
 //       postalCode,
 //       domain,
-//       domainExtraCents,
+//       domainType,
 //     } = (req.body || {}) as {
 //       priceId?: string;
 //       email?: string;
@@ -180,7 +277,7 @@
 //       city?: string;
 //       postalCode?: string;
 //       domain?: string;
-//       domainExtraCents?: number | string;
+//       domainType?: "new" | "transfer" | "dns";
 //     };
 
 //     if (!priceId) return res.status(400).json({ error: "Missing priceId" });
@@ -191,21 +288,15 @@
 
 //     const userId = req.user?.userId;
 
-//     // 🔢 Normalize domain extra cents
-//     const domainExtraCentsNum =
-//       typeof domainExtraCents === "number"
-//         ? domainExtraCents
-//         : parseInt(String(domainExtraCents || 0), 10) || 0;
+//     const dt: "new" | "transfer" | "dns" = domainType || "new";
+//     const shouldChargeDomain = !!domain && dt !== "dns";
 
-//     console.log(
-//       "[billing/elements/start] domain payload:",
-//       JSON.stringify({ domain, domainExtraCents, domainExtraCentsNum })
-//     );
+//     console.log("[billing/elements/start] domain:", { domain, domainType: dt });
 
 //     // 1) Ensure & persist Customer
 //     const customerId = await getOrCreateCustomer({ userId, email, name });
 
-//     // Keep customer fresh (optional, helps with tax/country)
+//     // keep customer address updated
 //     await stripe.customers.update(customerId, {
 //       email,
 //       name,
@@ -221,10 +312,9 @@
 //         : {}),
 //     });
 
-//     // ⚠️ If we have a domain extra charge, force a fresh subscription
-//     const shouldForceNewSub = !!domain && domainExtraCentsNum > 0;
+//     // 2) If we are adding a domain line, force a fresh subscription invoice
+//     const shouldForceNewSub = shouldChargeDomain;
 
-//     // 2) If no domain extra → we may reuse existing subscription
 //     let existingMaybe: Stripe.Subscription | null = null;
 //     if (!shouldForceNewSub) {
 //       existingMaybe = await findExistingSub(customerId);
@@ -255,16 +345,15 @@
 //             );
 //           } catch {}
 //         }
-//         console.log(
-//           "[billing/elements/start] Reusing ACTIVE subscription:",
-//           existing.id
-//         );
+
 //         return res.json({
 //           ok: true,
 //           subscriptionId: existing.id,
 //           customerId,
 //           status: existing.status,
 //           clientSecret: null,
+//           invoice: pickInvoiceSummary(existing),
+//           domain: null,
 //         });
 //       }
 
@@ -284,12 +373,7 @@
 //             );
 //           } catch {}
 //         }
-//         console.log(
-//           "[billing/elements/start] Reusing INCOMPLETE subscription:",
-//           existing.id,
-//           "mode:",
-//           sec.mode
-//         );
+
 //         return res.json({
 //           ok: true,
 //           mode: sec.mode,
@@ -297,9 +381,10 @@
 //           customerId,
 //           status: existing.status,
 //           clientSecret: sec.clientSecret,
+//           invoice: pickInvoiceSummary(existing),
+//           domain: null,
 //         });
 //       }
-//       // else: fall through and create a fresh sub
 //     }
 
 //     // 3) Build Subscription create params
@@ -316,7 +401,7 @@
 //       metadata: {
 //         userId: userId || "",
 //         priceId,
-//         ...(domain ? { ion7_domain: domain } : {}),
+//         ...(domain ? { ion7_domain: domain, ion7_domain_type: dt } : {}),
 //       },
 //       expand: [
 //         "latest_invoice",
@@ -326,55 +411,61 @@
 //       ],
 //     };
 
-//     // 4) If there is a domain extra amount → add it as an invoice item
-//     if (domain && Number.isFinite(domainExtraCentsNum) && domainExtraCentsNum > 0) {
-//       const unitAmount = Math.floor(domainExtraCentsNum);
+//     // 4) Add domain invoice item (NO product_data, create Product first)
+//     let domainMeta: any = null;
 
-//       // Get the product id from the plan price so TS type stays happy
-//       const price = await stripe.prices.retrieve(priceId as string, {
-//         expand: ["product"],
-//       });
-//       const productId =
-//         typeof price.product === "string" ? price.product : price.product.id;
+//     if (shouldChargeDomain) {
+//       const dtt: "new" | "transfer" = dt === "transfer" ? "transfer" : "new";
 
-//       console.log(
-//         "[billing/elements/start] Adding domain invoice item:",
-//         domain,
-//         "extra (cents):",
-//         unitAmount,
-//         "product:",
-//         productId
-//       );
+//       const { providerPrice, providerCurrency } = await getDomainPrice(domain!, dtt);
 
-//       createParams.add_invoice_items = [
-//         {
-//           price_data: {
-//             currency: "aed",
-//             unit_amount: unitAmount,
-//             product: productId,
+//       // Convert provider -> AED cents for Stripe invoice item
+//       let chargeAedCents = 0;
+//       if (providerCurrency === "USD") chargeAedCents = usdToAedCents(providerPrice);
+//       else if (providerCurrency === "AED") chargeAedCents = aedToAedCents(providerPrice);
+//       else {
+//         throw new Error(`Unsupported provider currency: ${providerCurrency} (domain ${domain})`);
+//       }
+
+//       if (chargeAedCents > 0) {
+//         const productId = await getOrCreateDomainProductId({
+//           userId,
+//           domain: domain!,
+//           domainType: dtt,
+//           providerCurrency,
+//           providerPrice,
+//         });
+
+//         createParams.add_invoice_items = [
+//           {
+//             price_data: {
+//               currency: "aed",
+//               unit_amount: chargeAedCents,
+//               product: productId, // ✅ TS-safe (no product_data)
+//             },
+//             quantity: 1,
 //           },
-//           quantity: 1,
-//         },
-//       ];
-//     } else {
-//       console.log(
-//         "[billing/elements/start] NO domain invoice item",
-//         { domain, domainExtraCentsNum }
-//       );
+//         ];
+//       }
+
+//       domainMeta = {
+//         name: domain,
+//         type: dtt,
+//         providerCurrency,
+//         providerPrice: round(providerPrice),
+//         chargeAedCents: chargeAedCents || null,
+//         fxUsdToAed: FX_USD_TO_AED,
+//       };
 //     }
 
-//     const idempotencyKey = makeIdempoKey(
-//       `elements-start:${customerId}:${priceId}`,
-//       {
-//         ...createParams,
-//         // strip expand to avoid noisy keys in the hash
-//         expand: undefined,
-//       }
-//     );
-
-//     const created = await stripe.subscriptions.create(createParams, {
-//       idempotencyKey,
+//     const idempotencyKey = makeIdempoKey(`elements-start:${customerId}:${priceId}`, {
+//       customerId,
+//       priceId,
+//       domain: domain || "",
+//       domainType: dt,
 //     });
+
+//     const created = await stripe.subscriptions.create(createParams, { idempotencyKey });
 
 //     const sub = await stripe.subscriptions.retrieve(created.id, {
 //       expand: [
@@ -402,18 +493,6 @@
 
 //     const sec = await extractClientSecretFromSub(sub);
 
-//     console.log(
-//       "[billing/elements/start] Created NEW subscription:",
-//       sub.id,
-//       "status:",
-//       sub.status,
-//       "hasDomainItem:",
-//       !!(
-//         createParams.add_invoice_items &&
-//         createParams.add_invoice_items.length
-//       )
-//     );
-
 //     return res.json({
 //       ok: true,
 //       ...(sec ? { mode: sec.mode } : {}),
@@ -421,6 +500,8 @@
 //       customerId,
 //       status: sub.status,
 //       clientSecret: sec?.clientSecret ?? null,
+//       invoice: pickInvoiceSummary(sub),
+//       domain: domainMeta,
 //     });
 //   } catch (e: any) {
 //     console.error("[/api/billing/elements/start] error:", e?.message || e);
@@ -429,7 +510,6 @@
 // });
 
 // /* ---------- Read a subscription (used by /welcome?sid=...) ---------- */
-// // GET /api/billing/elements/subscriptions/:id
 // r.get("/elements/subscriptions/:id", async (req, res) => {
 //   try {
 //     const sub = await stripe.subscriptions.retrieve(req.params.id, {
@@ -445,8 +525,7 @@
 //   }
 // });
 
-// // ---------- Invoices for My Subscription page ----------
-// // GET /api/billing/invoices
+// /* ---------- Invoices for My Subscription page ---------- */
 // r.get("/invoices", async (req: ReqWithUser, res) => {
 //   try {
 //     const userId =
@@ -454,14 +533,10 @@
 //       (req.query.userId as string | undefined) ||
 //       null;
 
-//     if (!userId) {
-//       return res.status(401).json({ error: "Unauthorized" });
-//     }
+//     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
 //     const user = await User.findById(userId).lean();
-//     if (!user?.stripeCustomerId) {
-//       return res.json({ items: [], upcoming: null });
-//     }
+//     if (!user?.stripeCustomerId) return res.json({ items: [], upcoming: null });
 
 //     const invoices = await stripe.invoices.list({
 //       customer: user.stripeCustomerId,
@@ -496,8 +571,7 @@
 //             status: "upcoming",
 //             amount: upcoming.amount_due ?? null,
 //             currency: upcoming.currency?.toUpperCase() ?? "AED",
-//             created:
-//               upcoming.next_payment_attempt ?? upcoming.created ?? null,
+//             created: upcoming.next_payment_attempt ?? upcoming.created ?? null,
 //             hosted_invoice_url: upcoming.hosted_invoice_url ?? null,
 //             invoice_pdf: upcoming.invoice_pdf ?? null,
 //           }
@@ -522,6 +596,27 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// current working one
 
 // backend/routes/billing.elements.routes.ts
 import { Router, Request } from "express";
@@ -566,6 +661,7 @@ const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 // Stripe invoice must be 1 currency. Your plan is AED, so convert provider USD -> AED.
 const FX_USD_TO_AED = Number(process.env.FX_USD_TO_AED || "3.6725");
+
 function usdToAedCents(usdAmount: number) {
   const aed = usdAmount * FX_USD_TO_AED;
   return Math.max(0, Math.round(aed * 100));
@@ -577,10 +673,9 @@ function aedToAedCents(aedAmount: number) {
 /* -------------------------- DOMAIN PRODUCT (AUTO CREATE) -------------------------- */
 /**
  * Creates a unique Stripe product for this user's domain line.
- * This avoids TS error (product_data not allowed here) and satisfies
- * "auto create product in stripe for each user".
+ * Stripe invoice items need product id (TS safe).
  */
-async function getOrCreateDomainProductId(args: {
+async function createDomainProductId(args: {
   userId: string | undefined;
   domain: string;
   domainType: "new" | "transfer";
@@ -589,7 +684,6 @@ async function getOrCreateDomainProductId(args: {
 }) {
   const { userId, domain, domainType, providerCurrency, providerPrice } = args;
 
-  // You can decide your own naming/metadata strategy here
   const name = `Domain ${domainType}: ${domain}`;
 
   const p = await stripe.products.create({
@@ -607,31 +701,51 @@ async function getOrCreateDomainProductId(args: {
   return p.id;
 }
 
-/* -------------------------- DOMAIN PRICE (LATEST) -------------------------- */
+/* -------------------------- DOMAIN PRICE (SOURCE OF TRUTH) -------------------------- */
 /**
- * Uses YOUR backend Openprovider quote endpoint so price is always "latest".
- * Required env:
- *  - BACKEND_PUBLIC_ORIGIN (recommended) OR will fallback to localhost.
+ * IMPORTANT:
+ * - transfer MUST use your USD transfer endpoint (same as domain setup page):
+ *     GET /api/openprovider/domains/transfer-price?domain=...
+ * - new can use:
+ *     GET /api/openprovider/domains/quote?domain=...&type=new
  *
- * Endpoint expected:
- *   GET /api/openprovider/domains/quote?domain=...&type=new|transfer
- * returns { ok:true, price:number|null, currency:string|null }
+ * Adjust the "new" endpoint if your backend uses a different one.
  */
 async function getDomainProviderQuote(domain: string, domainType: "new" | "transfer") {
-  const base =
-    (process.env.BACKEND_PUBLIC_ORIGIN || process.env.BACKEND_ORIGIN || "http://127.0.0.1:5000").replace(
-      /\/$/,
-      ""
-    );
+  const base = (
+    process.env.BACKEND_PUBLIC_ORIGIN ||
+    process.env.BACKEND_ORIGIN ||
+    "http://127.0.0.1:5000"
+  ).replace(/\/$/, "");
 
-  const url = `${base}/api/openprovider/domains/quote?domain=${encodeURIComponent(
-    domain
-  )}&type=${encodeURIComponent(domainType)}`;
+  let url = "";
+
+  if (domainType === "transfer") {
+    // ✅ SAME API your setup page uses
+    url = `${base}/api/openprovider/domains/transfer-price?domain=${encodeURIComponent(domain)}`;
+  } else {
+    // ✅ New domain quote endpoint (keep or replace with your actual endpoint)
+    url = `${base}/api/openprovider/domains/quote?domain=${encodeURIComponent(
+      domain
+    )}&type=new`;
+  }
 
   const { data } = await axios.get(url, { timeout: 25_000 });
 
-  const price = data?.price;
-  const currency = data?.currency;
+  // Be tolerant with wrappers
+  const root = data?.data ?? data;
+
+  const price =
+    root?.data?.price?.reseller?.price ??
+    root?.price?.reseller?.price ??
+    root?.price ??
+    null;
+
+  const currency =
+    root?.data?.price?.reseller?.currency ??
+    root?.price?.reseller?.currency ??
+    root?.currency ??
+    null;
 
   return {
     price: typeof price === "number" ? price : null,
@@ -639,16 +753,11 @@ async function getDomainProviderQuote(domain: string, domainType: "new" | "trans
   };
 }
 
-/**
- * Return provider price and currency (from Openprovider)
- */
 async function getDomainPrice(domain: string, domainType: "new" | "transfer") {
   const q = await getDomainProviderQuote(domain, domainType);
-
   if (q.price == null || !q.currency) {
     throw new Error(`Domain quote missing price/currency for ${domain} (${domainType})`);
   }
-
   return { providerPrice: q.price, providerCurrency: q.currency };
 }
 
@@ -674,8 +783,7 @@ async function getOrCreateCustomer({
 
   const existing = await stripe.customers.list({ email: e, limit: 1 });
   const cust =
-    existing.data[0] ??
-    (await stripe.customers.create({ email: e, name: name || undefined }));
+    existing.data[0] ?? (await stripe.customers.create({ email: e, name: name || undefined }));
 
   if (userId) {
     try {
@@ -691,6 +799,7 @@ async function findExistingSub(customerId: string) {
     status: "all",
     limit: 100,
   });
+
   const ordered = subs.data.sort((a, b) => {
     const rank = (s: string) =>
       s === "incomplete"
@@ -704,6 +813,7 @@ async function findExistingSub(customerId: string) {
         : 4;
     return rank(a.status) - rank(b.status);
   });
+
   return (
     ordered.find((s) =>
       ["active", "trialing", "past_due", "incomplete", "unpaid"].includes(s.status)
@@ -712,7 +822,6 @@ async function findExistingSub(customerId: string) {
 }
 
 async function extractClientSecretFromSub(sub: Stripe.Subscription) {
-  // Latest invoice → PaymentIntent
   const latest = sub.latest_invoice;
   if (latest && typeof latest !== "string" && isStripeObj(latest, "invoice")) {
     const inv = latest as Stripe.Invoice;
@@ -727,14 +836,11 @@ async function extractClientSecretFromSub(sub: Stripe.Subscription) {
       }
     }
   } else if (typeof latest === "string") {
-    const inv = (await stripe.invoices.retrieve(latest, {
-      expand: ["payment_intent"],
-    })) as any;
+    const inv = (await stripe.invoices.retrieve(latest, { expand: ["payment_intent"] })) as any;
     const pi = inv.payment_intent;
     if (pi?.client_secret) return { mode: "payment" as const, clientSecret: pi.client_secret };
   }
 
-  // Fallback: pending SetupIntent
   const pending = (sub as any).pending_setup_intent;
   if (pending) {
     if (typeof pending === "string") {
@@ -769,14 +875,6 @@ function pickInvoiceSummary(sub: Stripe.Subscription) {
 /* ---------- Start Elements flow ---------- */
 /**
  * POST /api/billing/elements/start
- * body: {
- *   priceId: string,
- *   email?: string,
- *   name?: string,
- *   country?, address1?, city?, postalCode?,
- *   domain?: string,
- *   domainType?: "new"|"transfer"|"dns"
- * }
  */
 r.post("/elements/start", async (req: ReqWithUser, res) => {
   try {
@@ -813,12 +911,9 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
     const dt: "new" | "transfer" | "dns" = domainType || "new";
     const shouldChargeDomain = !!domain && dt !== "dns";
 
-    console.log("[billing/elements/start] domain:", { domain, domainType: dt });
-
-    // 1) Ensure & persist Customer
+    // 1) Customer
     const customerId = await getOrCreateCustomer({ userId, email, name });
 
-    // keep customer address updated
     await stripe.customers.update(customerId, {
       email,
       name,
@@ -834,7 +929,7 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
         : {}),
     });
 
-    // 2) If we are adding a domain line, force a fresh subscription invoice
+    // 2) Existing subscription reuse ONLY when no domain charge
     const shouldForceNewSub = shouldChargeDomain;
 
     let existingMaybe: Stripe.Subscription | null = null;
@@ -909,7 +1004,7 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       }
     }
 
-    // 3) Build Subscription create params
+    // 3) Subscription create base
     const createParams: Stripe.SubscriptionCreateParams = {
       customer: customerId,
       items: [{ price: priceId, quantity: 1 }],
@@ -933,7 +1028,7 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
       ],
     };
 
-    // 4) Add domain invoice item (NO product_data, create Product first)
+    // 4) Domain add-on line (convert USD → AED here)
     let domainMeta: any = null;
 
     if (shouldChargeDomain) {
@@ -941,16 +1036,14 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
 
       const { providerPrice, providerCurrency } = await getDomainPrice(domain!, dtt);
 
-      // Convert provider -> AED cents for Stripe invoice item
       let chargeAedCents = 0;
+
       if (providerCurrency === "USD") chargeAedCents = usdToAedCents(providerPrice);
       else if (providerCurrency === "AED") chargeAedCents = aedToAedCents(providerPrice);
-      else {
-        throw new Error(`Unsupported provider currency: ${providerCurrency} (domain ${domain})`);
-      }
+      else throw new Error(`Unsupported provider currency: ${providerCurrency} (domain ${domain})`);
 
       if (chargeAedCents > 0) {
-        const productId = await getOrCreateDomainProductId({
+        const productId = await createDomainProductId({
           userId,
           domain: domain!,
           domainType: dtt,
@@ -963,20 +1056,20 @@ r.post("/elements/start", async (req: ReqWithUser, res) => {
             price_data: {
               currency: "aed",
               unit_amount: chargeAedCents,
-              product: productId, // ✅ TS-safe (no product_data)
+              product: productId,
             },
             quantity: 1,
           },
         ];
       }
 
+      // ✅ IMPORTANT: return fields matching your checkout.js
       domainMeta = {
-        name: domain,
+        name: domain!,
         type: dtt,
-        providerCurrency,
-        providerPrice: round(providerPrice),
+        priceUsd: providerCurrency === "USD" ? round(providerPrice) : null,
+        fx: FX_USD_TO_AED,
         chargeAedCents: chargeAedCents || null,
-        fxUsdToAed: FX_USD_TO_AED,
       };
     }
 
@@ -1106,3 +1199,67 @@ r.get("/invoices", async (req: ReqWithUser, res) => {
 });
 
 export default r;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
