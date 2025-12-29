@@ -1,11 +1,6 @@
 
 
 
-
-
-
-// // current one
-
 // // dashboard/lib/api.js
 // // NEXT_PUBLIC_BACKEND_ORIGIN=http://3.109.207.179  (or http://127.0.0.1:5000 for local)
 
@@ -322,7 +317,8 @@
 //    *   city,
 //    *   postalCode,
 //    *   domain?,            // ✅ NEW
-//    *   domainExtraCents?,  // ✅ NEW
+//    *   domainType?,        // ✅ NEW  ("new" | "transfer" | "dns")
+//    *   domainExtraCents?,  // ✅ NEW  (kept for backward compatibility)
 //    * }
 //    */
 //   billingStartElements(
@@ -335,7 +331,8 @@
 //       city,
 //       postalCode,
 //       domain,
-//       domainExtraCents,
+//       domainType,        // ✅ ADDED (DO NOT REMOVE)
+//       domainExtraCents,  // kept as-is
 //     } = {}
 //   ) {
 //     return request(`/api/billing/elements/start`, {
@@ -351,7 +348,8 @@
 //         postalCode,
 //         // 🔴 forward domain data to backend
 //         domain,
-//         domainExtraCents,
+//         domainType,        // ✅ IMPORTANT: send domainType so backend doesn't default to "new"
+//         domainExtraCents,  // kept as-is
 //       }),
 //     });
 //   },
@@ -680,45 +678,6 @@
 //     window.api = api;
 //   } catch {}
 // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

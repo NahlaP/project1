@@ -2,8 +2,6 @@
 
 
 
-// // og
-
 // // dashboard/pages/choose-plan.js
 // import Head from "next/head";
 // import { useEffect, useState } from "react";
@@ -22,8 +20,14 @@
 //       try {
 //         setErr("");
 //         const me = await api.me(); // { next: 'dashboard' | 'checkout' | 'choose-plan' }
+
+//         // ✅ If already fully onboarded
 //         if (me?.next === "dashboard") return router.replace("/dashboard");
-//         if (me?.next === "checkout")  return router.replace("/checkout");
+
+//         // ✅ If backend says "checkout", we now resume at SETUP (domain step)
+//         if (me?.next === "checkout") {
+//           return router.replace("/setup/domain");
+//         }
 
 //         const data = await api.listPlans();
 //         setPlans(data);
@@ -39,9 +43,12 @@
 //     })();
 //   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+//   // ✅ Now: ChoosePlan → Setup page (with priceId + billing in query)
 //   const handleSelect = (priceId) => {
 //     if (!priceId) return;
-//     router.push(`/checkout?priceId=${encodeURIComponent(priceId)}&billing=${billing}`);
+//     router.push(
+//       `/setup/domain?priceId=${encodeURIComponent(priceId)}&billing=${billing}`
+//     );
 //   };
 
 //   if (loading) {
@@ -102,10 +109,18 @@
 
 //           {/* Billing toggle */}
 //           <div className="toggle">
-//             <button onClick={() => setBilling("monthly")} className={`pill ${billing === "monthly" ? "active" : ""}`} type="button">
+//             <button
+//               onClick={() => setBilling("monthly")}
+//               className={`pill ${billing === "monthly" ? "active" : ""}`}
+//               type="button"
+//             >
 //               Monthly
 //             </button>
-//             <button onClick={() => setBilling("yearly")} className={`pill ${billing === "yearly" ? "active" : ""}`} type="button">
+//             <button
+//               onClick={() => setBilling("yearly")}
+//               className={`pill ${billing === "yearly" ? "active" : ""}`}
+//               type="button"
+//             >
 //               Yearly
 //             </button>
 //           </div>
@@ -155,7 +170,9 @@
 //                 </div>
 
 //                 {highlighted && (
-//                   <div className="promo">Build and manage multiple websites — get full creative control with ION7 PRO</div>
+//                   <div className="promo">
+//                     Build and manage multiple websites — get full creative control with ION7 PRO
+//                   </div>
 //                 )}
 
 //                 <ul className="features">
@@ -181,7 +198,11 @@
 //                   )}
 //                 </ul>
 
-//                 <button onClick={() => handleSelect(p.priceId)} className="btn" type="button">
+//                 <button
+//                   onClick={() => handleSelect(p.priceId)}
+//                   className="btn"
+//                   type="button"
+//                 >
 //                   Get Started
 //                 </button>
 //               </div>
@@ -239,6 +260,21 @@
 //     </>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
