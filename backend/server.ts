@@ -352,6 +352,8 @@ safeMount("/api/openprovider", () => require("./routes/openprovider.routes"));
 /* Billing (runtime APIs) */
 safeMount("/api/billing", () => require("./routes/billing.elements.routes"));
 safeMount("/api/billing", () => require("./routes/billing.verify.routes"));
+safeMount("/api/tenant", () => require("./routes/tenant.routes"));
+
 
 // STORAGE ROUTES (safe mount)
 safeMount("/api/storage", () => require("./routes/storage.routes"));
