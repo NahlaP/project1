@@ -51,6 +51,17 @@ const SidebarItem = ({ icon, label, href }) => {
         style={{ textDecoration: 'none', cursor: 'default' }}
         aria-current="page"
       >
+        <svg className="frost" viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'>
+            <filter id='noiseFilter'>
+              <feTurbulence 
+                type='fractalNoise' 
+                baseFrequency='20.43' 
+                numOctaves='400' 
+                stitchTiles='stitch'/>
+            </filter>
+            
+            <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
+        </svg>
         <FontAwesomeIcon icon={faIcon} className="fs-5" />
         <span>{label}</span>
       </div>

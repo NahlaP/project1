@@ -5,6 +5,7 @@ import NavbarTop from './navbars/NavbarTop';
 
 const NAVBAR_H = 48; // top bar height (if needed)
 const BREAKPOINT = 1120; // breakpoint for compact mode
+const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const DefaultDashboardLayout = (props) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -74,8 +75,7 @@ const DefaultDashboardLayout = (props) => {
             <Col sm={12} className="text-center">
               <p className="m-0">
                 © {new Date().getFullYear()} ION7 CMS by{' '}
-                <img src="images/svg/mavsketch.png" alt="Mavsketch" />
-                . All rights reserved.
+                <img src={`${base}/images/svg/mavsketchv1.2.png`} alt="Mavsketch" /> | All rights reserved.
               </p>
             </Col>
           </Row>

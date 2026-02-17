@@ -7,7 +7,7 @@ import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import NavbarTop from '../../layouts/navbars/NavbarTop';
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelopeCircleCheck, faPaperPlane, faInfinity, faTrashCan, faEnvelope, faSliders} from "@fortawesome/free-solid-svg-icons";
+import { faEnvelopeCircleCheck, faPaperPlane, faInfinity, faTrashCan, faEnvelope, faSliders, faX} from "@fortawesome/free-solid-svg-icons";
 
 const CPANEL_WEBMAIL = process.env.NEXT_PUBLIC_CPANEL_WEBMAIL || "https://mavsketch.com:2096";
 
@@ -209,9 +209,10 @@ export default function ManageEmailPage() {
 
   async function del() {
     if (!email) return;
-    if (!confirm(`Delete ${email}?`)) return;
-    setDeleting(true);
+    // if (!confirm(`Delete ${email}?`)) return;
+    // setDeleting(true);
     setFlash("");
+    console.log("Deleting email:", email);
     try {
       const destroy = document.getElementById("destroyMail")?.checked ? 1 : 0;
       const r = await fetch(`/next-api/email/${encodeURIComponent(email)}?destroy=${destroy}`, { method: "DELETE" });
@@ -534,7 +535,9 @@ export default function ManageEmailPage() {
                               <button
                                 type="button"
                                 className="primary-btn w-100"
-                                onClick={del} disabled={deleting}
+                                // onClick={del} 
+                                onClick={()=> {setDeleting(true);}}
+                                disabled={deleting}
                               >
                                 {deleting ? "Deleting…" : "Delete Email Account"}
                               </button>
@@ -615,7 +618,7 @@ export default function ManageEmailPage() {
                             <p className="mb-0" style={{ fontSize: "0.9rem" }}>
                               Allocated Storage Space (MB)
                             </p>
-                            <div className="input-box" style={{alignItems: "flex-end"}}>
+                            <div className="input-box">
                               <input
                                 type="number"
                                 min="0"
@@ -687,11 +690,10 @@ export default function ManageEmailPage() {
                           </div>
 
                           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14 }}>
-                            <button type="button" onClick={save} disabled={saving || loading} style={{ ...btn, borderColor: "#22a06b", color: "#167a4f" }}>
+                            <button type="button" className="primary-button" onClick={save} disabled={saving || loading}>
                               {saving ? "Saving…" : "Update Email Settings"}
                             </button>
-                            <div style={{ flex: 1 }} />
-                            <button type="button" onClick={() => router.push("/email-manager")} style={btn}>Go Back</button>
+                            <button type="button" className="light-button" onClick={() => router.push("/email-manager")}>Go Back</button>
                           </div>
 
     
@@ -708,6 +710,10 @@ export default function ManageEmailPage() {
 
             </Row>
 
+
+
+            
+
             {/* delete card */}
             {/* <div style={{ border: "1px solid #f4c7a1", background: "#fff7ea", marginTop: 20, borderRadius: 8, padding: 16, maxWidth: 880 }}>
               <div style={{ fontWeight: 700, color: "#8a5b00", marginBottom: 8 }}>Delete Email Account</div>
@@ -722,6 +728,32 @@ export default function ManageEmailPage() {
                 </button>
               </div>
             </div> */}
+
+            {/* delete confirmation toaster */}
+            {deleting &&
+              <>
+                <div className="toaster-overlay" onClick={() => { setDeleting(false);}}></div>
+                <div className="toaster-fixed">
+                  <div className="toaster-confirmation">
+                    <div className="toast-message">
+                      <h4>
+                      Are you sure to delete the email account <strong>“{email}”</strong>?
+                      </h4>
+                      <label>This action cannot be undone.</label>
+                    </div>
+                    <div className="toast-actions">
+                      <button type="button" onClick={()=>{del();}} className="toaster-botton toaster-delete">
+                        <FontAwesomeIcon icon={faTrashCan} />
+                      </button>
+                      <button type="button" onClick={() => { setDeleting(false);}} className="toaster-botton toaster-cancel">
+                        <FontAwesomeIcon icon={faX} />
+                      </button>
+                      
+                    </div>
+                  </div>
+                </div>
+              </>
+            }
 
           </Container>
 

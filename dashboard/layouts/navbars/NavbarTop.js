@@ -414,7 +414,7 @@ const NavbarTop = ({ isMobile }) => {
                     height="30"
                   />
                   <div className="d-flex flex-column">
-                    <strong className="fs-6">Marco Botton</strong>
+                    <strong className="fs-6">Elijah Mendez</strong>
                     <small className="text-muted">Admin</small>
                   </div>
                 </div>
@@ -435,7 +435,7 @@ const NavbarTop = ({ isMobile }) => {
                 className="rounded-circle"
               />
               <div className="user-info">
-                <strong className="fs-6">Marco Botton</strong>
+                <strong className="fs-6">Elijah Mendez</strong>
                 <small className="text-muted">Admin</small>
               </div>
 

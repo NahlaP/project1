@@ -9,7 +9,8 @@ import SidebarDashly from "../../layouts/navbars/NavbarVertical";
 import NavbarTop from '../../layouts/navbars/NavbarTop';
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRectangleList, faUsers, faFilter, faMagnifyingGlass, faUserPlus, faEllipsisVertical} from "@fortawesome/free-solid-svg-icons";
+import { faRectangleList, faUsers, faFilter, faMagnifyingGlass, faUserPlus, faEllipsisVertical, faCheck, faX, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import LiquidGlass from 'liquid-glass-react';
 
 const CPANEL_USER = "mavsketc";
 const CPANEL_WEBMAIL = process.env.NEXT_PUBLIC_CPANEL_WEBMAIL || "https://mavsketch.com:2096";
@@ -503,9 +504,36 @@ export default function EmailManager() {
 
               {/* First row */}
               <Col xs={12} md={12} lg={12} xl={12} className="">
-                <Row className="g-4 mt-2" style={{height: "100%"}}>
+                <Row className="g-4 mt-2" style={{backgroundImage: "url('https://images.pexels.com/photos/1862000/pexels-photo-1862000.jpeg?_gl=1*fyf8z*_ga*MzI2NjQ4MDQ3LjE3NjIyNTgxMTA.*_ga_8JE65Q40S6*czE3NjgzOTM4NTIkbzQkZzEkdDE3NjgzOTM4OTkkajEzJGwwJGgw')" , height: "100%"}}>
 
                   {/* --Email Capacity-- */}
+
+                  <Col xs={12} md={7} lg={7} xl={7}>
+                    <div style={{width: "100%", display: "flex", height: "300px", position: "relative", overflow: "hidden", borderRadius: 12, padding: 12, boxSizing: "border-box"}}>
+                      <LiquidGlass
+                        displacementScale={100}
+                        blurAmount={0.08}
+                        saturation={130}
+                        aberrationIntensity={2}
+                        elasticity={0.35}
+                        cornerRadius={10}
+                        padding="20px"
+                        // globalMousePos={{ x: mouse.x, y: mouse.y }}
+                        style={{
+                          position: "relative",
+                          width: "calc(100% - 24px)",
+                          height: "calc(100% - 24px)",
+                          boxSizing: "border-box",
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          zIndex: 1,
+                        }}
+                      >
+                        <div style={{ position: "relative", zIndex: 2, color: "#fff", fontWeight: 700 }}>Click Me</div>
+                      </LiquidGlass>
+                    </div>
+                  </Col>
                   <Col xs={12} md={7} lg={7} xl={7}>
                     <Card className="border-0 ion-card h-100 box-card">
                       <Card.Body className="position-relative px-4 pt-5 pb-4">
@@ -631,10 +659,35 @@ export default function EmailManager() {
                         <div className="table-wrapper">
 
                           <div className="widget-header">
-                            <Row className="g-4 mb-5">
-                              <Col xs={6} md={6} lg={6} xl={6}>
+                            <Row className="g-4 mb-3 flex-column-reverse">
+                              <Col xs={12} md={7} lg={8} xl={8}>
                                 <div className="widget-wrapper">
-
+                                {/*DELETE: mini actions */}
+                                  {
+                                  selectedEmails.length > 0 &&
+                                    <div className="widget-delete-wrapper">
+                                      {/* <input
+                                        ref={miniAllRef}
+                                        type="checkbox"
+                                        checked={allVisibleSelected}
+                                        onChange={toggleAllVisible}
+                                        title="Select all on this list"
+                                        style={{ width: 18, height: 18 }}
+                                      /> */}
+                                      <button
+                                        type="button"
+                                        onClick={askDelete}
+                                        disabled={selectedCountVisible === 0 || deleting}
+                                        className="widget-box-delete"
+                                      >
+                                        <h4>Delete</h4>
+                                        <h4 className="bold">
+                                          {loading ? "Loading..." : `(${selectedEmails.length})`}
+                                        </h4>
+                                      </button>
+                                    </div>
+                                  }
+                                {/*FILTER: mini actions */}
                                 {["all", "restricted", "system", "exceeded"].map((f) => (
                                   <div 
                                     className={`widget-box ${filter === f ? "widget-box-active" : "widget-box-border"} `}
@@ -654,9 +707,10 @@ export default function EmailManager() {
                                     </div>
                                   </div>
                                 ))}
+
                                 </div>
                               </Col>
-                              <Col xs={6} md={6} lg={6} xl={6}>
+                              <Col xs={12} md={5} lg={4} xl={4}>
                                 <div className="box-create-wrapper">
                                   {/* <div className="widget-box-create">
                                     <FontAwesomeIcon icon={faUserPlus} />
@@ -677,6 +731,7 @@ export default function EmailManager() {
                                 </div>
                               </Col>
                             </Row>
+                          
                           </div>
 
                           <div className="table">
@@ -840,7 +895,7 @@ export default function EmailManager() {
             </div> */}
 
             {/* search + filters */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 10, maxWidth: 680 }}>
+            {/* <div style={{ display: "flex", gap: 8, marginBottom: 10, maxWidth: 680 }}>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -850,9 +905,9 @@ export default function EmailManager() {
               <button type="button" onClick={() => {}} style={{ ...btn, height: 38 }}>
                 Search
               </button>
-            </div>
+            </div> */}
 
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+            {/* <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
               <span style={{ color: "#667", fontSize: 13 }}>Filter:</span>
               {["all", "restricted", "system", "exceeded"].map((f) => (
                 <button
@@ -871,10 +926,7 @@ export default function EmailManager() {
                   {f[0].toUpperCase() + f.slice(1)}
                 </button>
               ))}
-              <div style={{ color: "#667", marginLeft: "auto", fontSize: 13 }}>
-                {loading ? "Loading..." : `Selected: ${selectedEmails.length}`}
-              </div>
-            </div>
+            </div> */}
 
             {/* page banner (load/delete) */}
             {error && (
@@ -885,56 +937,56 @@ export default function EmailManager() {
 
             {/* confirm delete bar */}
             {showConfirm && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "12px 14px",
-                  marginBottom: 12,
-                  background: "#fff7d6",
-                  border: "1px solid #f1d488",
-                  borderRadius: 6,
-                }}
-              >
-                <div style={{ fontSize: 15, color: "#6b5200", fontWeight: 600 }}>
-                  {selectedCountVisible === 1
-                    ? `Delete “${visibleSelectable.find(v => selected[v.email])?.email}”?`
-                    : `Delete ${selectedCountVisible} email account(s)?`}
+              <>
+                <div className="toaster-overlay" onClick={() => { setShowConfirm(false); setDestroyMail(false); }}></div>
+                <div className="toaster-fixed">
+                  <div className="toaster-confirmation">
+                    <div className="toast-message">
+                      <h4>
+                      {selectedCountVisible === 1
+                        ? `Delete “${visibleSelectable.find(v => selected[v.email])?.email}”?`
+                        : `Delete ${selectedCountVisible} email account(s)?`}
+                      </h4>
+                        <label>
+                          <input style={{marginRight: "5px"}} type="checkbox" checked={destroyMail} onChange={(e) => setDestroyMail(e.target.checked)} />
+                          Also delete mailbox files on disk
+                        </label>
+                    </div>
+                    <div className="toast-actions">
+                      <button type="button" onClick={handleDelete} className="toaster-botton toaster-delete" disabled={deleting}>
+                        {
+                          deleting ? (
+                            <>
+                              <div className="modern-loader">
+                                <svg viewBox="0 0 120 120" className="infinity-loader">
+                                  <path
+                                    className="infinity-path"
+                                    d="M60,15 a45,45 0 0 1 45,45 a45,45 0 0 1 -45,45 a45,45 0 0 1 -45,-45 a45,45 0 0 1 45,-45"
+                                  />
+                                </svg>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={faTrashCan} />
+                            </>
+                          )
+                        }
+                      </button>
+                      <button type="button" onClick={() => { setShowConfirm(false); setDestroyMail(false); }} className="toaster-botton toaster-cancel" disabled={deleting}>
+                        <FontAwesomeIcon icon={faX} />
+                      </button>
+                      {/* <button type="button" onClick={handleDelete} style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00" }} disabled={deleting}>
+                        {deleting ? "Deleting…" : `Delete (${selectedCountVisible})`}
+                      </button>
+                      <button type="button" onClick={() => { setShowConfirm(false); setDestroyMail(false); }} style={btn} disabled={deleting}>
+                        Cancel
+                      </button> */}
+                    </div>
+                  </div>
                 </div>
-                <label style={{ marginLeft: 8, color: "#6b5200", display: "flex", alignItems: "center", gap: 6 }}>
-                  <input type="checkbox" checked={destroyMail} onChange={(e) => setDestroyMail(e.target.checked)} />
-                  Also delete mailbox files on disk
-                </label>
-                <div style={{ flex: 1 }} />
-                <button type="button" onClick={handleDelete} style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00" }} disabled={deleting}>
-                  {deleting ? "Deleting…" : `Delete (${selectedCountVisible})`}
-                </button>
-                <button type="button" onClick={() => { setShowConfirm(false); setDestroyMail(false); }} style={btn} disabled={deleting}>
-                  Cancel
-                </button>
-              </div>
+              </>
             )}
-
-            {/* mini actions */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <input
-                ref={miniAllRef}
-                type="checkbox"
-                checked={allVisibleSelected}
-                onChange={toggleAllVisible}
-                title="Select all on this list"
-                style={{ width: 18, height: 18 }}
-              />
-              <button
-                type="button"
-                onClick={askDelete}
-                style={{ ...btn, borderColor: "#e3a008", color: "#8a5b00", margin: 0 }}
-                disabled={selectedCountVisible === 0 || deleting}
-              >
-                Delete
-              </button>
-            </div>
 
             {/* CREATE MODAL */}
             {showCreate && (
@@ -943,46 +995,53 @@ export default function EmailManager() {
                 onClick={() => !creating && closeCreate()}
               >
                 <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-                  <h3 style={{ marginTop: 0, marginBottom: 12 }}>Create an Email Account</h3>
+                  <div className="border-shadow-top"></div>
+                  <div className="border-shadow-right"></div>
+                  <div className="border-shadow-bottom"></div>
+                  <div className="border-shadow-left"></div>
+                  <h3 className="modal-title">Create an Email Account</h3>
+                  <p className="modal-subtitle">Add your email details</p>
 
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <label style={label}>
-                      Domain
-                      {domainOptions.length > 0 ? (
-                        <select
-                          value={createForm.domain}
-                          onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value }))}
-                          style={input}
-                        >
-                          {domainOptions.map((d) => (<option key={d} value={d}>{d}</option>))}
-                        </select>
-                      ) : (
-                        <input
-                          value={createForm.domain}
-                          onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value.trim() }))}
-                          placeholder="example.com"
-                          style={input}
-                        />
-                      )}
-                    </label>
+                  <div className="modal-body">
+                    <div className="input-group">
+                      <h4>Domain</h4>
+                      <div className="input-box">
+                        {domainOptions.length > 0 ? (
+                            <select
+                              value={createForm.domain}
+                              onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value }))}
+                              className="input-fld"
+                            >
+                              {domainOptions.map((d) => (<option key={d} value={d}>{d}</option>))}
+                            </select>
+                          ) : (
+                            <input
+                              value={createForm.domain}
+                              onChange={(e) => setCreateForm(f => ({ ...f, domain: e.target.value.trim() }))}
+                              placeholder="example.com"
+                              className="input-fld"
+                            />
+                        )} 
+                      </div>
+                    </div>
 
-                    <label style={label}>
-                      Username
-                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <div className="input-group">
+                      <h4>Username</h4>
+                      <div className="input-box">
                         <input
                           value={createForm.user}
                           onChange={(e) => setCreateForm(f => ({ ...f, user: e.target.value.trim() }))}
                           placeholder="e.g. support"
-                          style={{ ...input, flex: 1 }}
+                          className="input-fld"
                         />
-                        <div style={{ fontSize: 13, color: "#667" }}>@{createForm.domain || "domain"}</div>
+                        <div className="input-username">@{createForm.domain || "domain"}</div>
                       </div>
-                    </label>
+                    </div>
 
                     {/* Mode selector */}
-                    <div style={{ display: "grid", gap: 6, marginTop: 4 }}>
-                      <div style={{ fontSize: 13, color: "#2d3748", fontWeight: 600 }}>Password Options</div>
-                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#2d3748" }}>
+                    <div className="input-group">
+                      <h4>Password Options</h4>
+                      <div className="input-box input-select">
                         <input
                           type="radio"
                           name="mode"
@@ -990,8 +1049,8 @@ export default function EmailManager() {
                           onChange={() => setCreateForm(f => ({ ...f, mode: "password" }))}
                         />
                         Set password now
-                      </label>
-                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#2d3748" }}>
+                      </div>
+                      <div className="input-box input-select">
                         <input
                           type="radio"
                           name="mode"
@@ -999,90 +1058,104 @@ export default function EmailManager() {
                           onChange={() => setCreateForm(f => ({ ...f, mode: "invite", password: "" }))}
                         />
                         Send login link to alternate email
-                      </label>
+                      </div>
                     </div>
 
                     {/* Password (only when mode=password) */}
                     {createForm.mode === "password" && (
-                      <label style={label}>
-                        Password
-                        <div style={{ display: "flex", gap: 8 }}>
+                      <div className="input-group">
+                        <h4>Password</h4>
+                        <div className="input-box">
                           <input
                             type="text"
                             value={createForm.password}
                             onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
                             placeholder="Enter password"
-                            style={{ ...input, flex: 1 }}
+                            className="input-fld"
                           />
-                          <button type="button" onClick={genStrongPass} style={btn}>Generate</button>
+                          <button type="button" className="primary-button" onClick={genStrongPass}>Generate</button>
                         </div>
-                      </label>
+                      </div>
                     )}
 
                   
                     {createForm.mode === "invite" && (
-                      <label style={label}>
-                        Alternate email (where we send the login link)
-                        <input
-                          type="email"
-                          value={createForm.alternateEmail}
-                          onChange={(e) => setCreateForm(f => ({ ...f, alternateEmail: e.target.value.trim() }))}
-                          placeholder="user@example.com"
-                          style={input}
-                        />
-                      </label>
+                      <div className="input-group">
+                        <h4>Alternate email (where we send the login link)</h4>
+                        <div className="input-box">
+                          <input
+                            type="email"
+                            value={createForm.alternateEmail}
+                            onChange={(e) => setCreateForm(f => ({ ...f, alternateEmail: e.target.value.trim() }))}
+                            placeholder="user@example.com"
+                            className="input-fld"
+                          />
+                        </div>
+                      </div>
                     )}
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
-                      <label style={label}>
-                        Quota (MB)
-                        <input
-                          type="number"
-                          min="0"
-                          disabled={createForm.unlimited}
-                          value={createForm.unlimited ? 0 : createForm.quotaMB}
-                          onChange={(e) => setCreateForm(f => ({ ...f, quotaMB: e.target.value }))}
-                          style={input}
-                        />
-                      </label>
-                      <label style={{ ...label, alignSelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={createForm.unlimited}
-                          onChange={(e) => setCreateForm(f => ({ ...f, unlimited: e.target.checked }))}
-                        />
-                        Unlimited
-                      </label>
+                      <div className="input-group">
+                        <h4>Quota (MB)</h4>
+                        <div className="input-box">
+                          <input
+                            type="number"
+                            min="0"
+                            disabled={createForm.unlimited}
+                            value={createForm.unlimited ? 0 : createForm.quotaMB}
+                            onChange={(e) => setCreateForm(f => ({ ...f, quotaMB: e.target.value }))}
+                            className="input-fld"
+                          />
+                          <div className="input-checkbox" style={{ marginLeft: 10 }}>
+                            <input
+                              type="checkbox"
+                              checked={createForm.unlimited}
+                              onChange={(e) => setCreateForm(f => ({ ...f, unlimited: e.target.checked }))}
+                            />
+                            Unlimited
+                          </div>
+                        </div>
+                        
+                      </div>
+                    </div>
+                    
+                    <div className="input-group">
+                      <div className="input-box">
+                        <div className="input-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={createForm.sendWelcome}
+                            onChange={(e) => setCreateForm(f => ({ ...f, sendWelcome: e.target.checked }))}
+                          />
+                          Send welcome email to the new mailbox
+                        </div>
+                      </div>
                     </div>
 
-                    <label style={{ ...label, flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <input
-                        type="checkbox"
-                        checked={createForm.sendWelcome}
-                        onChange={(e) => setCreateForm(f => ({ ...f, sendWelcome: e.target.checked }))}
-                      />
-                      Send welcome email to the new mailbox
-                    </label>
-
                     <details>
-                      <summary style={{ cursor: "pointer", color: "#334", fontWeight: 600 }}>Optional Settings</summary>
-                      <label style={{ ...label, flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={createForm.stayAfterCreate}
-                          onChange={(e) => setCreateForm(f => ({ ...f, stayAfterCreate: e.target.checked }))}
-                        />
-                        Stay on this dialog after Create (add multiple)
-                      </label>
+                      <summary className="mt-3">Optional Settings</summary>
+
+                      <div className="input-group mt-1">
+                        <div className="input-box">
+                          <div className="input-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={createForm.stayAfterCreate}
+                              onChange={(e) => setCreateForm(f => ({ ...f, stayAfterCreate: e.target.checked }))}
+                            />
+                            Stay on this dialog after Create (add multiple)
+                          </div>
+                        </div>
+                      </div>
                     </details>
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-                    <button type="button" onClick={closeCreate} style={btn} disabled={creating}>Cancel</button>
+                    <button type="button" onClick={closeCreate} className="light-button" disabled={creating}>Cancel</button>
                     <button
                       type="button"
                       onClick={submitCreate}
-                      style={{ ...btn, borderColor: "#22a06b", color: "#167a4f" }}
+                      className="primary-button"
                       disabled={creating || !canCreate}
                     >
                       {creating ? "Creating…" : "Create"}

@@ -200,6 +200,10 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
     variant: "success",
   });
 
+  useEffect (() => {
+    console.log("Templates:", templates);
+  }, [templates])
+
   useEffect(() => {
     let off = false;
     (async () => {
@@ -445,7 +449,7 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
 
               {!loading &&
                 !error &&
-                templates.map((t) => {
+                templates.map((t, index) => {
                   const isActive = selected === t.templateId;
                   const versions = Array.isArray(t.versions) ? t.versions : [];
                   const verLabel =
@@ -461,7 +465,7 @@ function TemplateChooserCard({ userId, onHomeReady, onPreviewUrlChange }) {
                       <div
                         className="template-snippet"
                         style={{
-                          backgroundImage: `url("/images/preview1.png")`,
+                          backgroundImage: `url("/images/preview${index+1}.png")`,
                         }}
                       >
                         <div className="template-info">
@@ -867,48 +871,49 @@ export default function DashboardHome() {
     }
   }, []);
 
-  // Load current user and ensure a homepage exists for their selected template
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const profile = await api.me();
-        if (cancelled) return;
+  // Load current user and ensure a homepage exists for their selected template 
+  // (Currently disabled to refrain forced signed in)
+  // useEffect(() => {
+  //   let cancelled = false;
+  //   (async () => {
+  //     try {
+  //       const profile = await api.me();
+  //       if (cancelled) return;
 
-        setMe(profile);
+  //       setMe(profile);
 
-        const userId = getUserId();
-        const sel = await api.selectedTemplateForUser(userId);
-        const tplId =
-          sel?.data?.templateId || sel?.templateId || "sir-template-1";
+  //       const userId = getUserId();
+  //       const sel = await api.selectedTemplateForUser(userId);
+  //       const tplId =
+  //         sel?.data?.templateId || sel?.templateId || "sir-template-1";
 
-        // we don't know the tag here; fetch its default from listTemplates
-        const list = await api.listTemplates();
-        const tplObj =
-          (list?.data || []).find((t) => t.templateId === tplId) || {
-            versions: [],
-          };
-        const verTag = defaultVersionFor(tplObj);
+  //       // we don't know the tag here; fetch its default from listTemplates
+  //       const list = await api.listTemplates();
+  //       const tplObj =
+  //         (list?.data || []).find((t) => t.templateId === tplId) || {
+  //           versions: [],
+  //         };
+  //       const verTag = defaultVersionFor(tplObj);
 
-        const pId = await ensureHomeFor(userId, tplId, verTag);
-        if (!cancelled) {
-          setHomePageId(pId || null);
+  //       const pId = await ensureHomeFor(userId, tplId, verTag);
+  //       if (!cancelled) {
+  //         setHomePageId(pId || null);
 
-          // also pre-populate preview URL on first load
-          const url = buildTemplateUrl(userId, tplId, verTag);
-          setPreviewUrl(url);
+  //         // also pre-populate preview URL on first load
+  //         const url = buildTemplateUrl(userId, tplId, verTag);
+  //         setPreviewUrl(url);
 
-          // also keep cookie in sync here
-          setTemplateCookie(tplId, verTag, userId);
-        }
-      } catch (e) {
-        if (!cancelled) router.replace("/authentication/signin");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+  //         // also keep cookie in sync here
+  //         setTemplateCookie(tplId, verTag, userId);
+  //       }
+  //     } catch (e) {
+  //       if (!cancelled) router.replace("/authentication/signin");
+  //     }
+  //   })();
+  //   return () => {
+  //     cancelled = true;
+  //   };
+  // }, [router]);
 
   const userName = me?.user?.fullName || "there";
   const userId = getUserId();
@@ -1239,16 +1244,16 @@ export default function DashboardHome() {
                                 d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"
                               />
                             </svg>
-                            29.99 <small>/month</small>
+                            109 <small>/month</small>
                           </h4>
                           <div className="col-info-wrapper">
                             <div className="col-info">
                               <span className="bold">Next billing date</span>
-                              <span>Nov 01, 2025</span>
+                              <span>Jan 20, 2026</span>
                             </div>
                             <div className="col-info">
                               <span className="bold">Days Remaining</span>
-                              <span>6 Days</span>
+                              <span>12 Days</span>
                             </div>
                           </div>
 

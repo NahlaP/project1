@@ -22,6 +22,7 @@ import 'styles/_user.scss';
 import DefaultDashboardLayout from '../layouts/DefaultDashboardLayout';
 
 const PROD_BACKEND = 'https://project1backend-2xvq.onrender.com';
+const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -99,7 +100,7 @@ function MyApp({ Component, pageProps }) {
         <meta name="keywords" content={keywords} />
         <link
           rel="shortcut icon"
-          href="./images/svg/ION7-iconlogo.webp"
+          href={`${base}/images/svg/ION7-iconlogo.webp`}
           type="image/x-icon"
         />
       </Head>
